@@ -112,21 +112,16 @@ const MODELS = [
   // DeepSeek
   { id: "dsv32", ad: "DeepSeek-V3.2", aile: "DeepSeek", tp: 671, ap: 37, kv: 70, ctx: 128, lis: "MIT", hf: "deepseek-ai/DeepSeek-V3.2-Exp", bench: "IMO 2025 altın seviyesi", benchurl: "https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp" },
   { id: "dsr1", ad: "DeepSeek-R1 (0528)", aile: "DeepSeek", tp: 671, ap: 37, kv: 70, ctx: 128, lis: "MIT", hf: "deepseek-ai/DeepSeek-R1-0528", bench: "AIME2025 ~87%", benchurl: "https://huggingface.co/deepseek-ai/DeepSeek-R1-0528" },
-  { id: "dsv4pro", ad: "DeepSeek-V4-Pro", aile: "DeepSeek", tp: 1600, ap: 49, kv: 75, ctx: 1000, lis: "MIT", hf: "deepseek-ai", benchurl: "https://artificialanalysis.ai/" },
-  { id: "dsv4flash", ad: "DeepSeek-V4-Flash", aile: "DeepSeek", tp: 284, ap: 13, kv: 70, ctx: 1000, lis: "MIT", hf: "deepseek-ai", benchurl: "https://artificialanalysis.ai/" },
 
   // GLM
   { id: "glm46", ad: "GLM-4.6", aile: "GLM", tp: 355, ap: 32, kv: 110, ctx: 200, lis: "MIT", hf: "zai-org/GLM-4.6", bench: "SWE-bench Verified ~68%", benchurl: "https://huggingface.co/zai-org/GLM-4.6" },
   { id: "glm45air", ad: "GLM-4.5-Air", aile: "GLM", tp: 106, ap: 12, kv: 70, ctx: 128, lis: "MIT", hf: "zai-org/GLM-4.5-Air", benchurl: "https://huggingface.co/zai-org/GLM-4.5-Air" },
-  { id: "glm5", ad: "GLM-5", aile: "GLM", tp: 744, ap: 40, kv: 120, ctx: 200, lis: "MIT", hf: "zai-org", bench: "SWE-bench Verified 77.8%", benchurl: "https://www.swebench.com/" },
 
   // Kimi
   { id: "kimik2t", ad: "Kimi K2 Thinking", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2-Thinking", bench: "SWE-bench Verified ~71%", benchurl: "https://huggingface.co/moonshotai/Kimi-K2-Thinking" },
-  { id: "kimik26", ad: "Kimi K2.6", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai", benchurl: "https://lmarena.ai/" },
 
   // MiniMax
   { id: "mm2", ad: "MiniMax-M2", aile: "MiniMax", tp: 230, ap: 10, kv: 90, ctx: 200, lis: "MIT", hf: "MiniMaxAI/MiniMax-M2", bench: "SWE-bench Verified ~69%", benchurl: "https://huggingface.co/MiniMaxAI/MiniMax-M2" },
-  { id: "mm3", ad: "MiniMax-M3", aile: "MiniMax", tp: 428, ap: 23, kv: 90, ctx: 1000, lis: "MIT", hf: "MiniMaxAI", benchurl: "https://artificialanalysis.ai/" },
 
   // Llama
   { id: "l4scout", ad: "Llama 4 Scout 109B-A17B", aile: "Llama", tp: 109, ap: 17, kv: 80, ctx: 10000, lis: "Llama 4 Community", hf: "meta-llama/Llama-4-Scout-17B-16E-Instruct", benchurl: "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct" },
@@ -135,8 +130,6 @@ const MODELS = [
   // Mistral
   { id: "msmall32", ad: "Mistral Small 3.2 24B", aile: "Mistral", tp: 24, ap: 24, kv: 64, ctx: 128, lis: "Apache 2.0", hf: "mistralai/Mistral-Small-3.2-24B-Instruct-2506", benchurl: "https://huggingface.co/mistralai/Mistral-Small-3.2-24B-Instruct-2506" },
   { id: "devsmall", ad: "Devstral Small 1.1 24B", aile: "Mistral", tp: 24, ap: 24, kv: 64, ctx: 128, lis: "Apache 2.0", hf: "mistralai/Devstral-Small-2507", bench: "SWE-bench Verified 53.6%", benchurl: "https://huggingface.co/mistralai/Devstral-Small-2507" },
-  { id: "devstral2", ad: "Devstral 2 123B (dense)", aile: "Mistral", tp: 123, ap: 123, kv: 200, ctx: 256, lis: "Mistral Research License", hf: "mistralai", bench: "SWE-bench Verified 72.2%", benchurl: "https://www.swebench.com/" },
-  { id: "mlarge3", ad: "Mistral Large 3 675B-A41B", aile: "Mistral", tp: 675, ap: 41, kv: 120, ctx: 256, lis: "Mistral Research License", hf: "mistralai", benchurl: "https://artificialanalysis.ai/" },
 
   // gpt-oss
   { id: "oss120", ad: "gpt-oss-120b", aile: "gpt-oss", tp: 117, ap: 5.1, kv: 72, ctx: 128, lis: "Apache 2.0", hf: "openai/gpt-oss-120b", bench: "MMLU ~90 / AIME2025 97.9%", benchurl: "https://huggingface.co/openai/gpt-oss-120b" },
@@ -271,18 +264,6 @@ function quantUyum(cihaz, quantId) {
 const DUSUK_QUANT_ONER = {
   bf16: "FP8", fp8: "NVFP4 veya Q4", nvfp4: "Q4", q4: "Q3", q4qat: "Q3", q3: "daha fazla adet",
 };
-
-/* Benchmark / leaderboard kaynakları */
-const LEADERBOARDS = [
-  { name: "Artificial Analysis", url: "https://artificialanalysis.ai/", not: "Zeka endeksi, hız ve fiyat karşılaştırması" },
-  { name: "LMArena (Chatbot Arena)", url: "https://lmarena.ai/", not: "İnsan oylarıyla canlı Elo sıralaması" },
-  { name: "LiveBench", url: "https://livebench.ai/", not: "Kirlenmeye dirençli, sürekli yenilenen testler" },
-  { name: "SWE-bench", url: "https://www.swebench.com/", not: "Gerçek yazılım hatası çözme (kodlama)" },
-  { name: "Aider Leaderboards", url: "https://aider.chat/docs/leaderboards/", not: "Kod düzenleme başarımı" },
-  { name: "HF Open LLM Leaderboard", url: "https://huggingface.co/open-llm-leaderboard", not: "Açık modeller için standart akademik testler" },
-  { name: "Vellum LLM Leaderboard", url: "https://www.vellum.ai/open-llm-leaderboard", not: "Derli toplu karşılaştırma tablosu" },
-  { name: "llm-stats.com", url: "https://llm-stats.com/benchmarks", not: "Benchmark + fiyat/bağlam veritabanı" },
-];
 
 /* Yeni başlayanlar için sade kavram anlatımı */
 const KAVRAMLAR = [
@@ -631,6 +612,13 @@ export default function Simulator() {
     const uyum = quantUyum(cihaz, quant);
     out.push({ tip: uyum.tip, baslik: `${qAktif.ad} · ${cihaz.ad}`, metin: uyum.mesaj });
 
+    if (quant === "bf16" && kvq === "fp16")
+      out.push({
+        tip: "olumlu",
+        baslik: "Kuantizasyon yok — indirdiğin gibi",
+        metin: "Bu ayar, modeli HuggingFace'ten indirip olduğu gibi çalıştırmaktır (tam hassasiyet). Belleğe sığıyorsa kuantizasyon yapmana hiç gerek yok. Sığmıyorsa aşağıdaki bit seviyelerini düşürerek küçültebilirsin.",
+      });
+
     const kv = KVQUANTS.find((x) => x.id === kvq);
     if (kvq !== "fp16")
       out.push({ tip: "bilgi", baslik: `KV cache: ${kv.ad}`, metin: kv.not });
@@ -799,44 +787,6 @@ export default function Simulator() {
             ))}
           </div>
         )}
-      </Kutu>
-
-      {/* Benchmark kaynakları */}
-      <Kutu style={{ marginBottom: 18 }}>
-        <Etiket>Benchmark kaynakları — modelleri karşılaştır</Etiket>
-        <div style={{ fontSize: 12.5, color: C.ink2, marginTop: 2, marginBottom: 12 }}>
-          Her modelin kendi HuggingFace kartında kendi benchmark tablosu vardır. Modeller arası
-          bağımsız karşılaştırma için aşağıdaki güncel leaderboard'ları kullan.
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 10,
-          }}
-        >
-          {LEADERBOARDS.map((l) => (
-            <a
-              key={l.name}
-              href={l.url}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: "block",
-                textDecoration: "none",
-                background: C.wash,
-                border: `1px solid ${C.line2}`,
-                borderRadius: 3,
-                padding: "10px 12px",
-              }}
-            >
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: C.steel }}>↗ {l.name}</div>
-              <div style={{ fontSize: 11.5, color: C.ink2, marginTop: 3, lineHeight: 1.45 }}>
-                {l.not}
-              </div>
-            </a>
-          ))}
-        </div>
       </Kutu>
 
       <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-start" }}>
@@ -1112,6 +1062,14 @@ export default function Simulator() {
               Kuantizasyon, model ağırlıklarını daha az bitle saklamaktır: daha az bit → daha az bellek
               ve daha hızlı okuma, karşılığında bir miktar kalite kaybı. Amaç, modeli donanıma
               sığdırırken kaybı kabul edilebilir tutmak.
+              <br />
+              <br />
+              <b style={{ color: C.ink }}>Zorunlu değildir.</b> HuggingFace'ten modeli indirdiğinde
+              varsayılan olarak tam hassasiyet (BF16) ağırlık ve FP16 KV cache gelir — bu "hiç
+              kuantizasyon yok" halidir ve <b>belleğe sığdığı sürece olduğu gibi çalışır</b>. Ama tam
+              hassasiyet parametre başına ~2 bayttır (30B model ≈ 60 GB); çoğu kişi kuantize eder çünkü
+              tam hâli tüketici kartına sığmaz. Yani: sığıyorsa mecbur değilsin, sığmıyorsa ya da
+              hızlanmasını istiyorsan küçültürsün.
             </div>
             <div
               style={{
