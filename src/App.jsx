@@ -869,7 +869,8 @@ export default function Simulator() {
   const [cikti, setCikti] = useState(800);
   const [cihazId, setCihazId] = useState("pro6000");
   const [adet, setAdet] = useState(2);
-  const [topoloji, setTopoloji] = useState("bagimsiz");
+  // Birden çok cihaz seçilince tek küme olarak birleştirilir (tensör paralelliği).
+  const topoloji = "kume";
   const [siralama, setSiralama] = useState("verim");
   const [kavramAcik, setKavramAcik] = useState(true);
 
@@ -969,7 +970,7 @@ export default function Simulator() {
         metin: `${model.ad} zaten küçük; Q3 kalite kaybı bu boyutta oransal olarak daha çok hissedilir. FP8 ya da Q4 daha dengeli olur.`,
       });
 
-    if (topoloji === "kume" && adet > 1 && r.link === "net")
+    if (adet > 1 && r.link === "net")
       out.push({
         tip: "uyari",
         baslik: "Ağ üzerinden kümeleme yavaş",
@@ -1318,10 +1319,12 @@ export default function Simulator() {
               goster={`${adet} adet`}
             />
 
-            <Secim etiket="Topoloji" deger={topoloji} onChange={setTopoloji}>
-              <option value="bagimsiz">Bağımsız düğüm — her cihazda ayrı model kopyası</option>
-              <option value="kume">Tek küme — tensör paralelliği ile birleştir</option>
-            </Secim>
+            {adet > 1 && (
+              <div style={{ fontSize: 11.5, color: C.ink3, marginBottom: 14, lineHeight: 1.5 }}>
+                {adet} cihaz tek küme olarak birleştirilir (tensör paralelliği); bellek toplanır,
+                bağlantı verimi hesaba katılır.
+              </div>
+            )}
 
             <div
               style={{
@@ -1343,7 +1346,7 @@ export default function Simulator() {
               <span style={{ color: TR_DURUM[cihaz.tr].renk }}>
                 TR: {TR_DURUM[cihaz.tr].ad}
               </span>
-              {adet > 1 && topoloji === "kume" && (
+              {adet > 1 && (
                 <>
                   <br />
                   <span style={{ color: r.tpEtki < 0.5 ? C.bad : C.ink2 }}>
@@ -1378,7 +1381,7 @@ export default function Simulator() {
               </div>
               <div style={{ fontSize: 12, color: C.ink2, marginTop: 3 }}>
                 {adet} × {cihaz.ad}
-                {topoloji === "kume" && adet > 1 ? " (tek küme)" : ""} · {model.ad}
+                {adet > 1 ? " (tek küme)" : ""} · {model.ad}
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -1880,7 +1883,7 @@ export default function Simulator() {
       </div>
 
       <ChatBot
-        baglam={`Model: ${model.ad} (${model.tp}B/${model.ap}B, ${model.lis}). Donanım: ${adet} × ${cihaz.ad} (${cihaz.mem}GB, Türkiye: ${TR_DURUM[cihaz.tr].kisa}), topoloji ${topoloji}. Ayar: ${indirGibi ? "BF16 + FP16 KV (indirdiğin gibi, kuantizasyon yok)" : `${quant} ağırlık / ${kvq} KV`}, ${ctxK}K bağlam, ${kullanici} eşzamanlı kullanıcı. Sonuç: ${r.sigar ? `sığıyor, ~${Math.round(r.toplamTokS)} tok/s toplam, kullanıcı başına ~${r.kullaniciTokS.toFixed(1)} tok/s, bellek %${Math.round(r.doluluk * 100)} dolu` : `SIĞMIYOR (en az ${r.minAdet || "16+"} adet gerekir)`}.`}
+        baglam={`Model: ${model.ad} (${model.tp}B/${model.ap}B, ${model.lis}). Donanım: ${adet} × ${cihaz.ad} (${cihaz.mem}GB, Türkiye: ${TR_DURUM[cihaz.tr].kisa})${adet > 1 ? " tek küme (tensör paralel)" : ""}. Ayar: ${indirGibi ? "BF16 + FP16 KV (indirdiğin gibi, kuantizasyon yok)" : `${quant} ağırlık / ${kvq} KV`}, ${ctxK}K bağlam, ${kullanici} eşzamanlı kullanıcı. Sonuç: ${r.sigar ? `sığıyor, ~${Math.round(r.toplamTokS)} tok/s toplam, kullanıcı başına ~${r.kullaniciTokS.toFixed(1)} tok/s, bellek %${Math.round(r.doluluk * 100)} dolu` : `SIĞMIYOR (en az ${r.minAdet || "16+"} adet gerekir)`}.`}
       />
     </div>
   );
