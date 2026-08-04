@@ -892,7 +892,7 @@ export default function Simulator() {
   const [kvq, setKvq] = useState("fp16");
   const [indirGibi, setIndirGibi] = useState(true);
   const [ctxK, setCtxK] = useState(64);
-  const [kullanici, setKullanici] = useState(8);
+  const [kullanici, setKullanici] = useState(4);
   const [cikti, setCikti] = useState(800);
   const [cihazId, setCihazId] = useState("pro6000");
   const [adet, setAdet] = useState(2);
@@ -1599,9 +1599,20 @@ export default function Simulator() {
                   lineHeight: 1.6,
                 }}
               >
-                Bu iş yükü için en az <b>{r.minAdet ? `${r.minAdet} adet` : "16+ adet"}</b> gerekiyor.
-                Alternatif olarak bağlamı <b>{r.maxCtxK.toFixed(0)}K</b> altına indir veya eşzamanlı
-                kullanıcıyı <b>{r.maxKullanici}</b> kişiye düşür.
+                {r.agirlikGB <= r.dugumBellek ? (
+                  <>
+                    Ağırlıklar (<b>{r.agirlikGB.toFixed(0)} GB</b>) sığıyor; taşıran şey{" "}
+                    <b>KV cache ({r.kvGB.toFixed(0)} GB)</b> — {kullanici} kullanıcı × {ctxYazi(ctxK)}{" "}
+                    bağlam. En etkili çözüm: KV cache'i FP8/Q4 yap, kullanıcıyı{" "}
+                    <b>{r.maxKullanici}</b>'e veya bağlamı <b>{ctxYazi(Math.max(0, Math.floor(r.maxCtxK)))}</b>'e düşür.
+                  </>
+                ) : (
+                  <>
+                    Ağırlıklar tek başına ({r.agirlikGB.toFixed(0)} GB) bu belleğe sığmıyor. Daha düşük
+                    kuantizasyon (ör. FP8/Q4) ya da en az <b>{r.minAdet ? `${r.minAdet} adet` : "16+ adet"}</b>{" "}
+                    cihaz gerekir.
+                  </>
+                )}
               </div>
             )}
           </Kutu>
