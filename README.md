@@ -20,6 +20,39 @@ npm run preview  # derlemeyi önizle
 - React 18 + Vite
 - Recharts (grafikler)
 
+## Chatbot (DeepSeek) — anahtarı güvende tutan kurulum
+
+Chatbot iki şekilde çalışır:
+
+1. **Anahtarsız / güvenli mod (önerilen):** Küçük bir Cloudflare Worker aracısı
+   kurarsın; DeepSeek anahtarı Cloudflare'de gizli kalır, tarayıcıya hiç inmez,
+   kullanıcı anahtar girmez. Repo public kalabilir.
+2. **Yerel anahtar modu:** `PROXY_URL` boşsa, her kullanıcı kendi DeepSeek
+   anahtarını tarayıcıya girer (yalnızca kendi cihazında saklanır).
+
+### Güvenli modu kurmak (Cloudflare Worker — ücretsiz, ~5 dk)
+
+Neden gerekli: statik site herkese açıktır; anahtarı JS'e gömersen tarayıcıdan
+okunur ve sızar. Worker, anahtarı sunucu tarafında tutarak bunu çözer.
+
+1. [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** →
+   **Create** → **Create Worker**. Bir isim ver, **Deploy** de.
+2. **Edit code** → açılan editöre depodaki [`worker.js`](./worker.js) içeriğini
+   yapıştır → **Deploy**.
+3. Worker'ın **Settings → Variables and Secrets** bölümünde **Add** →
+   tür **Secret**, isim **`DEEPSEEK_KEY`**, değer olarak DeepSeek API anahtarını
+   gir → **Save/Deploy**. (Anahtar yalnızca burada durur; koda/depoya girmez.)
+4. Worker'ın adresini kopyala (ör. `https://xxx.workers.dev`). `worker.js`
+   içindeki `IZINLI_ORIGIN` listesinde `https://furkanyesildag.github.io`
+   yazdığından emin ol.
+5. `src/App.jsx` içindeki `const PROXY_URL = "";` satırına bu adresi yaz:
+   `const PROXY_URL = "https://xxx.workers.dev";` → commit et. GitHub Actions
+   otomatik yeniden dağıtır.
+
+Artık chatbot anahtar istemeden çalışır ve anahtar hiçbir zaman tarayıcıda
+görünmez. (Worker yalnızca izinli origin'den gelen istekleri kabul eder ve
+sadece sohbet uç noktasına, sabit modele izin verir.)
+
 ## GitHub Pages dağıtımı
 
 `.github/workflows/deploy.yml` iş akışı; `claude/llm-capacity-simulator-3hy4gm`

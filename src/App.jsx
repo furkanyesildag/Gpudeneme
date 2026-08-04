@@ -335,9 +335,16 @@ function bilgiTabani() {
   return `MODELLER:\n${m}\n\nCİHAZLAR:\n${d}\n\nAĞIRLIK KUANTİZASYONU: ${q}\nKV CACHE KUANT: FP16 (tam), FP8 (yarı yer), Q4 (çeyrek yer).\n\nNASIL HESAPLANIR: gerekli bellek ≈ ağırlık(param × bayt/param) + KV cache(kullanıcı × bağlam × KV/token) + çalışma payı. Token üretim hızı bellek BANT GENİŞLİĞİ ile sınırlıdır (işlem gücü değil); MoE'de aktif parametre belirleyicidir. Kuantizasyon OPSİYONELDİR: BF16 + FP16 KV = modeli indirip olduğu gibi çalıştırmak (belleğe sığarsa gerek yok). Çok kart tek küme yapılınca bağlantı verimi NVLink>PCIe>ağ.`;
 }
 
+/* Cloudflare Worker aracı adresi. Worker'ı kurup URL'ini buraya yapıştırınca
+   chatbot anahtar İSTEMEDEN çalışır (anahtar Worker'da gizli kalır).
+   Boş bırakılırsa chatbot, kullanıcının tarayıcıya girdiği anahtarla çalışır.
+   Bu URL gizli değildir; depoda durması güvenlidir. */
+const PROXY_URL = "";
+
 const SISTEM_PROMPT = `Sen "Yerel LLM Kapasite Simülasyonu" adlı aracın uzman danışmanısın. Kullanıcının açık ağırlıklı / yerel LLM altyapısı sorularını —donanım seçimi, kaç adet gerekir, kuantizasyon, bellek bütçesi, token hızı, ilk token gecikmesi, Türkiye'de tedarik, maliyet, hangi model uygun— PROFESYONEL, net ve pratik biçimde TÜRKÇE yanıtla. Aşağıdaki veriyi temel al; sayı UYDURMA, bilmediğini açıkça söyle. Kısa ama doyurucu ol, gerektiğinde madde madde ver, somut öneri yap. Aşağıdaki bilgi tabanı senin gerçeğindir:\n\n${bilgiTabani()}`;
 
 function ChatBot({ baglam }) {
+  const proxyModu = !!PROXY_URL;
   const [acik, setAcik] = React.useState(false);
   const [key, setKey] = React.useState(() => {
     try {
@@ -387,9 +394,13 @@ function ChatBot({ baglam }) {
     setYukleniyor(true);
     try {
       const sys = SISTEM_PROMPT + (baglam ? `\n\nKULLANICININ ŞU ANKİ SEÇİMİ:\n${baglam}` : "");
-      const res = await fetch("https://api.deepseek.com/chat/completions", {
+      const endpoint = proxyModu ? PROXY_URL : "https://api.deepseek.com/chat/completions";
+      const headers = proxyModu
+        ? { "Content-Type": "application/json" }
+        : { "Content-Type": "application/json", Authorization: `Bearer ${key}` };
+      const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        headers,
         body: JSON.stringify({
           model: "deepseek-chat",
           temperature: 0.3,
@@ -466,7 +477,7 @@ function ChatBot({ baglam }) {
               <div style={{ fontSize: 10.5, color: "#B7C0C7", fontFamily: MONO }}>DeepSeek ile</div>
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {key && (
+              {!proxyModu && key && (
                 <button onClick={anahtarSil} title="Anahtarı sil" style={ikonBtnStil}>
                   anahtar ✕
                 </button>
@@ -477,7 +488,7 @@ function ChatBot({ baglam }) {
             </div>
           </div>
 
-          {!key ? (
+          {!proxyModu && !key ? (
             <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto" }}>
               <div style={{ fontSize: 12.5, color: C.ink2, lineHeight: 1.55 }}>
                 Sohbet için <b>DeepSeek API anahtarını</b> gir. Anahtar yalnızca bu tarayıcıda
