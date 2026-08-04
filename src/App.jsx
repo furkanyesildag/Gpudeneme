@@ -46,37 +46,37 @@ const SANS =
 
 const DEVICES = [
   // --- Hazır kutular / appliance ---
-  { id: "spark", ad: "NVIDIA DGX Spark (GB10)", grup: "Hazır kutu", mem: 128, bw: 273, tf: 125, fiyat: 4699, w: 240, tur: "kutu", link: "net", mbu: 0.58 },
-  { id: "station", ad: "DGX Station / MSI WS300 (GB300)", grup: "Hazır kutu", mem: 784, bw: 5000, tf: 4000, fiyat: 50000, w: 1800, tur: "kutu", link: "nvlink", mbu: 0.7 },
-  { id: "gx10", ad: "ASUS Ascent GX10 (GB10)", grup: "Hazır kutu", mem: 128, bw: 273, tf: 125, fiyat: 3299, w: 240, tur: "kutu", link: "net", mbu: 0.58 },
-  { id: "m3u512", ad: "Mac Studio M3 Ultra 512 GB", grup: "Hazır kutu", mem: 512, bw: 819, tf: 110, fiyat: 9499, w: 270, tur: "kutu", link: "net", mbu: 0.52 },
-  { id: "m3u256", ad: "Mac Studio M3 Ultra 256 GB", grup: "Hazır kutu", mem: 256, bw: 819, tf: 110, fiyat: 7499, w: 270, tur: "kutu", link: "net", mbu: 0.52 },
-  { id: "m4max", ad: "Mac Studio M4 Max 128 GB", grup: "Hazır kutu", mem: 128, bw: 546, tf: 70, fiyat: 3699, w: 160, tur: "kutu", link: "net", mbu: 0.52 },
-  { id: "strix", ad: "Framework Desktop (Strix Halo 128 GB)", grup: "Hazır kutu", mem: 128, bw: 256, tf: 60, fiyat: 2200, w: 140, tur: "kutu", link: "net", mbu: 0.5 },
+  { id: "spark", ad: "NVIDIA DGX Spark (GB10)", grup: "Hazır kutu", mem: 128, bw: 273, tf: 125, fiyat: 4699, w: 240, tur: "kutu", link: "net", mbu: 0.58, tr: "ithal", mim: "gb10" },
+  { id: "station", ad: "DGX Station / MSI WS300 (GB300)", grup: "Hazır kutu", mem: 784, bw: 5000, tf: 4000, fiyat: 50000, w: 1800, tur: "kutu", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "gb300" },
+  { id: "gx10", ad: "ASUS Ascent GX10 (GB10)", grup: "Hazır kutu", mem: 128, bw: 273, tf: 125, fiyat: 3299, w: 240, tur: "kutu", link: "net", mbu: 0.58, tr: "ithal", mim: "gb10" },
+  { id: "m3u512", ad: "Mac Studio M3 Ultra 512 GB", grup: "Hazır kutu", mem: 512, bw: 819, tf: 110, fiyat: 9499, w: 270, tur: "kutu", link: "net", mbu: 0.52, tr: "sinirli", mim: "apple" },
+  { id: "m3u256", ad: "Mac Studio M3 Ultra 256 GB", grup: "Hazır kutu", mem: 256, bw: 819, tf: 110, fiyat: 7499, w: 270, tur: "kutu", link: "net", mbu: 0.52, tr: "kolay", mim: "apple" },
+  { id: "m4max", ad: "Mac Studio M4 Max 128 GB", grup: "Hazır kutu", mem: 128, bw: 546, tf: 70, fiyat: 3699, w: 160, tur: "kutu", link: "net", mbu: 0.52, tr: "kolay", mim: "apple" },
+  { id: "strix", ad: "Framework Desktop (Strix Halo 128 GB)", grup: "Hazır kutu", mem: 128, bw: 256, tf: 60, fiyat: 2200, w: 140, tur: "kutu", link: "net", mbu: 0.5, tr: "ithal", mim: "amd" },
 
   // --- İş istasyonu kartları ---
-  { id: "pro6000", ad: "RTX PRO 6000 Blackwell 96 GB", grup: "İş istasyonu kartı", mem: 96, bw: 1792, tf: 1000, fiyat: 13250, w: 600, tur: "kart", link: "pcie", mbu: 0.65 },
-  { id: "pro5000_72", ad: "RTX PRO 5000 Blackwell 72 GB", grup: "İş istasyonu kartı", mem: 72, bw: 1344, tf: 700, fiyat: 7000, w: 300, tur: "kart", link: "pcie", mbu: 0.65 },
-  { id: "pro5000_48", ad: "RTX PRO 5000 Blackwell 48 GB", grup: "İş istasyonu kartı", mem: 48, bw: 1344, tf: 700, fiyat: 4500, w: 300, tur: "kart", link: "pcie", mbu: 0.65 },
-  { id: "pro4500", ad: "RTX PRO 4500 Blackwell 32 GB", grup: "İş istasyonu kartı", mem: 32, bw: 896, tf: 450, fiyat: 2600, w: 200, tur: "kart", link: "pcie", mbu: 0.65 },
-  { id: "l40s", ad: "NVIDIA L40S 48 GB", grup: "İş istasyonu kartı", mem: 48, bw: 864, tf: 733, fiyat: 8000, w: 350, tur: "kart", link: "pcie", mbu: 0.65 },
+  { id: "pro6000", ad: "RTX PRO 6000 Blackwell 96 GB", grup: "İş istasyonu kartı", mem: 96, bw: 1792, tf: 1000, fiyat: 13250, w: 600, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
+  { id: "pro5000_72", ad: "RTX PRO 5000 Blackwell 72 GB", grup: "İş istasyonu kartı", mem: 72, bw: 1344, tf: 700, fiyat: 7000, w: 300, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
+  { id: "pro5000_48", ad: "RTX PRO 5000 Blackwell 48 GB", grup: "İş istasyonu kartı", mem: 48, bw: 1344, tf: 700, fiyat: 4500, w: 300, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
+  { id: "pro4500", ad: "RTX PRO 4500 Blackwell 32 GB", grup: "İş istasyonu kartı", mem: 32, bw: 896, tf: 450, fiyat: 2600, w: 200, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
+  { id: "l40s", ad: "NVIDIA L40S 48 GB", grup: "İş istasyonu kartı", mem: 48, bw: 864, tf: 733, fiyat: 8000, w: 350, tur: "kart", link: "pcie", mbu: 0.65, tr: "kurumsal", mim: "ada" },
 
   // --- Tüketici kartları ---
-  { id: "5090", ad: "GeForce RTX 5090 32 GB", grup: "Tüketici kartı", mem: 32, bw: 1792, tf: 838, fiyat: 2200, w: 575, tur: "kart", link: "pcie", mbu: 0.63 },
-  { id: "4090", ad: "GeForce RTX 4090 24 GB", grup: "Tüketici kartı", mem: 24, bw: 1008, tf: 660, fiyat: 1800, w: 450, tur: "kart", link: "pcie", mbu: 0.63 },
-  { id: "3090", ad: "GeForce RTX 3090 24 GB (2. el)", grup: "Tüketici kartı", mem: 24, bw: 936, tf: 285, fiyat: 800, w: 350, tur: "kart", link: "pcie", mbu: 0.6 },
+  { id: "5090", ad: "GeForce RTX 5090 32 GB", grup: "Tüketici kartı", mem: 32, bw: 1792, tf: 838, fiyat: 2200, w: 575, tur: "kart", link: "pcie", mbu: 0.63, tr: "kolay", mim: "blackwell" },
+  { id: "4090", ad: "GeForce RTX 4090 24 GB", grup: "Tüketici kartı", mem: 24, bw: 1008, tf: 660, fiyat: 1800, w: 450, tur: "kart", link: "pcie", mbu: 0.63, tr: "kolay", mim: "ada" },
+  { id: "3090", ad: "GeForce RTX 3090 24 GB (2. el)", grup: "Tüketici kartı", mem: 24, bw: 936, tf: 285, fiyat: 800, w: 350, tur: "kart", link: "pcie", mbu: 0.6, tr: "kolay", mim: "ampere" },
 
   // --- Veri merkezi ---
-  { id: "a100", ad: "NVIDIA A100 80 GB", grup: "Veri merkezi", mem: 80, bw: 2039, tf: 624, fiyat: 15000, w: 400, tur: "kart", link: "nvlink", mbu: 0.7 },
-  { id: "h100p", ad: "NVIDIA H100 PCIe 80 GB", grup: "Veri merkezi", mem: 80, bw: 2000, tf: 1513, fiyat: 25000, w: 350, tur: "kart", link: "pcie", mbu: 0.7 },
-  { id: "h100s", ad: "NVIDIA H100 SXM 80 GB", grup: "Veri merkezi", mem: 80, bw: 3350, tf: 1979, fiyat: 30000, w: 700, tur: "kart", link: "nvlink", mbu: 0.72 },
-  { id: "h200", ad: "NVIDIA H200 SXM 141 GB", grup: "Veri merkezi", mem: 141, bw: 4800, tf: 1979, fiyat: 32000, w: 700, tur: "kart", link: "nvlink", mbu: 0.72 },
-  { id: "b200", ad: "NVIDIA B200 192 GB", grup: "Veri merkezi", mem: 192, bw: 8000, tf: 4500, fiyat: 40000, w: 1000, tur: "kart", link: "nvlink", mbu: 0.74 },
+  { id: "a100", ad: "NVIDIA A100 80 GB", grup: "Veri merkezi", mem: 80, bw: 2039, tf: 624, fiyat: 15000, w: 400, tur: "kart", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "ampere" },
+  { id: "h100p", ad: "NVIDIA H100 PCIe 80 GB", grup: "Veri merkezi", mem: 80, bw: 2000, tf: 1513, fiyat: 25000, w: 350, tur: "kart", link: "pcie", mbu: 0.7, tr: "kurumsal", mim: "hopper" },
+  { id: "h100s", ad: "NVIDIA H100 SXM 80 GB", grup: "Veri merkezi", mem: 80, bw: 3350, tf: 1979, fiyat: 30000, w: 700, tur: "kart", link: "nvlink", mbu: 0.72, tr: "kurumsal", mim: "hopper" },
+  { id: "h200", ad: "NVIDIA H200 SXM 141 GB", grup: "Veri merkezi", mem: 141, bw: 4800, tf: 1979, fiyat: 32000, w: 700, tur: "kart", link: "nvlink", mbu: 0.72, tr: "kurumsal", mim: "hopper" },
+  { id: "b200", ad: "NVIDIA B200 192 GB", grup: "Veri merkezi", mem: 192, bw: 8000, tf: 4500, fiyat: 40000, w: 1000, tur: "kart", link: "nvlink", mbu: 0.74, tr: "kurumsal", mim: "blackwell" },
 
   // --- Uç / saha ---
-  { id: "thor", ad: "Jetson AGX Thor 128 GB", grup: "Uç / saha", mem: 128, bw: 273, tf: 400, fiyat: 3499, w: 130, tur: "kutu", link: "net", mbu: 0.55 },
-  { id: "agxorin", ad: "Jetson AGX Orin 64 GB", grup: "Uç / saha", mem: 64, bw: 204, tf: 138, fiyat: 1999, w: 60, tur: "kutu", link: "net", mbu: 0.55 },
-  { id: "orinnano", ad: "Jetson Orin Nano Super 8 GB", grup: "Uç / saha", mem: 8, bw: 102, tf: 33, fiyat: 499, w: 25, tur: "kutu", link: "net", mbu: 0.55 },
+  { id: "thor", ad: "Jetson AGX Thor 128 GB", grup: "Uç / saha", mem: 128, bw: 273, tf: 400, fiyat: 3499, w: 130, tur: "kutu", link: "net", mbu: 0.55, tr: "sinirli", mim: "thor" },
+  { id: "agxorin", ad: "Jetson AGX Orin 64 GB", grup: "Uç / saha", mem: 64, bw: 204, tf: 138, fiyat: 1999, w: 60, tur: "kutu", link: "net", mbu: 0.55, tr: "sinirli", mim: "ampere" },
+  { id: "orinnano", ad: "Jetson Orin Nano Super 8 GB", grup: "Uç / saha", mem: 8, bw: 102, tf: 33, fiyat: 499, w: 25, tur: "kutu", link: "net", mbu: 0.55, tr: "kolay", mim: "ampere" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -134,19 +134,107 @@ const MODELS = [
 ];
 
 const QUANTS = [
-  { id: "bf16", ad: "BF16 / FP16", bpp: 2.0, kayip: "referans" },
-  { id: "fp8", ad: "FP8", bpp: 1.0, kayip: "~%1" },
-  { id: "nvfp4", ad: "NVFP4 / MXFP4", bpp: 0.55, kayip: "~%2-3" },
-  { id: "q4", ad: "Q4_K_M (GGUF)", bpp: 0.6, kayip: "~%3-5" },
-  { id: "q4qat", ad: "Q4 QAT", bpp: 0.6, kayip: "~%1-2" },
-  { id: "q3", ad: "Q3 (agresif)", bpp: 0.45, kayip: "~%8+" },
+  {
+    id: "bf16", ad: "BF16 / FP16", bpp: 2.0, kayip: "referans", bit: "16 bit",
+    ne: "Modelin eğitildiği tam hassasiyet. Hiçbir sıkıştırma yok.",
+    arti: "En yüksek kalite; bozulma sıfır.",
+    eksi: "En yüksek bellek ve bant genişliği — her şey 2 kat yer kaplar, okuma da yavaşlar.",
+    nezaman: "Kalite referansı olarak veya doğruluk kritikse ve belleğin bolsa.",
+  },
+  {
+    id: "fp8", ad: "FP8", bpp: 1.0, kayip: "~%1", bit: "8 bit",
+    ne: "8-bit kayan nokta. Ağırlık başına 1 bayt.",
+    arti: "Belleği ve bant genişliğini yarıya indirir, kaliteyi neredeyse hiç bozmaz; modern NVIDIA kartlarında donanımda hızlandırılır.",
+    eksi: "Yerel destek Hopper, Ada ve Blackwell ile sınırlı; Ampere/Apple/AMD'de avantaj kaybolur.",
+    nezaman: "Modern NVIDIA donanımında pratik varsayılan tercih.",
+  },
+  {
+    id: "nvfp4", ad: "NVFP4 / MXFP4", bpp: 0.55, kayip: "~%2-3", bit: "~4 bit",
+    ne: "4-bit blok kayan nokta — yeni nesil düşük-bit format.",
+    arti: "Belleği dörtte bire yakın düşürür; Blackwell'de donanım hızlandırmalı, kalitesi düz Q4'ten iyi.",
+    eksi: "Donanım hızlandırması yalnızca Blackwell'de (RTX 50, RTX PRO Blackwell, B200, GB10/GB300, Thor). Diğerlerinde yazılımla, yavaş.",
+    nezaman: "Blackwell donanımın varsa en iyi bellek/kalite dengesi.",
+  },
+  {
+    id: "q4", ad: "Q4_K_M (GGUF)", bpp: 0.6, kayip: "~%3-5", bit: "~4 bit",
+    ne: "llama.cpp/GGUF'un yaygın karışık 4-bit şeması.",
+    arti: "CPU dahil her donanımda çalışır (Apple, AMD, NVIDIA). Belleği büyük ölçüde düşürür; en yaygın yerel format.",
+    eksi: "Kalite BF16'ya göre bir miktar düşer; hız yine bellek sınırlı kalır.",
+    nezaman: "Apple/AMD veya karışık donanımda pratik yerel varsayılan.",
+  },
+  {
+    id: "q4qat", ad: "Q4 QAT", bpp: 0.6, kayip: "~%1-2", bit: "~4 bit",
+    ne: "Kuantizasyona duyarlı eğitilmiş (QAT) 4-bit ağırlık.",
+    arti: "Q4 boyutunda ama kalite kaybı çok daha az — model bu bit derinliğine göre ayarlanmış.",
+    eksi: "Yalnızca üreticinin QAT sürümü yayımladığı modellerde bulunur.",
+    nezaman: "Model bir QAT sürümü sunuyorsa düz Q4 yerine daima bunu seç.",
+  },
+  {
+    id: "q3", ad: "Q3 (agresif)", bpp: 0.45, kayip: "~%8+", bit: "~3 bit",
+    ne: "3-bit sıkıştırma — sınırı zorlayan agresif kuantizasyon.",
+    arti: "En düşük bellek; çok büyük modeli küçük donanıma sığdırabilir.",
+    eksi: "Kalite gözle görülür düşer: tutarsızlık, tekrar ve akıl yürütme hataları artar.",
+    nezaman: "Yalnızca model başka türlü hiç sığmıyorsa, son çare.",
+  },
 ];
 
 const KVQUANTS = [
-  { id: "fp16", ad: "FP16", f: 1.0 },
-  { id: "fp8", ad: "FP8 / q8_0", f: 0.5 },
-  { id: "q4", ad: "Q4", f: 0.25 },
+  { id: "fp16", ad: "FP16", f: 1.0, not: "Tam hassasiyet KV cache. En güvenli, en çok yer kaplar." },
+  { id: "fp8", ad: "FP8 / q8_0", f: 0.5, not: "KV cache'i yarıya indirir; kalite etkisi çoğu işte ihmal edilebilir. İyi denge." },
+  { id: "q4", ad: "Q4", f: 0.25, not: "KV cache'i dörtte bire indirir; uzun bağlamda bol yer açar ama çok uzun bağlamda doğruluk düşebilir." },
 ];
+
+/* Türkiye tedarik durumu */
+const TR_DURUM = {
+  kolay: { ad: "Türkiye'de perakende satılıyor", kisa: "Satılıyor", renk: C.ok },
+  sinirli: { ad: "Yetkili satıcı / sipariş", kisa: "Sipariş", renk: C.steel },
+  ithal: { ad: "İthal · gümrük + KDV", kisa: "İthal", renk: C.warn },
+  kurumsal: { ad: "Kurumsal / veri merkezi kanalı", kisa: "Kurumsal", renk: C.bad },
+};
+
+const TR_NOT = {
+  kolay: "Türkiye'de perakende bulunuyor; yine de fiyatlar döviz kuru ve stokla oynar.",
+  sinirli: "Yetkili iş istasyonu/sistem satıcılarından siparişle gelir; teslim haftalar sürebilir.",
+  ithal: "Türkiye'de raf ürünü değil. Yurt dışından ithal edilir; üstüne gümrük + %20 KDV ve nakliye eklenir.",
+  kurumsal: "Bireysel satışı pratikte yok. Veri merkezi/kurumsal kanaldan, çoğu zaman sunucuyla birlikte tedarik edilir.",
+};
+
+/* Mimari → kuantizasyon donanım desteği */
+const MIM_AD = {
+  blackwell: "Blackwell", gb10: "GB10 (Blackwell)", gb300: "GB300 (Blackwell)", thor: "Thor (Blackwell)",
+  hopper: "Hopper", ada: "Ada Lovelace", ampere: "Ampere", apple: "Apple Silicon", amd: "AMD Strix Halo",
+};
+const BLACKWELL = new Set(["blackwell", "gb10", "gb300", "thor"]);
+const FP8_NATIVE = new Set(["blackwell", "gb10", "gb300", "thor", "hopper", "ada"]);
+
+function quantUyum(cihaz, quantId) {
+  const m = cihaz.mim;
+  if (quantId === "nvfp4") {
+    if (BLACKWELL.has(m))
+      return { tip: "olumlu", mesaj: `${MIM_AD[m]} FP4 çekirdekleriyle donanımda hızlandırılır — bu donanım için ideal seçim.` };
+    if (m === "apple" || m === "amd")
+      return { tip: "uyari", mesaj: `${MIM_AD[m]} üzerinde FP4 donanım desteği yok. MXFP4 yazılımla çalışır ama hız avantajı sınırlı; pratikte Q4_K_M daha oturmuş.` };
+    return { tip: "uyari", mesaj: `FP4 yalnızca Blackwell'de donanımda hızlanır. ${MIM_AD[m]} üzerinde emülasyon olur; NVFP4 yerine FP8 veya Q4 daha hızlı.` };
+  }
+  if (quantId === "fp8") {
+    if (FP8_NATIVE.has(m))
+      return { tip: "olumlu", mesaj: `${MIM_AD[m]} FP8'i donanımda destekler — bellek ve hız için verimli.` };
+    if (m === "apple")
+      return { tip: "uyari", mesaj: "Apple Silicon'da FP8 donanım hızlandırması yok. Pratikte MLX veya GGUF (Q4–Q8) kullanılır; buradaki FP8 hızları iyimser olabilir." };
+    if (m === "amd")
+      return { tip: "uyari", mesaj: "Strix Halo'da FP8 donanım hızlandırması sınırlı. GGUF Q4–Q8 daha oturmuş bir yol." };
+    return { tip: "uyari", mesaj: `Ampere sınıfı donanımda (${MIM_AD[m]}) yerel FP8 yok. INT8 veya GGUF Q4/Q8 daha uygun; FP8 sayıları burada iyimser.` };
+  }
+  if (quantId === "bf16")
+    return { tip: "bilgi", mesaj: "Tam hassasiyet: her donanımda çalışır ama en çok belleği ve bant genişliğini kullanır." };
+  if (quantId === "q3")
+    return { tip: "tehlike", mesaj: "Agresif 3-bit: her yerde çalışır ama kalite gözle görülür düşer. Yalnızca sığdırma zorunluysa." };
+  return { tip: "bilgi", mesaj: "GGUF/llama.cpp tabanlı: CPU dahil her donanımda çalışır. Güvenli ve taşınabilir yerel format." };
+}
+
+const DUSUK_QUANT_ONER = {
+  bf16: "FP8", fp8: "NVFP4 veya Q4", nvfp4: "Q4", q4: "Q3", q4qat: "Q3", q3: "daha fazla adet",
+};
 
 const TP_ETKI = { tek: 1.0, nvlink: 0.86, pcie: 0.6, net: 0.33 };
 const TP_ETIKET = {
@@ -313,6 +401,48 @@ function Sayac({ etiket, deger, birim, alt, renk }) {
   );
 }
 
+function Bildirim({ tip, baslik, metin }) {
+  const renkler = {
+    bilgi: [C.steel, C.steelSoft],
+    olumlu: [C.ok, C.okSoft],
+    uyari: [C.warn, C.warnSoft],
+    tehlike: [C.bad, C.badSoft],
+  };
+  const isaret = { bilgi: "i", olumlu: "✓", uyari: "!", tehlike: "×" };
+  const [renk, zemin] = renkler[tip] || renkler.bilgi;
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        padding: "9px 11px",
+        background: zemin,
+        borderLeft: `3px solid ${renk}`,
+        borderRadius: 2,
+      }}
+    >
+      <span
+        style={{
+          fontFamily: MONO,
+          fontWeight: 700,
+          color: renk,
+          fontSize: 13,
+          lineHeight: 1.5,
+          width: 14,
+          flexShrink: 0,
+          textAlign: "center",
+        }}
+      >
+        {isaret[tip]}
+      </span>
+      <div>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: C.ink, marginBottom: 2 }}>{baslik}</div>
+        <div style={{ fontSize: 12, color: C.ink2, lineHeight: 1.55 }}>{metin}</div>
+      </div>
+    </div>
+  );
+}
+
 function Secim({ etiket, deger, onChange, children }) {
   return (
     <div style={{ marginBottom: 14 }}>
@@ -428,6 +558,65 @@ export default function Simulator() {
         return a.birim - b.birim;
       });
   }, [model, quant, kvq, ctxK, kullanici, cikti, topoloji, siralama]);
+
+  const qAktif = QUANTS.find((q) => q.id === quant);
+
+  // Dinamik notlar ve uyarılar
+  const bildirimler = useMemo(() => {
+    const out = [];
+    const uyum = quantUyum(cihaz, quant);
+    out.push({ tip: uyum.tip, baslik: `${qAktif.ad} · ${cihaz.ad}`, metin: uyum.mesaj });
+
+    const kv = KVQUANTS.find((x) => x.id === kvq);
+    if (kvq !== "fp16")
+      out.push({ tip: "bilgi", baslik: `KV cache: ${kv.ad}`, metin: kv.not });
+
+    const trTip = cihaz.tr === "kolay" ? "olumlu" : cihaz.tr === "kurumsal" ? "tehlike" : "uyari";
+    out.push({ tip: trTip, baslik: `Türkiye'de tedarik: ${TR_DURUM[cihaz.tr].kisa}`, metin: TR_NOT[cihaz.tr] });
+
+    if (!r.sigar)
+      out.push({
+        tip: "tehlike",
+        baslik: "Belleğe sığmıyor",
+        metin: `Bu ayarlarla ${adet} × ${cihaz.ad} yetmiyor. Daha düşük bitli kuantizasyon (ör. ${DUSUK_QUANT_ONER[quant]}), daha kısa bağlam veya daha fazla adet gerekiyor.`,
+      });
+    else if (r.doluluk > 0.88)
+      out.push({
+        tip: "uyari",
+        baslik: "Bellek sınırında",
+        metin: `Bellek %${Math.round(r.doluluk * 100)} dolu. Ani uzun bağlam ya da ek kullanıcı taşırabilir; bir kademe düşük KV kuantizasyonu pay bırakır.`,
+      });
+
+    if (quant === "q3" && model.tp <= 15)
+      out.push({
+        tip: "uyari",
+        baslik: "Küçük modelde agresif kuantizasyon",
+        metin: `${model.ad} zaten küçük; Q3 kalite kaybı bu boyutta oransal olarak daha çok hissedilir. FP8 ya da Q4 daha dengeli olur.`,
+      });
+
+    if (topoloji === "kume" && adet > 1 && r.link === "net")
+      out.push({
+        tip: "uyari",
+        baslik: "Ağ üzerinden kümeleme yavaş",
+        metin: "Bu cihazlar küme için ağ (Ethernet/USB4) ile bağlanır; tensör paralelliği verimi ~%33. Tek güçlü cihaz çoğu zaman çok sayıda zayıf kutudan iyidir.",
+      });
+
+    if (model.ap < model.tp)
+      out.push({
+        tip: "bilgi",
+        baslik: "MoE (uzman-karışımı) model",
+        metin: `${model.ad} bellekte ${model.tp}B durur ama her adımda yalnızca ${model.ap}B aktif olur. Belleği büyük modele göre, hızı küçük modele göre planla.`,
+      });
+
+    if (r.sigar && r.kullaniciTokS < 12)
+      out.push({
+        tip: "uyari",
+        baslik: "Kişi başına hız düşük",
+        metin: `Kullanıcı başına ~${r.kullaniciTokS.toFixed(0)} tok/s, rahat okuma bandının altına inebilir. Daha az eşzamanlı kullanıcı, daha düşük bitli ağırlık veya daha yüksek bant genişlikli donanım hızlandırır.`,
+      });
+
+    return out;
+  }, [model, quant, kvq, cihaz, adet, topoloji, r, qAktif]);
 
   const durumRenk = !r.sigar ? C.bad : r.doluluk > 0.88 ? C.warn : C.ok;
   const durumMetin = !r.sigar
@@ -639,7 +828,13 @@ export default function Simulator() {
             >
               {cihaz.mem} GB · {cihaz.bw} GB/s · {cihaz.w} W
               <br />
+              mimari: {MIM_AD[cihaz.mim]}
+              <br />
               birim {para(cihaz.fiyat)}
+              <br />
+              <span style={{ color: TR_DURUM[cihaz.tr].renk }}>
+                TR: {TR_DURUM[cihaz.tr].ad}
+              </span>
               {adet > 1 && topoloji === "kume" && (
                 <>
                   <br />
@@ -685,6 +880,70 @@ export default function Simulator() {
               <div style={{ fontSize: 11, color: C.ink2 }}>bellek doluluğu</div>
             </div>
           </div>
+
+          {/* Notlar ve uyarılar */}
+          <Kutu style={{ marginBottom: 14 }}>
+            <Etiket>Notlar ve uyarılar</Etiket>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+              {bildirimler.map((b, i) => (
+                <Bildirim key={i} {...b} />
+              ))}
+            </div>
+          </Kutu>
+
+          {/* Kuantizasyon açıklaması */}
+          <Kutu style={{ marginBottom: 14 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 8,
+              }}
+            >
+              <Etiket>Kuantizasyon: {qAktif.ad}</Etiket>
+              <span style={{ fontFamily: MONO, fontSize: 11, color: C.ink3 }}>
+                {qAktif.bit} · kalite kaybı {qAktif.kayip}
+              </span>
+            </div>
+            <div style={{ fontSize: 12.5, color: C.ink2, lineHeight: 1.6, marginBottom: 12 }}>
+              Kuantizasyon, model ağırlıklarını daha az bitle saklamaktır: daha az bit → daha az bellek
+              ve daha hızlı okuma, karşılığında bir miktar kalite kaybı. Amaç, modeli donanıma
+              sığdırırken kaybı kabul edilebilir tutmak.
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                gap: "10px 22px",
+                fontSize: 12,
+                lineHeight: 1.55,
+              }}
+            >
+              <div>
+                <b style={{ color: C.ink }}>Nedir</b>
+                <br />
+                {qAktif.ne}
+              </div>
+              <div>
+                <b style={{ color: C.ok }}>Artısı</b>
+                <br />
+                {qAktif.arti}
+              </div>
+              <div>
+                <b style={{ color: C.warn }}>Eksisi</b>
+                <br />
+                {qAktif.eksi}
+              </div>
+              <div>
+                <b style={{ color: C.ink }}>Ne zaman</b>
+                <br />
+                {qAktif.nezaman}
+              </div>
+            </div>
+          </Kutu>
 
           {/* SİGNATÜR: bellek bütçe şeridi */}
           <Kutu style={{ marginBottom: 14 }}>
@@ -949,8 +1208,28 @@ export default function Simulator() {
                       >
                         <td style={{ padding: "7px 8px" }}>
                           <div style={{ fontWeight: secili ? 500 : 400 }}>{row.d.ad}</div>
-                          <div style={{ fontSize: 10.5, color: C.ink3, fontFamily: MONO }}>
-                            {row.d.grup}
+                          <div
+                            style={{
+                              fontSize: 10.5,
+                              color: C.ink3,
+                              fontFamily: MONO,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 5,
+                            }}
+                          >
+                            <span
+                              title={TR_DURUM[row.d.tr].ad}
+                              style={{
+                                width: 7,
+                                height: 7,
+                                borderRadius: "50%",
+                                background: TR_DURUM[row.d.tr].renk,
+                                display: "inline-block",
+                                flexShrink: 0,
+                              }}
+                            />
+                            {row.d.grup} · {TR_DURUM[row.d.tr].kisa}
                           </div>
                         </td>
                         {[
@@ -1044,6 +1323,27 @@ export default function Simulator() {
               <br />
               2026 yılı ABD liste ve sokak fiyatlarının yaklaşığıdır. GDDR7 ve HBM kıtlığı sebebiyle
               oynaktır. Türkiye'ye gümrük ve KDV eklenir.
+            </div>
+            <div>
+              <b style={{ color: C.ink }}>Türkiye tedariki</b>
+              <br />
+              {["kolay", "sinirli", "ithal", "kurumsal"].map((k) => (
+                <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, marginRight: 12 }}>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: TR_DURUM[k].renk,
+                      display: "inline-block",
+                    }}
+                  />
+                  {TR_DURUM[k].kisa}
+                </span>
+              ))}
+              <br />
+              Renk noktaları cihazın Türkiye'de ne kolaylıkla temin edilebileceğini gösterir; "İthal"
+              ve "Kurumsal" seçeneklerde gümrük + %20 KDV, nakliye ve teslim süresi ciddi fark yaratır.
             </div>
           </div>
           <div
