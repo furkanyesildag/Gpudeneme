@@ -96,53 +96,77 @@ const DEVICES = [
 /*  tp = toplam milyar   ap = aktif milyar   kv = KB/token @ FP16      */
 /* ------------------------------------------------------------------ */
 
+/* Modeller — Ağustos 2026 açık ağırlıklı manzara.
+   hf = HuggingFace repo yolu · benchurl = benchmarkların görülebileceği sayfa
+   kv = KB/token (yaklaşık; MLA/kayan pencere kullananlarda düşüktür) */
 const MODELS = [
   // Qwen
-  { id: "q35_4", ad: "Qwen 3.5 4B", aile: "Qwen", tp: 4, ap: 4, kv: 48, ctx: 128, lis: "Apache 2.0" },
-  { id: "q35_9", ad: "Qwen 3.5 9B", aile: "Qwen", tp: 9, ap: 9, kv: 72, ctx: 128, lis: "Apache 2.0" },
-  { id: "q35_27", ad: "Qwen 3.5 27B (dense)", aile: "Qwen", tp: 27, ap: 27, kv: 128, ctx: 128, lis: "Apache 2.0" },
-  { id: "q36_27", ad: "Qwen 3.6 27B (dense, agentic)", aile: "Qwen", tp: 27, ap: 27, kv: 128, ctx: 128, lis: "Apache 2.0" },
-  { id: "q36_35", ad: "Qwen 3.6 35B-A3B (MoE)", aile: "Qwen", tp: 35, ap: 3, kv: 96, ctx: 128, lis: "Apache 2.0" },
-  { id: "qcoder30", ad: "Qwen3-Coder 30B-A3B", aile: "Qwen", tp: 30, ap: 3, kv: 96, ctx: 256, lis: "Apache 2.0" },
-  { id: "q35_397", ad: "Qwen 3.5 397B-A17B (MoE)", aile: "Qwen", tp: 397, ap: 17, kv: 160, ctx: 128, lis: "Apache 2.0" },
-
-  // Gemma
-  { id: "g4e2", ad: "Gemma 4 E2B", aile: "Gemma", tp: 2.3, ap: 2.3, kv: 12, ctx: 128, lis: "Apache 2.0" },
-  { id: "g4e4", ad: "Gemma 4 E4B", aile: "Gemma", tp: 4.5, ap: 4.5, kv: 16, ctx: 128, lis: "Apache 2.0" },
-  { id: "g4_12", ad: "Gemma 4 12B", aile: "Gemma", tp: 12, ap: 12, kv: 40, ctx: 256, lis: "Apache 2.0" },
-  { id: "g4_26", ad: "Gemma 4 26B-A4B (MoE)", aile: "Gemma", tp: 26, ap: 3.9, kv: 48, ctx: 256, lis: "Apache 2.0" },
-  { id: "g4_31", ad: "Gemma 4 31B (dense)", aile: "Gemma", tp: 31, ap: 31, kv: 60, ctx: 256, lis: "Apache 2.0" },
+  { id: "q3_235i", ad: "Qwen3-235B-A22B Instruct 2507", aile: "Qwen", tp: 235, ap: 22, kv: 120, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-235B-A22B-Instruct-2507", bench: "MMLU-Pro ~83 / GPQA ~78", benchurl: "https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507" },
+  { id: "q3_235t", ad: "Qwen3-235B-A22B Thinking 2507", aile: "Qwen", tp: 235, ap: 22, kv: 120, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-235B-A22B-Thinking-2507", bench: "AIME2025 ~92%", benchurl: "https://huggingface.co/Qwen/Qwen3-235B-A22B-Thinking-2507" },
+  { id: "q3coder480", ad: "Qwen3-Coder 480B-A35B", aile: "Qwen", tp: 480, ap: 35, kv: 140, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-Coder-480B-A35B-Instruct", bench: "SWE-bench Verified ~69.6%", benchurl: "https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct" },
+  { id: "q3coder30", ad: "Qwen3-Coder 30B-A3B", aile: "Qwen", tp: 30, ap: 3.3, kv: 96, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-Coder-30B-A3B-Instruct", benchurl: "https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct" },
+  { id: "q3_30a3", ad: "Qwen3-30B-A3B", aile: "Qwen", tp: 30, ap: 3.3, kv: 96, ctx: 128, lis: "Apache 2.0", hf: "Qwen/Qwen3-30B-A3B", benchurl: "https://huggingface.co/Qwen/Qwen3-30B-A3B" },
+  { id: "q3_32", ad: "Qwen3-32B (dense)", aile: "Qwen", tp: 32.8, ap: 32.8, kv: 128, ctx: 128, lis: "Apache 2.0", hf: "Qwen/Qwen3-32B", benchurl: "https://huggingface.co/Qwen/Qwen3-32B" },
+  { id: "q3next80", ad: "Qwen3-Next 80B-A3B", aile: "Qwen", tp: 80, ap: 3, kv: 90, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-Next-80B-A3B-Instruct", benchurl: "https://huggingface.co/Qwen/Qwen3-Next-80B-A3B-Instruct" },
 
   // DeepSeek
-  { id: "dsv32", ad: "DeepSeek V3.2 685B-A37B", aile: "DeepSeek", tp: 685, ap: 37, kv: 70, ctx: 128, lis: "MIT" },
-  { id: "dsr1", ad: "DeepSeek R1 671B-A37B", aile: "DeepSeek", tp: 671, ap: 37, kv: 70, ctx: 128, lis: "MIT" },
+  { id: "dsv32", ad: "DeepSeek-V3.2", aile: "DeepSeek", tp: 671, ap: 37, kv: 70, ctx: 128, lis: "MIT", hf: "deepseek-ai/DeepSeek-V3.2-Exp", bench: "IMO 2025 altın seviyesi", benchurl: "https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp" },
+  { id: "dsr1", ad: "DeepSeek-R1 (0528)", aile: "DeepSeek", tp: 671, ap: 37, kv: 70, ctx: 128, lis: "MIT", hf: "deepseek-ai/DeepSeek-R1-0528", bench: "AIME2025 ~87%", benchurl: "https://huggingface.co/deepseek-ai/DeepSeek-R1-0528" },
+  { id: "dsv4pro", ad: "DeepSeek-V4-Pro", aile: "DeepSeek", tp: 1600, ap: 49, kv: 75, ctx: 1000, lis: "MIT", hf: "deepseek-ai", benchurl: "https://artificialanalysis.ai/" },
+  { id: "dsv4flash", ad: "DeepSeek-V4-Flash", aile: "DeepSeek", tp: 284, ap: 13, kv: 70, ctx: 1000, lis: "MIT", hf: "deepseek-ai", benchurl: "https://artificialanalysis.ai/" },
 
   // GLM
-  { id: "glm5", ad: "GLM-5 744B-A40B", aile: "GLM", tp: 744, ap: 40, kv: 120, ctx: 128, lis: "MIT" },
-  { id: "glm47", ad: "GLM-4.7 355B-A32B", aile: "GLM", tp: 355, ap: 32, kv: 110, ctx: 128, lis: "MIT" },
+  { id: "glm46", ad: "GLM-4.6", aile: "GLM", tp: 355, ap: 32, kv: 110, ctx: 200, lis: "MIT", hf: "zai-org/GLM-4.6", bench: "SWE-bench Verified ~68%", benchurl: "https://huggingface.co/zai-org/GLM-4.6" },
+  { id: "glm45air", ad: "GLM-4.5-Air", aile: "GLM", tp: 106, ap: 12, kv: 70, ctx: 128, lis: "MIT", hf: "zai-org/GLM-4.5-Air", benchurl: "https://huggingface.co/zai-org/GLM-4.5-Air" },
+  { id: "glm5", ad: "GLM-5", aile: "GLM", tp: 744, ap: 40, kv: 120, ctx: 200, lis: "MIT", hf: "zai-org", bench: "SWE-bench Verified 77.8%", benchurl: "https://www.swebench.com/" },
 
-  // Kimi / MiniMax
-  { id: "kimi", ad: "Kimi K2.5 1T-A32B", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "Değiştirilmiş MIT" },
-  { id: "minimax", ad: "MiniMax M2.5 230B-A10B", aile: "MiniMax", tp: 230, ap: 10, kv: 90, ctx: 200, lis: "Apache 2.0" },
+  // Kimi
+  { id: "kimik2t", ad: "Kimi K2 Thinking", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2-Thinking", bench: "SWE-bench Verified ~71%", benchurl: "https://huggingface.co/moonshotai/Kimi-K2-Thinking" },
+  { id: "kimik26", ad: "Kimi K2.6", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai", benchurl: "https://lmarena.ai/" },
+
+  // MiniMax
+  { id: "mm2", ad: "MiniMax-M2", aile: "MiniMax", tp: 230, ap: 10, kv: 90, ctx: 200, lis: "MIT", hf: "MiniMaxAI/MiniMax-M2", bench: "SWE-bench Verified ~69%", benchurl: "https://huggingface.co/MiniMaxAI/MiniMax-M2" },
+  { id: "mm3", ad: "MiniMax-M3", aile: "MiniMax", tp: 428, ap: 23, kv: 90, ctx: 1000, lis: "MIT", hf: "MiniMaxAI", benchurl: "https://artificialanalysis.ai/" },
 
   // Llama
-  { id: "l4scout", ad: "Llama 4 Scout 109B-A17B", aile: "Llama", tp: 109, ap: 17, kv: 80, ctx: 1000, lis: "Llama Community" },
-  { id: "l4mav", ad: "Llama 4 Maverick 400B-A17B", aile: "Llama", tp: 400, ap: 17, kv: 80, ctx: 256, lis: "Llama Community" },
-  { id: "l33_70", ad: "Llama 3.3 70B (dense)", aile: "Llama", tp: 70, ap: 70, kv: 320, ctx: 128, lis: "Llama Community" },
+  { id: "l4scout", ad: "Llama 4 Scout 109B-A17B", aile: "Llama", tp: 109, ap: 17, kv: 80, ctx: 10000, lis: "Llama 4 Community", hf: "meta-llama/Llama-4-Scout-17B-16E-Instruct", benchurl: "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct" },
+  { id: "l4mav", ad: "Llama 4 Maverick 400B-A17B", aile: "Llama", tp: 400, ap: 17, kv: 80, ctx: 1000, lis: "Llama 4 Community", hf: "meta-llama/Llama-4-Maverick-17B-128E-Instruct", benchurl: "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct" },
 
   // Mistral
-  { id: "mlarge3", ad: "Mistral Large 3 675B-A39B", aile: "Mistral", tp: 675, ap: 39, kv: 120, ctx: 256, lis: "Apache 2.0" },
-  { id: "msmall4", ad: "Mistral Small 4 24B-A3.5B", aile: "Mistral", tp: 24, ap: 3.5, kv: 64, ctx: 128, lis: "Apache 2.0" },
-  { id: "devstral2", ad: "Devstral 2 123B (dense)", aile: "Mistral", tp: 123, ap: 123, kv: 200, ctx: 256, lis: "Apache 2.0" },
+  { id: "msmall32", ad: "Mistral Small 3.2 24B", aile: "Mistral", tp: 24, ap: 24, kv: 64, ctx: 128, lis: "Apache 2.0", hf: "mistralai/Mistral-Small-3.2-24B-Instruct-2506", benchurl: "https://huggingface.co/mistralai/Mistral-Small-3.2-24B-Instruct-2506" },
+  { id: "devsmall", ad: "Devstral Small 1.1 24B", aile: "Mistral", tp: 24, ap: 24, kv: 64, ctx: 128, lis: "Apache 2.0", hf: "mistralai/Devstral-Small-2507", bench: "SWE-bench Verified 53.6%", benchurl: "https://huggingface.co/mistralai/Devstral-Small-2507" },
+  { id: "devstral2", ad: "Devstral 2 123B (dense)", aile: "Mistral", tp: 123, ap: 123, kv: 200, ctx: 256, lis: "Mistral Research License", hf: "mistralai", bench: "SWE-bench Verified 72.2%", benchurl: "https://www.swebench.com/" },
+  { id: "mlarge3", ad: "Mistral Large 3 675B-A41B", aile: "Mistral", tp: 675, ap: 41, kv: 120, ctx: 256, lis: "Mistral Research License", hf: "mistralai", benchurl: "https://artificialanalysis.ai/" },
 
-  // gpt-oss / Nemotron
-  { id: "oss120", ad: "gpt-oss 120B-A5B", aile: "gpt-oss", tp: 120, ap: 5, kv: 72, ctx: 128, lis: "Apache 2.0" },
-  { id: "oss20", ad: "gpt-oss 20B-A3.6B", aile: "gpt-oss", tp: 20, ap: 3.6, kv: 40, ctx: 128, lis: "Apache 2.0" },
-  { id: "nemo9", ad: "Nemotron 3 Nano 9B", aile: "NVIDIA", tp: 9, ap: 9, kv: 60, ctx: 128, lis: "NVIDIA Open" },
+  // gpt-oss
+  { id: "oss120", ad: "gpt-oss-120b", aile: "gpt-oss", tp: 117, ap: 5.1, kv: 72, ctx: 128, lis: "Apache 2.0", hf: "openai/gpt-oss-120b", bench: "MMLU ~90 / AIME2025 97.9%", benchurl: "https://huggingface.co/openai/gpt-oss-120b" },
+  { id: "oss20", ad: "gpt-oss-20b", aile: "gpt-oss", tp: 21, ap: 3.6, kv: 40, ctx: 128, lis: "Apache 2.0", hf: "openai/gpt-oss-20b", bench: "AIME2025 98.7%", benchurl: "https://huggingface.co/openai/gpt-oss-20b" },
+
+  // Gemma (kayan pencere — düşük KV)
+  { id: "gemma27", ad: "Gemma 3 27B", aile: "Gemma", tp: 27, ap: 27, kv: 60, ctx: 128, lis: "Gemma", hf: "google/gemma-3-27b-it", benchurl: "https://huggingface.co/google/gemma-3-27b-it" },
+  { id: "gemma12", ad: "Gemma 3 12B", aile: "Gemma", tp: 12, ap: 12, kv: 40, ctx: 128, lis: "Gemma", hf: "google/gemma-3-12b-it", benchurl: "https://huggingface.co/google/gemma-3-12b-it" },
+  { id: "gemma4", ad: "Gemma 3 4B", aile: "Gemma", tp: 4, ap: 4, kv: 16, ctx: 128, lis: "Gemma", hf: "google/gemma-3-4b-it", benchurl: "https://huggingface.co/google/gemma-3-4b-it" },
+  { id: "gemma3n", ad: "Gemma 3n E4B", aile: "Gemma", tp: 8, ap: 4, kv: 12, ctx: 32, lis: "Gemma", hf: "google/gemma-3n-E4B-it", benchurl: "https://huggingface.co/google/gemma-3n-E4B-it" },
+
+  // NVIDIA
+  { id: "nemo12", ad: "Nemotron Nano 12B v2", aile: "NVIDIA", tp: 12, ap: 12, kv: 60, ctx: 128, lis: "NVIDIA Open Model", hf: "nvidia/NVIDIA-Nemotron-Nano-12B-v2", benchurl: "https://huggingface.co/nvidia/NVIDIA-Nemotron-Nano-12B-v2" },
+  { id: "nemo9", ad: "Nemotron Nano 9B v2", aile: "NVIDIA", tp: 9, ap: 9, kv: 60, ctx: 128, lis: "NVIDIA Open Model", hf: "nvidia/NVIDIA-Nemotron-Nano-9B-v2", benchurl: "https://huggingface.co/nvidia/NVIDIA-Nemotron-Nano-9B-v2" },
+  { id: "nemosuper49", ad: "Llama 3.3 Nemotron Super 49B", aile: "NVIDIA", tp: 49, ap: 49, kv: 200, ctx: 128, lis: "NVIDIA Open Model", hf: "nvidia/Llama-3_3-Nemotron-Super-49B-v1", benchurl: "https://huggingface.co/nvidia/Llama-3_3-Nemotron-Super-49B-v1" },
+
+  // Microsoft
+  { id: "phi4", ad: "Phi-4 14B", aile: "Microsoft", tp: 14, ap: 14, kv: 60, ctx: 16, lis: "MIT", hf: "microsoft/phi-4", bench: "MATH >80%", benchurl: "https://huggingface.co/microsoft/phi-4" },
+  { id: "phi4rp", ad: "Phi-4 Reasoning Plus 14B", aile: "Microsoft", tp: 14, ap: 14, kv: 60, ctx: 32, lis: "MIT", hf: "microsoft/Phi-4-reasoning-plus", benchurl: "https://huggingface.co/microsoft/Phi-4-reasoning-plus" },
+  { id: "phi4mini", ad: "Phi-4 Mini Reasoning 3.8B", aile: "Microsoft", tp: 3.8, ap: 3.8, kv: 40, ctx: 128, lis: "MIT", hf: "microsoft/Phi-4-mini-reasoning", benchurl: "https://huggingface.co/microsoft/Phi-4-mini-reasoning" },
+
+  // Diğer
+  { id: "olmo32", ad: "OLMo 3 32B", aile: "Diğer", tp: 32, ap: 32, kv: 140, ctx: 64, lis: "Apache 2.0", hf: "allenai/Olmo-3-1125-32B", benchurl: "https://huggingface.co/allenai/Olmo-3-1125-32B" },
+  { id: "smol3", ad: "SmolLM3 3B", aile: "Diğer", tp: 3, ap: 3, kv: 40, ctx: 128, lis: "Apache 2.0", hf: "HuggingFaceTB/SmolLM3-3B", benchurl: "https://huggingface.co/HuggingFaceTB/SmolLM3-3B" },
+  { id: "falconh1r", ad: "Falcon-H1R 7B", aile: "Diğer", tp: 7, ap: 7, kv: 30, ctx: 256, lis: "Falcon LLM License", hf: "tiiuae/Falcon-H1R-7B", benchurl: "https://huggingface.co/tiiuae/Falcon-H1R-7B" },
+  { id: "commanda", ad: "Command A (03-2025) 111B", aile: "Diğer", tp: 111, ap: 111, kv: 200, ctx: 256, lis: "CC-BY-NC 4.0", hf: "CohereLabs/c4ai-command-a-03-2025", benchurl: "https://huggingface.co/CohereLabs/c4ai-command-a-03-2025" },
 
   // Türkçe
-  { id: "kumru74", ad: "Kumru 7.4B (Türkçe)", aile: "Türkçe", tp: 7.4, ap: 7.4, kv: 128, ctx: 8, lis: "VNGRS" },
-  { id: "kumru2", ad: "Kumru 2B (Türkçe)", aile: "Türkçe", tp: 2, ap: 2, kv: 64, ctx: 8, lis: "Apache 2.0" },
+  { id: "kumru2", ad: "Kumru 2B (Türkçe)", aile: "Türkçe", tp: 2.4, ap: 2.4, kv: 64, ctx: 8, lis: "Apache 2.0", hf: "vngrs-ai/Kumru-2B", benchurl: "https://huggingface.co/vngrs-ai/Kumru-2B" },
+  { id: "trendyol7", ad: "Trendyol LLM 7B Chat (Türkçe)", aile: "Türkçe", tp: 7, ap: 7, kv: 128, ctx: 4, lis: "Apache 2.0", hf: "Trendyol/Trendyol-LLM-7B-chat-v1.0", benchurl: "https://huggingface.co/Trendyol/Trendyol-LLM-7B-chat-v1.0" },
 ];
 
 const QUANTS = [
@@ -247,6 +271,18 @@ function quantUyum(cihaz, quantId) {
 const DUSUK_QUANT_ONER = {
   bf16: "FP8", fp8: "NVFP4 veya Q4", nvfp4: "Q4", q4: "Q3", q4qat: "Q3", q3: "daha fazla adet",
 };
+
+/* Benchmark / leaderboard kaynakları */
+const LEADERBOARDS = [
+  { name: "Artificial Analysis", url: "https://artificialanalysis.ai/", not: "Zeka endeksi, hız ve fiyat karşılaştırması" },
+  { name: "LMArena (Chatbot Arena)", url: "https://lmarena.ai/", not: "İnsan oylarıyla canlı Elo sıralaması" },
+  { name: "LiveBench", url: "https://livebench.ai/", not: "Kirlenmeye dirençli, sürekli yenilenen testler" },
+  { name: "SWE-bench", url: "https://www.swebench.com/", not: "Gerçek yazılım hatası çözme (kodlama)" },
+  { name: "Aider Leaderboards", url: "https://aider.chat/docs/leaderboards/", not: "Kod düzenleme başarımı" },
+  { name: "HF Open LLM Leaderboard", url: "https://huggingface.co/open-llm-leaderboard", not: "Açık modeller için standart akademik testler" },
+  { name: "Vellum LLM Leaderboard", url: "https://www.vellum.ai/open-llm-leaderboard", not: "Derli toplu karşılaştırma tablosu" },
+  { name: "llm-stats.com", url: "https://llm-stats.com/benchmarks", not: "Benchmark + fiyat/bağlam veritabanı" },
+];
 
 /* Yeni başlayanlar için sade kavram anlatımı */
 const KAVRAMLAR = [
@@ -521,7 +557,7 @@ function Kaydirac({ etiket, deger, onChange, min, max, step, goster }) {
 /* ------------------------------------------------------------------ */
 
 export default function Simulator() {
-  const [modelId, setModelId] = useState("qcoder30");
+  const [modelId, setModelId] = useState("q3coder30");
   const [quant, setQuant] = useState("fp8");
   const [kvq, setKvq] = useState("fp8");
   const [ctxK, setCtxK] = useState(64);
@@ -763,6 +799,44 @@ export default function Simulator() {
             ))}
           </div>
         )}
+      </Kutu>
+
+      {/* Benchmark kaynakları */}
+      <Kutu style={{ marginBottom: 18 }}>
+        <Etiket>Benchmark kaynakları — modelleri karşılaştır</Etiket>
+        <div style={{ fontSize: 12.5, color: C.ink2, marginTop: 2, marginBottom: 12 }}>
+          Her modelin kendi HuggingFace kartında kendi benchmark tablosu vardır. Modeller arası
+          bağımsız karşılaştırma için aşağıdaki güncel leaderboard'ları kullan.
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {LEADERBOARDS.map((l) => (
+            <a
+              key={l.name}
+              href={l.url}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: "block",
+                textDecoration: "none",
+                background: C.wash,
+                border: `1px solid ${C.line2}`,
+                borderRadius: 3,
+                padding: "10px 12px",
+              }}
+            >
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: C.steel }}>↗ {l.name}</div>
+              <div style={{ fontSize: 11.5, color: C.ink2, marginTop: 3, lineHeight: 1.45 }}>
+                {l.not}
+              </div>
+            </a>
+          ))}
+        </div>
       </Kutu>
 
       <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-start" }}>
