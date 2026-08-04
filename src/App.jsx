@@ -38,6 +38,18 @@ const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospac
 const SANS =
   '"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
+const linkBtnStil = {
+  fontFamily: SANS,
+  fontSize: 11.5,
+  color: C.steel,
+  textDecoration: "none",
+  border: `1px solid ${C.line}`,
+  borderRadius: 3,
+  padding: "5px 9px",
+  background: C.paper,
+  whiteSpace: "nowrap",
+};
+
 /* ------------------------------------------------------------------ */
 /*  DONANIM VERİTABANI                                                 */
 /*  mem  = GB    bw = GB/s    tf = yoğun FP8 TFLOPS    w = watt        */
@@ -800,7 +812,33 @@ export default function Simulator() {
               KV {model.kv} KB/token · maks {model.ctx}K
               <br />
               lisans: {model.lis}
+              {model.bench && (
+                <>
+                  <br />
+                  benchmark: {model.bench}
+                </>
+              )}
             </div>
+
+            {(model.hf || model.benchurl) && (
+              <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+                {model.hf && (
+                  <a
+                    href={`https://huggingface.co/${model.hf}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={linkBtnStil}
+                  >
+                    ↗ HuggingFace kartı
+                  </a>
+                )}
+                {model.benchurl && (
+                  <a href={model.benchurl} target="_blank" rel="noreferrer" style={linkBtnStil}>
+                    ↗ Benchmarklar
+                  </a>
+                )}
+              </div>
+            )}
 
             <Secim etiket="Ağırlık kuantizasyonu" deger={quant} onChange={setQuant}>
               {QUANTS.map((q) => (
