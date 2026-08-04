@@ -539,8 +539,9 @@ function Kaydirac({ etiket, deger, onChange, min, max, step, goster }) {
 
 export default function Simulator() {
   const [modelId, setModelId] = useState("q3coder30");
-  const [quant, setQuant] = useState("fp8");
-  const [kvq, setKvq] = useState("fp8");
+  const [quant, setQuant] = useState("bf16");
+  const [kvq, setKvq] = useState("fp16");
+  const [indirGibi, setIndirGibi] = useState(true);
   const [ctxK, setCtxK] = useState(64);
   const [kullanici, setKullanici] = useState(8);
   const [cikti, setCikti] = useState(800);
@@ -864,21 +865,62 @@ export default function Simulator() {
               </div>
             )}
 
-            <Secim etiket="Ağırlık kuantizasyonu" deger={quant} onChange={setQuant}>
-              {QUANTS.map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.ad} — kalite kaybı {q.kayip}
-                </option>
-              ))}
-            </Secim>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 8,
+                cursor: "pointer",
+                padding: "9px 10px",
+                background: indirGibi ? C.okSoft : C.wash,
+                border: `1px solid ${indirGibi ? C.ok : C.line2}`,
+                borderRadius: 3,
+                marginBottom: indirGibi ? 0 : 14,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={indirGibi}
+                onChange={(e) => {
+                  const v = e.target.checked;
+                  setIndirGibi(v);
+                  if (v) {
+                    setQuant("bf16");
+                    setKvq("fp16");
+                  }
+                }}
+                style={{ marginTop: 2, accentColor: C.ok, flexShrink: 0 }}
+              />
+              <span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>
+                  İndirdiğin gibi çalıştır
+                </span>
+                <span style={{ display: "block", fontSize: 11.5, color: C.ink2, marginTop: 2, lineHeight: 1.45 }}>
+                  Tam hassasiyet (BF16 + FP16 KV), hiç kuantizasyon yok. İşareti kaldırırsan
+                  kuantizasyon seçenekleri açılır.
+                </span>
+              </span>
+            </label>
 
-            <Secim etiket="KV cache kuantizasyonu" deger={kvq} onChange={setKvq}>
-              {KVQUANTS.map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.ad}
-                </option>
-              ))}
-            </Secim>
+            {!indirGibi && (
+              <div style={{ marginTop: 14 }}>
+                <Secim etiket="Ağırlık kuantizasyonu" deger={quant} onChange={setQuant}>
+                  {QUANTS.map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.ad} — kalite kaybı {q.kayip}
+                    </option>
+                  ))}
+                </Secim>
+
+                <Secim etiket="KV cache kuantizasyonu" deger={kvq} onChange={setKvq}>
+                  {KVQUANTS.map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.ad}
+                    </option>
+                  ))}
+                </Secim>
+              </div>
+            )}
           </Kutu>
 
           <Kutu style={{ marginBottom: 14 }}>
