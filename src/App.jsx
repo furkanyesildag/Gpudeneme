@@ -110,8 +110,15 @@ const MODELS = [
   { id: "q35_08", ad: "Qwen3.5 0.8B", aile: "Qwen", tp: 0.8, ap: 0.8, kv: 24, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-0.8B" },
   { id: "q36_35a3", ad: "Qwen3.6 35B-A3B", aile: "Qwen", tp: 35, ap: 3, kv: 96, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.6-35B-A3B" },
   { id: "q36_27", ad: "Qwen3.6 27B (dense)", aile: "Qwen", tp: 27, ap: 27, kv: 128, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.6-27B" },
-  { id: "q3coder480", ad: "Qwen3-Coder 480B-A35B", aile: "Qwen", tp: 480, ap: 35, kv: 140, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-Coder-480B-A35B-Instruct", bench: "SWE-bench Verified ~69.6%" },
-  { id: "q3coder30", ad: "Qwen3-Coder 30B-A3B", aile: "Qwen", tp: 30, ap: 3.3, kv: 96, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-Coder-30B-A3B-Instruct" },
+  // Kod (kod için özelleştirilmiş modeller)
+  { id: "q3coder480", ad: "Qwen3-Coder 480B-A35B", aile: "Kod", tp: 480, ap: 35, kv: 140, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-Coder-480B-A35B-Instruct", bench: "SWE-bench Verified ~69.6%" },
+  { id: "q3coder30", ad: "Qwen3-Coder 30B-A3B", aile: "Kod", tp: 30, ap: 3.3, kv: 96, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-Coder-30B-A3B-Instruct" },
+  { id: "q25coder32", ad: "Qwen2.5-Coder 32B", aile: "Kod", tp: 32, ap: 32, kv: 128, ctx: 32, lis: "Apache 2.0", hf: "Qwen/Qwen2.5-Coder-32B-Instruct", bench: "HumanEval 88.4%" },
+  { id: "q25coder7", ad: "Qwen2.5-Coder 7B", aile: "Kod", tp: 7, ap: 7, kv: 72, ctx: 32, lis: "Apache 2.0", hf: "Qwen/Qwen2.5-Coder-7B-Instruct" },
+  { id: "codestral22", ad: "Codestral 22B (FIM/otomatik tamamlama)", aile: "Kod", tp: 22, ap: 22, kv: 100, ctx: 32, lis: "Mistral (MNPL)", hf: "mistralai/Codestral-22B-v0.1", bench: "HumanEval 86.6%" },
+  { id: "dscoderv2", ad: "DeepSeek-Coder-V2 236B-A21B", aile: "Kod", tp: 236, ap: 21, kv: 70, ctx: 128, lis: "DeepSeek License", hf: "deepseek-ai/DeepSeek-Coder-V2-Instruct" },
+  { id: "dscoderv2lite", ad: "DeepSeek-Coder-V2-Lite 16B-A2.4B", aile: "Kod", tp: 16, ap: 2.4, kv: 40, ctx: 128, lis: "DeepSeek License", hf: "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct", bench: "HumanEval 83.5%" },
+  { id: "kimik27c2", ad: "Kimi K2.7 Code", aile: "Kod", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2.7-Code" },
 
   // DeepSeek (MLA — düşük KV)
   { id: "dsv4pro", ad: "DeepSeek-V4-Pro", aile: "DeepSeek", tp: 1600, ap: 49, kv: 75, ctx: 1000, lis: "MIT", hf: "deepseek-ai/DeepSeek-V4-Pro" },
@@ -129,7 +136,6 @@ const MODELS = [
 
   // Kimi (MLA — düşük KV)
   { id: "kimik3", ad: "Kimi K3 2.8T-A50B", aile: "Kimi", tp: 2800, ap: 50, kv: 100, ctx: 1000, lis: "Kimi K3 License", hf: "moonshotai/Kimi-K3" },
-  { id: "kimik27c", ad: "Kimi K2.7 Code", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2.7-Code" },
   { id: "kimik26", ad: "Kimi K2.6", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2.6" },
   { id: "kimik25", ad: "Kimi K2.5", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2.5" },
   { id: "kimik2", ad: "Kimi K2 Instruct", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 128, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2-Instruct", bench: "SWE-bench Verified 65.8%" },
@@ -144,8 +150,8 @@ const MODELS = [
 
   // Mistral
   { id: "mlarge3", ad: "Mistral Large 3 675B-A41B", aile: "Mistral", tp: 675, ap: 41, kv: 120, ctx: 256, lis: "Apache 2.0", hf: "mistralai/Mistral-Large-3-675B-Instruct-2512-NVFP4" },
-  { id: "devstral2", ad: "Devstral 2 123B (dense)", aile: "Mistral", tp: 123, ap: 123, kv: 200, ctx: 256, lis: "Apache 2.0", hf: "mistralai/Devstral-2-123B-Instruct-2512" },
-  { id: "devsmall2", ad: "Devstral Small 2 24B", aile: "Mistral", tp: 24, ap: 24, kv: 64, ctx: 256, lis: "Apache 2.0", hf: "mistralai/Devstral-Small-2-24B-Instruct-2512" },
+  { id: "devstral2", ad: "Devstral 2 123B (dense, kod)", aile: "Kod", tp: 123, ap: 123, kv: 200, ctx: 256, lis: "Apache 2.0", hf: "mistralai/Devstral-2-123B-Instruct-2512", bench: "SWE-bench Verified 72.2%" },
+  { id: "devsmall2", ad: "Devstral Small 2 24B (kod)", aile: "Kod", tp: 24, ap: 24, kv: 64, ctx: 256, lis: "Apache 2.0", hf: "mistralai/Devstral-Small-2-24B-Instruct-2512" },
 
   // gpt-oss
   { id: "oss120", ad: "gpt-oss-120b", aile: "gpt-oss", tp: 117, ap: 5.1, kv: 72, ctx: 128, lis: "Apache 2.0", hf: "openai/gpt-oss-120b" },
@@ -309,6 +315,292 @@ const TP_ETIKET = {
 const ANAKART_FIYAT = 8500;
 const ANAKART_WATT = 250;
 const KART_BASINA_ANAKART = 4;
+
+/* ------------------------------------------------------------------ */
+/*  CHATBOT — bilgi tabanı + DeepSeek istemcisi                         */
+/*  API anahtarı KOD'A GÖMÜLMEZ; kullanıcı tarayıcıya girer,           */
+/*  localStorage'da saklanır. Statik sitede güvenli olan tek yol.      */
+/* ------------------------------------------------------------------ */
+
+function bilgiTabani() {
+  const m = MODELS.map(
+    (x) =>
+      `${x.ad} [${x.aile}]: ${x.tp}B toplam / ${x.ap}B aktif, KV ${x.kv}KB/tok, ${x.ctx}K bağlam, ${x.lis}${x.bench ? ", " + x.bench : ""}`
+  ).join("\n");
+  const d = DEVICES.map(
+    (x) =>
+      `${x.ad} [${x.grup}]: ${x.mem}GB bellek, ${x.bw}GB/s, ${x.w}W, ~$${x.fiyat}, ${MIM_AD[x.mim]}, Türkiye: ${TR_DURUM[x.tr].ad}`
+  ).join("\n");
+  const q = QUANTS.map((x) => `${x.ad} (${x.bit}, kayıp ${x.kayip})`).join("; ");
+  return `MODELLER:\n${m}\n\nCİHAZLAR:\n${d}\n\nAĞIRLIK KUANTİZASYONU: ${q}\nKV CACHE KUANT: FP16 (tam), FP8 (yarı yer), Q4 (çeyrek yer).\n\nNASIL HESAPLANIR: gerekli bellek ≈ ağırlık(param × bayt/param) + KV cache(kullanıcı × bağlam × KV/token) + çalışma payı. Token üretim hızı bellek BANT GENİŞLİĞİ ile sınırlıdır (işlem gücü değil); MoE'de aktif parametre belirleyicidir. Kuantizasyon OPSİYONELDİR: BF16 + FP16 KV = modeli indirip olduğu gibi çalıştırmak (belleğe sığarsa gerek yok). Çok kart tek küme yapılınca bağlantı verimi NVLink>PCIe>ağ.`;
+}
+
+const SISTEM_PROMPT = `Sen "Yerel LLM Kapasite Simülasyonu" adlı aracın uzman danışmanısın. Kullanıcının açık ağırlıklı / yerel LLM altyapısı sorularını —donanım seçimi, kaç adet gerekir, kuantizasyon, bellek bütçesi, token hızı, ilk token gecikmesi, Türkiye'de tedarik, maliyet, hangi model uygun— PROFESYONEL, net ve pratik biçimde TÜRKÇE yanıtla. Aşağıdaki veriyi temel al; sayı UYDURMA, bilmediğini açıkça söyle. Kısa ama doyurucu ol, gerektiğinde madde madde ver, somut öneri yap. Aşağıdaki bilgi tabanı senin gerçeğindir:\n\n${bilgiTabani()}`;
+
+function ChatBot({ baglam }) {
+  const [acik, setAcik] = React.useState(false);
+  const [key, setKey] = React.useState(() => {
+    try {
+      return localStorage.getItem("ds_key") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [keyInput, setKeyInput] = React.useState("");
+  const [mesajlar, setMesajlar] = React.useState([
+    {
+      role: "assistant",
+      content:
+        "Merhaba! Donanım seçimi, kuantizasyon, bellek/hız hesabı, hangi model, ya da Türkiye'de tedarik hakkında ne istersen sor.",
+    },
+  ]);
+  const [girdi, setGirdi] = React.useState("");
+  const [yukleniyor, setYukleniyor] = React.useState(false);
+  const kaydirRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (kaydirRef.current) kaydirRef.current.scrollTop = kaydirRef.current.scrollHeight;
+  }, [mesajlar, yukleniyor, acik]);
+
+  const anahtarKaydet = () => {
+    const k = keyInput.trim();
+    if (!k) return;
+    try {
+      localStorage.setItem("ds_key", k);
+    } catch (e) { /* localStorage kapalıysa yoksay */ }
+    setKey(k);
+    setKeyInput("");
+  };
+  const anahtarSil = () => {
+    try {
+      localStorage.removeItem("ds_key");
+    } catch (e) { /* yoksay */ }
+    setKey("");
+  };
+
+  const gonder = async () => {
+    const soru = girdi.trim();
+    if (!soru || yukleniyor) return;
+    const yeni = [...mesajlar, { role: "user", content: soru }];
+    setMesajlar(yeni);
+    setGirdi("");
+    setYukleniyor(true);
+    try {
+      const sys = SISTEM_PROMPT + (baglam ? `\n\nKULLANICININ ŞU ANKİ SEÇİMİ:\n${baglam}` : "");
+      const res = await fetch("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          temperature: 0.3,
+          messages: [{ role: "system", content: sys }, ...yeni.map((m) => ({ role: m.role, content: m.content }))],
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        throw new Error(
+          res.status === 401
+            ? "Anahtar geçersiz (401). Ayarlardan doğru DeepSeek anahtarını gir."
+            : `Sunucu hatası ${res.status}. ${t.slice(0, 140)}`
+        );
+      }
+      const data = await res.json();
+      const cevap = data?.choices?.[0]?.message?.content || "(boş yanıt)";
+      setMesajlar((m) => [...m, { role: "assistant", content: cevap }]);
+    } catch (e) {
+      const s = String(e && e.message ? e.message : e);
+      const msg = /Failed to fetch|NetworkError|TypeError/.test(s)
+        ? "Bağlantı kurulamadı. Tarayıcıdan DeepSeek'e doğrudan erişim engellenmiş olabilir (CORS/ağ) ya da anahtar hatalı olabilir."
+        : s;
+      setMesajlar((m) => [...m, { role: "assistant", content: "⚠ " + msg }]);
+    } finally {
+      setYukleniyor(false);
+    }
+  };
+
+  const kabarcik = (rol) => ({
+    alignSelf: rol === "user" ? "flex-end" : "flex-start",
+    maxWidth: "85%",
+    background: rol === "user" ? C.steel : C.wash,
+    color: rol === "user" ? "#fff" : C.ink,
+    border: rol === "user" ? "none" : `1px solid ${C.line2}`,
+    borderRadius: 8,
+    padding: "8px 11px",
+    fontSize: 12.5,
+    lineHeight: 1.5,
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+  });
+
+  return (
+    <div style={{ position: "fixed", right: 18, bottom: 18, zIndex: 50, fontFamily: SANS }}>
+      {acik && (
+        <div
+          style={{
+            width: 340,
+            maxWidth: "calc(100vw - 36px)",
+            height: 500,
+            maxHeight: "calc(100vh - 100px)",
+            background: C.paper,
+            border: `1px solid ${C.line}`,
+            borderRadius: 8,
+            boxShadow: "0 12px 40px rgba(18,23,28,0.22)",
+            display: "flex",
+            flexDirection: "column",
+            marginBottom: 10,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              background: C.ink,
+              color: "#fff",
+              padding: "10px 12px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>LLM Altyapı Danışmanı</div>
+              <div style={{ fontSize: 10.5, color: "#B7C0C7", fontFamily: MONO }}>DeepSeek ile</div>
+            </div>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              {key && (
+                <button onClick={anahtarSil} title="Anahtarı sil" style={ikonBtnStil}>
+                  anahtar ✕
+                </button>
+              )}
+              <button onClick={() => setAcik(false)} style={ikonBtnStil}>
+                kapat
+              </button>
+            </div>
+          </div>
+
+          {!key ? (
+            <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto" }}>
+              <div style={{ fontSize: 12.5, color: C.ink2, lineHeight: 1.55 }}>
+                Sohbet için <b>DeepSeek API anahtarını</b> gir. Anahtar yalnızca bu tarayıcıda
+                (localStorage) saklanır; koda gömülmez, sunucuya/depoya gönderilmez.
+              </div>
+              <input
+                type="password"
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && anahtarKaydet()}
+                placeholder="sk-..."
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 12.5,
+                  padding: "9px 10px",
+                  border: `1px solid ${C.line}`,
+                  borderRadius: 4,
+                }}
+              />
+              <button onClick={anahtarKaydet} style={gonderBtnStil}>
+                Kaydet ve başla
+              </button>
+              <div style={{ fontSize: 11, color: C.ink3, lineHeight: 1.5 }}>
+                Anahtarı{" "}
+                <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noreferrer" style={{ color: C.steel }}>
+                  platform.deepseek.com
+                </a>{" "}
+                üzerinden alabilirsin.
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                ref={kaydirRef}
+                style={{ flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 8 }}
+              >
+                {mesajlar.map((m, i) => (
+                  <div key={i} style={kabarcik(m.role)}>
+                    {m.content}
+                  </div>
+                ))}
+                {yukleniyor && (
+                  <div style={{ ...kabarcik("assistant"), color: C.ink3, fontStyle: "italic" }}>yazıyor…</div>
+                )}
+              </div>
+              <div style={{ borderTop: `1px solid ${C.line2}`, padding: 10, display: "flex", gap: 8 }}>
+                <textarea
+                  value={girdi}
+                  onChange={(e) => setGirdi(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      gonder();
+                    }
+                  }}
+                  rows={1}
+                  placeholder="Sorunu yaz…"
+                  style={{
+                    flex: 1,
+                    resize: "none",
+                    fontFamily: SANS,
+                    fontSize: 12.5,
+                    padding: "8px 10px",
+                    border: `1px solid ${C.line}`,
+                    borderRadius: 4,
+                    maxHeight: 90,
+                  }}
+                />
+                <button onClick={gonder} disabled={yukleniyor} style={gonderBtnStil}>
+                  Gönder
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      <button
+        onClick={() => setAcik((v) => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          background: C.ink,
+          color: "#fff",
+          border: "none",
+          borderRadius: 24,
+          padding: "11px 16px",
+          fontFamily: SANS,
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: "pointer",
+          boxShadow: "0 6px 20px rgba(18,23,28,0.28)",
+          marginLeft: "auto",
+        }}
+      >
+        {acik ? "▾ Danışmanı kapat" : "💬 Danışmana sor"}
+      </button>
+    </div>
+  );
+}
+
+const ikonBtnStil = {
+  background: "transparent",
+  border: "1px solid rgba(255,255,255,0.3)",
+  color: "#fff",
+  borderRadius: 4,
+  padding: "3px 8px",
+  fontFamily: MONO,
+  fontSize: 10.5,
+  cursor: "pointer",
+};
+const gonderBtnStil = {
+  background: C.steel,
+  color: "#fff",
+  border: "none",
+  borderRadius: 4,
+  padding: "9px 14px",
+  fontFamily: SANS,
+  fontSize: 12.5,
+  fontWeight: 600,
+  cursor: "pointer",
+};
 
 /* ------------------------------------------------------------------ */
 /*  HESAP MOTORU                                                       */
@@ -998,6 +1290,7 @@ export default function Simulator() {
                   {DEVICES.filter((d) => d.grup === g).map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.ad}
+                      {d.tr === "kolay" ? " — TR ✓" : ""}
                     </option>
                   ))}
                 </optgroup>
@@ -1574,6 +1867,10 @@ export default function Simulator() {
           </div>
         </Kutu>
       </div>
+
+      <ChatBot
+        baglam={`Model: ${model.ad} (${model.tp}B/${model.ap}B, ${model.lis}). Donanım: ${adet} × ${cihaz.ad} (${cihaz.mem}GB, Türkiye: ${TR_DURUM[cihaz.tr].kisa}), topoloji ${topoloji}. Ayar: ${indirGibi ? "BF16 + FP16 KV (indirdiğin gibi, kuantizasyon yok)" : `${quant} ağırlık / ${kvq} KV`}, ${ctxK}K bağlam, ${kullanici} eşzamanlı kullanıcı. Sonuç: ${r.sigar ? `sığıyor, ~${Math.round(r.toplamTokS)} tok/s toplam, kullanıcı başına ~${r.kullaniciTokS.toFixed(1)} tok/s, bellek %${Math.round(r.doluluk * 100)} dolu` : `SIĞMIYOR (en az ${r.minAdet || "16+"} adet gerekir)`}.`}
+      />
     </div>
   );
 }
