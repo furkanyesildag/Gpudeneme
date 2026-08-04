@@ -236,6 +236,21 @@ const DUSUK_QUANT_ONER = {
   bf16: "FP8", fp8: "NVFP4 veya Q4", nvfp4: "Q4", q4: "Q3", q4qat: "Q3", q3: "daha fazla adet",
 };
 
+/* Yeni başlayanlar için sade kavram anlatımı */
+const KAVRAMLAR = [
+  { ad: "Token", benzet: "Yazıyı legolara bölmek gibi.", ozet: "Model kelimeleri değil, ~4 harflik parçaları (token) işler. Hız hep 'saniyede kaç token' diye ölçülür." },
+  { ad: "Parametre", benzet: "Beynin sinir bağlantıları gibi.", ozet: "Modelin öğrenirken ayarladığı sayılar. Ne kadar çok parametre, o kadar yetenekli ama o kadar ağır ve yer kaplayan." },
+  { ad: "Toplam / Aktif (MoE)", benzet: "Koca hastane ama seni tek uzman muayene eder.", ozet: "MoE modelde tüm parametreler bellekte durur, ama her token için yalnızca küçük bir kısmı (aktif) çalışır. Belleği büyük, hızı küçük modele benzer." },
+  { ad: "Kuantizasyon", benzet: "Fotoğrafı JPEG'e sıkıştırmak gibi.", ozet: "Ağırlıkları daha az bitle, kabaca yuvarlayarak saklamak. Çok daha az yer kaplar ve hızlanır; karşılığında az bir kalite kaybı olur." },
+  { ad: "Bit derinliği", benzet: "Fiyatı kuruşuna kadar mı, yuvarlayarak mı yazıyorsun?", ozet: "Her sayıyı kaç haneyle yazdığın. 16 → 8 → 4 bit: her adımda bellek kabaca yarıya iner, kalite de biraz düşer." },
+  { ad: "KV cache", benzet: "Modelin yanında tuttuğu not defteri.", ozet: "O anki konuşmaya dair kısa hafıza. Bağlam ve kullanıcı sayısı arttıkça şişer ve ciddi bellek yer — çoğu zaman asıl sığmama sebebi budur." },
+  { ad: "Bağlam uzunluğu", benzet: "Masaya aynı anda sığdırabildiğin kağıt sayısı.", ozet: "Modelin bir anda aklında tutabildiği metin miktarı (token cinsinden). Uzun bağlam daha çok KV cache, yani daha çok bellek demek." },
+  { ad: "Bellek bant genişliği", benzet: "Musluğun debisi — boru ne kadar kalın?", ozet: "Belleğin ne kadar hızlı okunabildiği. Token üretim hızını asıl bu belirler, işlem gücü (TFLOPS) değil." },
+  { ad: "İlk token gecikmesi", benzet: "Garsonun siparişi alıp mutfağa iletmesi.", ozet: "Soruyu gönderdikten sonra cevabın ilk harfi gelene kadar geçen 'düşünme' süresi. Uzun bağlamda ve kalabalıkta uzar." },
+  { ad: "Dense / MoE", benzet: "Tüm ekip mi çalışıyor, yoksa nöbetçi mi?", ozet: "Dense modelde her parametre her adımda çalışır; MoE'de yalnızca ilgili 'uzmanlar'. MoE aynı bellekle daha hızlıdır." },
+  { ad: "Tensör paralelliği", benzet: "Bir masayı dört kişi taşımak — koordinasyon şart.", ozet: "Tek modeli birden çok karta bölüp birlikte çalıştırmak. Kartlar arası bağlantı (NVLink > PCIe > ağ) yavaşsa kazanç hızla düşer." },
+];
+
 const TP_ETKI = { tek: 1.0, nvlink: 0.86, pcie: 0.6, net: 0.33 };
 const TP_ETIKET = {
   nvlink: "NVLink",
@@ -504,6 +519,7 @@ export default function Simulator() {
   const [adet, setAdet] = useState(2);
   const [topoloji, setTopoloji] = useState("bagimsiz");
   const [siralama, setSiralama] = useState("verim");
+  const [kavramAcik, setKavramAcik] = useState(true);
 
   const model = MODELS.find((m) => m.id === modelId);
   const cihaz = DEVICES.find((d) => d.id === cihazId);
@@ -664,6 +680,78 @@ export default function Simulator() {
           bütçesini, token hızını, ilk token gecikmesini, maliyeti ve güç tüketimini çıkarır.
         </p>
       </div>
+
+      {/* Kavramlar — sade anlatım */}
+      <Kutu style={{ marginBottom: 18 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            cursor: "pointer",
+          }}
+          onClick={() => setKavramAcik((v) => !v)}
+        >
+          <div>
+            <Etiket>Kavramlar, çok basitçe</Etiket>
+            <div style={{ fontSize: 12.5, color: C.ink2, marginTop: 2 }}>
+              Kuantizasyon, KV cache, token… hepsi gündelik benzetmelerle
+            </div>
+          </div>
+          <span
+            style={{
+              fontFamily: MONO,
+              fontSize: 12,
+              color: C.steel,
+              border: `1px solid ${C.line}`,
+              borderRadius: 3,
+              padding: "4px 9px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {kavramAcik ? "gizle −" : "göster +"}
+          </span>
+        </div>
+
+        {kavramAcik && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 12,
+              marginTop: 14,
+            }}
+          >
+            {KAVRAMLAR.map((k) => (
+              <div
+                key={k.ad}
+                style={{
+                  background: C.wash,
+                  border: `1px solid ${C.line2}`,
+                  borderRadius: 3,
+                  padding: "11px 12px",
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 4 }}>
+                  {k.ad}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: C.steel,
+                    fontStyle: "italic",
+                    marginBottom: 5,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {k.benzet}
+                </div>
+                <div style={{ fontSize: 12, color: C.ink2, lineHeight: 1.55 }}>{k.ozet}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Kutu>
 
       <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-start" }}>
         {/* ---------------- SOL: KONTROLLER ---------------- */}
