@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  ReferenceLine,
 } from "recharts";
 
 /* ------------------------------------------------------------------ */
@@ -38,6 +39,14 @@ const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospac
 const SANS =
   '"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
+// Bağlam uzunluğunu okunur biçimde göster: 128 → "128K", 1000 → "1M", 10000 → "10M"
+const ctxYazi = (k) => (k >= 1000 ? `${(k / 1000) % 1 === 0 ? k / 1000 : (k / 1000).toFixed(1)}M` : `${k}K`);
+// Token sayısını yaklaşık karakter/harf karşılığına çevir (~4 karakter/token, yaklaşık).
+const harfYazi = (tok) => {
+  const h = tok * 4;
+  return h >= 1000 ? `~${(h / 1000).toFixed(h < 10000 ? 1 : 0)}b harf` : `~${h} harf`;
+};
+
 const linkBtnStil = {
   fontFamily: SANS,
   fontSize: 11.5,
@@ -50,45 +59,62 @@ const linkBtnStil = {
   whiteSpace: "nowrap",
 };
 
+const grafikSecStil = {
+  fontFamily: SANS,
+  fontSize: 11.5,
+  padding: "4px 6px",
+  border: `1px solid ${C.line}`,
+  borderRadius: 3,
+  background: C.paper,
+  color: C.ink,
+};
+
 /* ------------------------------------------------------------------ */
 /*  DONANIM VERİTABANI                                                 */
 /*  mem  = GB    bw = GB/s    tf = yoğun FP8 TFLOPS    w = watt        */
 /*  link = birden fazla adet kullanıldığında ara bağlantı tipi         */
 /* ------------------------------------------------------------------ */
 
+/* mem = birleşik RAM / VRAM (GB) — kutularda paylaşımlı sistem RAM'i,
+   kartlarda kartın kendi VRAM'i. Dropdown'da her cihazın yanında gösterilir. */
 const DEVICES = [
-  // --- Hazır kutular / appliance ---
+  // --- Hazır kutular / appliance (birleşik RAM) ---
   { id: "spark", ad: "NVIDIA DGX Spark (GB10)", grup: "Hazır kutu", mem: 128, bw: 273, tf: 125, fiyat: 4699, w: 240, tur: "kutu", link: "net", mbu: 0.58, tr: "ithal", mim: "gb10" },
   { id: "station", ad: "DGX Station / MSI WS300 (GB300)", grup: "Hazır kutu", mem: 784, bw: 5000, tf: 4000, fiyat: 50000, w: 1800, tur: "kutu", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "gb300" },
   { id: "gx10", ad: "ASUS Ascent GX10 (GB10)", grup: "Hazır kutu", mem: 128, bw: 273, tf: 125, fiyat: 3299, w: 240, tur: "kutu", link: "net", mbu: 0.58, tr: "ithal", mim: "gb10" },
-  { id: "m3u512", ad: "Mac Studio M3 Ultra 512 GB", grup: "Hazır kutu", mem: 512, bw: 819, tf: 110, fiyat: 9499, w: 270, tur: "kutu", link: "net", mbu: 0.52, tr: "sinirli", mim: "apple" },
-  { id: "m3u256", ad: "Mac Studio M3 Ultra 256 GB", grup: "Hazır kutu", mem: 256, bw: 819, tf: 110, fiyat: 7499, w: 270, tur: "kutu", link: "net", mbu: 0.52, tr: "kolay", mim: "apple" },
-  { id: "m4max", ad: "Mac Studio M4 Max 128 GB", grup: "Hazır kutu", mem: 128, bw: 546, tf: 70, fiyat: 3699, w: 160, tur: "kutu", link: "net", mbu: 0.52, tr: "kolay", mim: "apple" },
-  { id: "strix", ad: "Framework Desktop (Strix Halo 128 GB)", grup: "Hazır kutu", mem: 128, bw: 256, tf: 60, fiyat: 2200, w: 140, tur: "kutu", link: "net", mbu: 0.5, tr: "ithal", mim: "amd" },
+  { id: "m3u512", ad: "Mac Studio M3 Ultra", grup: "Hazır kutu", mem: 512, bw: 819, tf: 110, fiyat: 9499, w: 270, tur: "kutu", link: "net", mbu: 0.52, tr: "sinirli", mim: "apple" },
+  { id: "m3u256", ad: "Mac Studio M3 Ultra", grup: "Hazır kutu", mem: 256, bw: 819, tf: 110, fiyat: 7499, w: 270, tur: "kutu", link: "net", mbu: 0.52, tr: "kolay", mim: "apple" },
+  { id: "m4max", ad: "Mac Studio M4 Max", grup: "Hazır kutu", mem: 128, bw: 546, tf: 70, fiyat: 3699, w: 160, tur: "kutu", link: "net", mbu: 0.52, tr: "kolay", mim: "apple" },
+  { id: "strix", ad: "Framework Desktop (Ryzen AI Max+ 395)", grup: "Hazır kutu", mem: 128, bw: 256, tf: 60, fiyat: 2200, w: 140, tur: "kutu", link: "net", mbu: 0.5, tr: "ithal", mim: "amd" },
+  { id: "evox2", ad: "GMKtec EVO-X2 (Ryzen AI Max+ 395)", grup: "Hazır kutu", mem: 128, bw: 256, tf: 60, fiyat: 1799, w: 140, tur: "kutu", link: "net", mbu: 0.5, tr: "ithal", mim: "amd" },
 
   // --- İş istasyonu kartları ---
-  { id: "pro6000", ad: "RTX PRO 6000 Blackwell 96 GB", grup: "İş istasyonu kartı", mem: 96, bw: 1792, tf: 1000, fiyat: 13250, w: 600, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
-  { id: "pro5000_72", ad: "RTX PRO 5000 Blackwell 72 GB", grup: "İş istasyonu kartı", mem: 72, bw: 1344, tf: 700, fiyat: 7000, w: 300, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
-  { id: "pro5000_48", ad: "RTX PRO 5000 Blackwell 48 GB", grup: "İş istasyonu kartı", mem: 48, bw: 1344, tf: 700, fiyat: 4500, w: 300, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
-  { id: "pro4500", ad: "RTX PRO 4500 Blackwell 32 GB", grup: "İş istasyonu kartı", mem: 32, bw: 896, tf: 450, fiyat: 2600, w: 200, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
-  { id: "l40s", ad: "NVIDIA L40S 48 GB", grup: "İş istasyonu kartı", mem: 48, bw: 864, tf: 733, fiyat: 8000, w: 350, tur: "kart", link: "pcie", mbu: 0.65, tr: "kurumsal", mim: "ada" },
+  { id: "pro6000", ad: "NVIDIA RTX PRO 6000 Blackwell", grup: "İş istasyonu kartı", mem: 96, bw: 1792, tf: 1000, fiyat: 13250, w: 600, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
+  { id: "pro5000_72", ad: "NVIDIA RTX PRO 5000 Blackwell", grup: "İş istasyonu kartı", mem: 72, bw: 1344, tf: 700, fiyat: 7000, w: 300, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
+  { id: "pro5000_48", ad: "NVIDIA RTX PRO 5000 Blackwell", grup: "İş istasyonu kartı", mem: 48, bw: 1344, tf: 700, fiyat: 4500, w: 300, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
+  { id: "pro4500", ad: "NVIDIA RTX PRO 4500 Blackwell", grup: "İş istasyonu kartı", mem: 32, bw: 896, tf: 450, fiyat: 2600, w: 200, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
+  { id: "l40s", ad: "NVIDIA L40S", grup: "İş istasyonu kartı", mem: 48, bw: 864, tf: 733, fiyat: 8000, w: 350, tur: "kart", link: "pcie", mbu: 0.65, tr: "kurumsal", mim: "ada" },
+  { id: "r9700", ad: "AMD Radeon AI PRO R9700", grup: "İş istasyonu kartı", mem: 32, bw: 645, tf: 190, fiyat: 1300, w: 300, tur: "kart", link: "pcie", mbu: 0.6, tr: "ithal", mim: "amd" },
 
   // --- Tüketici kartları ---
-  { id: "5090", ad: "GeForce RTX 5090 32 GB", grup: "Tüketici kartı", mem: 32, bw: 1792, tf: 838, fiyat: 2200, w: 575, tur: "kart", link: "pcie", mbu: 0.63, tr: "kolay", mim: "blackwell" },
-  { id: "4090", ad: "GeForce RTX 4090 24 GB", grup: "Tüketici kartı", mem: 24, bw: 1008, tf: 660, fiyat: 1800, w: 450, tur: "kart", link: "pcie", mbu: 0.63, tr: "kolay", mim: "ada" },
-  { id: "3090", ad: "GeForce RTX 3090 24 GB (2. el)", grup: "Tüketici kartı", mem: 24, bw: 936, tf: 285, fiyat: 800, w: 350, tur: "kart", link: "pcie", mbu: 0.6, tr: "kolay", mim: "ampere" },
+  { id: "5090", ad: "GeForce RTX 5090", grup: "Tüketici kartı", mem: 32, bw: 1792, tf: 838, fiyat: 2200, w: 575, tur: "kart", link: "pcie", mbu: 0.63, tr: "kolay", mim: "blackwell" },
+  { id: "4090", ad: "GeForce RTX 4090", grup: "Tüketici kartı", mem: 24, bw: 1008, tf: 660, fiyat: 1800, w: 450, tur: "kart", link: "pcie", mbu: 0.63, tr: "kolay", mim: "ada" },
+  { id: "3090", ad: "GeForce RTX 3090 (2. el)", grup: "Tüketici kartı", mem: 24, bw: 936, tf: 285, fiyat: 800, w: 350, tur: "kart", link: "pcie", mbu: 0.6, tr: "kolay", mim: "ampere" },
 
   // --- Veri merkezi ---
-  { id: "a100", ad: "NVIDIA A100 80 GB", grup: "Veri merkezi", mem: 80, bw: 2039, tf: 624, fiyat: 15000, w: 400, tur: "kart", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "ampere" },
-  { id: "h100p", ad: "NVIDIA H100 PCIe 80 GB", grup: "Veri merkezi", mem: 80, bw: 2000, tf: 1513, fiyat: 25000, w: 350, tur: "kart", link: "pcie", mbu: 0.7, tr: "kurumsal", mim: "hopper" },
-  { id: "h100s", ad: "NVIDIA H100 SXM 80 GB", grup: "Veri merkezi", mem: 80, bw: 3350, tf: 1979, fiyat: 30000, w: 700, tur: "kart", link: "nvlink", mbu: 0.72, tr: "kurumsal", mim: "hopper" },
-  { id: "h200", ad: "NVIDIA H200 SXM 141 GB", grup: "Veri merkezi", mem: 141, bw: 4800, tf: 1979, fiyat: 32000, w: 700, tur: "kart", link: "nvlink", mbu: 0.72, tr: "kurumsal", mim: "hopper" },
-  { id: "b200", ad: "NVIDIA B200 192 GB", grup: "Veri merkezi", mem: 192, bw: 8000, tf: 4500, fiyat: 40000, w: 1000, tur: "kart", link: "nvlink", mbu: 0.74, tr: "kurumsal", mim: "blackwell" },
+  { id: "a100", ad: "NVIDIA A100", grup: "Veri merkezi", mem: 80, bw: 2039, tf: 624, fiyat: 15000, w: 400, tur: "kart", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "ampere" },
+  { id: "h100s", ad: "NVIDIA H100 SXM", grup: "Veri merkezi", mem: 80, bw: 3350, tf: 1979, fiyat: 30000, w: 700, tur: "kart", link: "nvlink", mbu: 0.72, tr: "kurumsal", mim: "hopper" },
+  { id: "h200", ad: "NVIDIA H200 SXM", grup: "Veri merkezi", mem: 141, bw: 4800, tf: 1979, fiyat: 32000, w: 700, tur: "kart", link: "nvlink", mbu: 0.72, tr: "kurumsal", mim: "hopper" },
+  { id: "b200", ad: "NVIDIA B200", grup: "Veri merkezi", mem: 192, bw: 8000, tf: 4500, fiyat: 40000, w: 1000, tur: "kart", link: "nvlink", mbu: 0.74, tr: "kurumsal", mim: "blackwell" },
+  { id: "mi300x", ad: "AMD Instinct MI300X", grup: "Veri merkezi", mem: 192, bw: 5300, tf: 1300, fiyat: 15000, w: 750, tur: "kart", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "cdna3" },
+  { id: "mi325x", ad: "AMD Instinct MI325X", grup: "Veri merkezi", mem: 256, bw: 6000, tf: 1300, fiyat: 20000, w: 1000, tur: "kart", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "cdna3" },
+  { id: "mi355x", ad: "AMD Instinct MI355X (CDNA4)", grup: "Veri merkezi", mem: 288, bw: 8000, tf: 2500, fiyat: 25000, w: 1400, tur: "kart", link: "nvlink", mbu: 0.72, tr: "kurumsal", mim: "cdna4" },
+  { id: "gaudi3", ad: "Intel Gaudi 3", grup: "Veri merkezi", mem: 128, bw: 3700, tf: 1835, fiyat: 15000, w: 900, tur: "kart", link: "nvlink", mbu: 0.68, tr: "kurumsal", mim: "gaudi" },
 
   // --- Uç / saha ---
-  { id: "thor", ad: "Jetson AGX Thor 128 GB", grup: "Uç / saha", mem: 128, bw: 273, tf: 400, fiyat: 3499, w: 130, tur: "kutu", link: "net", mbu: 0.55, tr: "sinirli", mim: "thor" },
-  { id: "agxorin", ad: "Jetson AGX Orin 64 GB", grup: "Uç / saha", mem: 64, bw: 204, tf: 138, fiyat: 1999, w: 60, tur: "kutu", link: "net", mbu: 0.55, tr: "sinirli", mim: "ampere" },
-  { id: "orinnano", ad: "Jetson Orin Nano Super 8 GB", grup: "Uç / saha", mem: 8, bw: 102, tf: 33, fiyat: 499, w: 25, tur: "kutu", link: "net", mbu: 0.55, tr: "kolay", mim: "ampere" },
+  { id: "thor", ad: "Jetson AGX Thor", grup: "Uç / saha", mem: 128, bw: 273, tf: 400, fiyat: 3499, w: 130, tur: "kutu", link: "net", mbu: 0.55, tr: "sinirli", mim: "thor" },
+  { id: "agxorin", ad: "Jetson AGX Orin", grup: "Uç / saha", mem: 64, bw: 204, tf: 138, fiyat: 1999, w: 60, tur: "kutu", link: "net", mbu: 0.55, tr: "sinirli", mim: "ampere" },
+  { id: "orinnano", ad: "Jetson Orin Nano Super", grup: "Uç / saha", mem: 8, bw: 102, tf: 33, fiyat: 499, w: 25, tur: "kutu", link: "net", mbu: 0.55, tr: "kolay", mim: "ampere" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -256,19 +282,21 @@ const TR_NOT = {
 /* Mimari → kuantizasyon donanım desteği */
 const MIM_AD = {
   blackwell: "Blackwell", gb10: "GB10 (Blackwell)", gb300: "GB300 (Blackwell)", thor: "Thor (Blackwell)",
-  hopper: "Hopper", ada: "Ada Lovelace", ampere: "Ampere", apple: "Apple Silicon", amd: "AMD Strix Halo",
+  hopper: "Hopper", ada: "Ada Lovelace", ampere: "Ampere", apple: "Apple Silicon",
+  amd: "AMD Ryzen AI / RDNA", cdna3: "AMD CDNA3 (Instinct)", cdna4: "AMD CDNA4 (Instinct)",
+  gaudi: "Intel Gaudi 3",
 };
-const BLACKWELL = new Set(["blackwell", "gb10", "gb300", "thor"]);
-const FP8_NATIVE = new Set(["blackwell", "gb10", "gb300", "thor", "hopper", "ada"]);
+const FP4_NATIVE = new Set(["blackwell", "gb10", "gb300", "thor", "cdna4"]);
+const FP8_NATIVE = new Set(["blackwell", "gb10", "gb300", "thor", "hopper", "ada", "cdna3", "cdna4", "gaudi"]);
 
 function quantUyum(cihaz, quantId) {
   const m = cihaz.mim;
   if (quantId === "nvfp4") {
-    if (BLACKWELL.has(m))
-      return { tip: "olumlu", mesaj: `${MIM_AD[m]} FP4 çekirdekleriyle donanımda hızlandırılır — bu donanım için ideal seçim.` };
+    if (FP4_NATIVE.has(m))
+      return { tip: "olumlu", mesaj: `${MIM_AD[m]} FP4'ü donanımda hızlandırır (NVIDIA'da NVFP4, AMD CDNA4'te MXFP4) — bu donanım için ideal.` };
     if (m === "apple" || m === "amd")
       return { tip: "uyari", mesaj: `${MIM_AD[m]} üzerinde FP4 donanım desteği yok. MXFP4 yazılımla çalışır ama hız avantajı sınırlı; pratikte Q4_K_M daha oturmuş.` };
-    return { tip: "uyari", mesaj: `FP4 yalnızca Blackwell'de donanımda hızlanır. ${MIM_AD[m]} üzerinde emülasyon olur; NVFP4 yerine FP8 veya Q4 daha hızlı.` };
+    return { tip: "uyari", mesaj: `FP4 yalnızca Blackwell/CDNA4'te donanımda hızlanır. ${MIM_AD[m]} üzerinde emülasyon olur; NVFP4 yerine FP8 veya Q4 daha hızlı.` };
   }
   if (quantId === "fp8") {
     if (FP8_NATIVE.has(m))
@@ -873,6 +901,8 @@ export default function Simulator() {
   const topoloji = "kume";
   const [siralama, setSiralama] = useState("verim");
   const [modelSirala, setModelSirala] = useState("yetenek");
+  const [xEksen, setXEksen] = useState("kullanici");
+  const [yEksen, setYEksen] = useState("hiz");
   const [kavramAcik, setKavramAcik] = useState(true);
 
   const model = MODELS.find((m) => m.id === modelId);
@@ -883,19 +913,30 @@ export default function Simulator() {
     [model, quant, kvq, ctxK, kullanici, cikti, cihaz, adet, topoloji]
   );
 
-  // Eşzamanlılık eğrisi
+  // Seçilebilir grafik: X ekseni (kullanıcı / bağlam / adet), Y ekseni (hız / ilk token / bellek)
   const egri = useMemo(() => {
-    const out = [];
-    for (let k = 1; k <= 32; k++) {
-      const h = hesapla({ model, quant, kvq, ctxK, kullanici: k, cikti, cihaz, adet, topoloji });
-      out.push({
-        k,
+    let xler;
+    if (xEksen === "kullanici") xler = Array.from({ length: 32 }, (_, i) => i + 1);
+    else if (xEksen === "adet") xler = Array.from({ length: 16 }, (_, i) => i + 1);
+    else xler = [4, 8, 16, 32, 64, 128, 192, 256, 384, 512, 768, 1024]; // bağlam K
+
+    return xler.map((x) => {
+      const args = { model, quant, kvq, ctxK, kullanici, cikti, cihaz, adet, topoloji };
+      if (xEksen === "kullanici") args.kullanici = x;
+      else if (xEksen === "adet") args.adet = x;
+      else args.ctxK = x;
+      const h = hesapla(args);
+      return {
+        x,
         kisiBasi: h.sigar ? Number(h.kullaniciTokS.toFixed(1)) : null,
         toplam: h.sigar ? Number(h.toplamTokS.toFixed(0)) : null,
-      });
-    }
-    return out;
-  }, [model, quant, kvq, ctxK, cikti, cihaz, adet, topoloji]);
+        ttft: h.sigar ? Number(h.ttftYogun.toFixed(2)) : null,
+        bellek: Number(Math.min(200, h.doluluk * 100).toFixed(0)),
+      };
+    });
+  }, [model, quant, kvq, ctxK, kullanici, cikti, cihaz, adet, topoloji, xEksen]);
+
+  const X_ETIKET = { kullanici: "Eşzamanlı kullanıcı", baglam: "Bağlam (K token)", adet: "Cihaz adedi" };
 
   // Tüm cihazlar karşılaştırması
   const tablo = useMemo(() => {
@@ -1168,7 +1209,7 @@ export default function Simulator() {
                 <optgroup key={a} label={a}>
                   {MODELS.filter((m) => m.aile === a).map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.ad}
+                      {m.ad} · {ctxYazi(m.ctx)}
                     </option>
                   ))}
                 </optgroup>
@@ -1290,10 +1331,14 @@ export default function Simulator() {
               deger={ctxK}
               onChange={setCtxK}
               min={4}
-              max={256}
+              max={1024}
               step={4}
-              goster={`${ctxK}K token`}
+              goster={`${ctxYazi(ctxK)} token`}
             />
+            <div style={{ fontSize: 11, color: C.ink3, marginTop: -8, marginBottom: 14, lineHeight: 1.5 }}>
+              Seçili modelin desteği: <b style={{ color: C.ink2 }}>{ctxYazi(model.ctx)}</b>
+              {ctxK > model.ctx ? " · bu modelin sınırını aşıyorsun" : ""}
+            </div>
             <Kaydirac
               etiket="Eşzamanlı kullanıcı"
               deger={kullanici}
@@ -1310,7 +1355,7 @@ export default function Simulator() {
               min={100}
               max={4000}
               step={100}
-              goster={`${cikti} token`}
+              goster={`${cikti} tok ≈ ${harfYazi(cikti)}`}
             />
           </Kutu>
 
@@ -1333,8 +1378,7 @@ export default function Simulator() {
                 <optgroup key={g} label={g}>
                   {DEVICES.filter((d) => d.grup === g).map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.ad}
-                      {d.tr === "kolay" ? " — TR ✓" : ""}
+                      {d.ad} · {d.mem} GB{d.tr === "kolay" ? " · TR ✓" : ""}
                     </option>
                   ))}
                 </optgroup>
@@ -1607,66 +1651,86 @@ export default function Simulator() {
             />
           </div>
 
-          {/* Eğri */}
+          {/* Seçilebilir grafik */}
           <Kutu style={{ marginBottom: 14 }}>
-            <Etiket>Eşzamanlı kullanıcı arttıkça ne oluyor</Etiket>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 10,
+                marginBottom: 6,
+              }}
+            >
+              <Etiket>Grafik — eksenleri seç</Etiket>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <select value={yEksen} onChange={(e) => setYEksen(e.target.value)} style={grafikSecStil}>
+                  <option value="hiz">Dikey: token hızı</option>
+                  <option value="ttft">Dikey: ilk token (sn)</option>
+                  <option value="bellek">Dikey: bellek doluluğu %</option>
+                </select>
+                <span style={{ fontSize: 11, color: C.ink3 }}>×</span>
+                <select value={xEksen} onChange={(e) => setXEksen(e.target.value)} style={grafikSecStil}>
+                  <option value="kullanici">Yatay: kullanıcı</option>
+                  <option value="baglam">Yatay: bağlam</option>
+                  <option value="adet">Yatay: cihaz adedi</option>
+                </select>
+              </div>
+            </div>
             <div style={{ height: 210, marginTop: 8 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={egri} margin={{ top: 6, right: 8, left: -14, bottom: 4 }}>
                   <CartesianGrid stroke={C.line2} vertical={false} />
                   <XAxis
-                    dataKey="k"
+                    dataKey="x"
                     tick={{ fontSize: 10.5, fill: C.ink3, fontFamily: MONO }}
                     stroke={C.line}
+                    tickFormatter={(v) => (xEksen === "baglam" ? ctxYazi(v) : v)}
                   />
-                  <YAxis
-                    yAxisId="l"
-                    tick={{ fontSize: 10.5, fill: C.ink3, fontFamily: MONO }}
-                    stroke={C.line}
-                  />
-                  <YAxis
-                    yAxisId="r"
-                    orientation="right"
-                    tick={{ fontSize: 10.5, fill: C.ink3, fontFamily: MONO }}
-                    stroke={C.line}
-                  />
+                  {yEksen === "hiz" ? (
+                    <>
+                      <YAxis yAxisId="l" tick={{ fontSize: 10.5, fill: C.ink3, fontFamily: MONO }} stroke={C.line} />
+                      <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 10.5, fill: C.ink3, fontFamily: MONO }} stroke={C.line} />
+                    </>
+                  ) : (
+                    <YAxis
+                      yAxisId="l"
+                      domain={yEksen === "bellek" ? [0, 200] : [0, "auto"]}
+                      tick={{ fontSize: 10.5, fill: C.ink3, fontFamily: MONO }}
+                      stroke={C.line}
+                    />
+                  )}
                   <Tooltip
-                    contentStyle={{
-                      fontFamily: MONO,
-                      fontSize: 11.5,
-                      border: `1px solid ${C.line}`,
-                      borderRadius: 3,
-                    }}
-                    labelFormatter={(v) => `${v} eşzamanlı kullanıcı`}
+                    contentStyle={{ fontFamily: MONO, fontSize: 11.5, border: `1px solid ${C.line}`, borderRadius: 3 }}
+                    labelFormatter={(v) =>
+                      `${xEksen === "baglam" ? ctxYazi(v) : v} ${xEksen === "kullanici" ? "kullanıcı" : xEksen === "adet" ? "cihaz" : "bağlam"}`
+                    }
                   />
                   <Legend wrapperStyle={{ fontSize: 11.5, fontFamily: SANS }} />
-                  <Line
-                    yAxisId="l"
-                    type="monotone"
-                    dataKey="kisiBasi"
-                    name="Kullanıcı başına tok/s"
-                    stroke={C.steel}
-                    strokeWidth={2}
-                    dot={false}
-                    connectNulls={false}
-                  />
-                  <Line
-                    yAxisId="r"
-                    type="monotone"
-                    dataKey="toplam"
-                    name="Toplam tok/s"
-                    stroke={C.kv}
-                    strokeWidth={2}
-                    dot={false}
-                    connectNulls={false}
-                  />
+                  {yEksen === "hiz" && (
+                    <>
+                      <Line yAxisId="l" type="monotone" dataKey="kisiBasi" name="Kullanıcı başına tok/s" stroke={C.steel} strokeWidth={2} dot={false} connectNulls={false} />
+                      <Line yAxisId="r" type="monotone" dataKey="toplam" name="Toplam tok/s" stroke={C.kv} strokeWidth={2} dot={false} connectNulls={false} />
+                    </>
+                  )}
+                  {yEksen === "ttft" && (
+                    <Line yAxisId="l" type="monotone" dataKey="ttft" name="İlk token (sn)" stroke={C.bad} strokeWidth={2} dot={false} connectNulls={false} />
+                  )}
+                  {yEksen === "bellek" && (
+                    <>
+                      <ReferenceLine yAxisId="l" y={100} stroke={C.bad} strokeDasharray="4 4" />
+                      <Line yAxisId="l" type="monotone" dataKey="bellek" name="Bellek doluluğu %" stroke={C.steel} strokeWidth={2} dot={false} />
+                    </>
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             </div>
             <div style={{ fontSize: 11.5, color: C.ink3, marginTop: 6, lineHeight: 1.6 }}>
-              Çizgi kesiliyorsa o kullanıcı sayısında bellek yetmiyor demektir. Toplam verim yükselirken
-              kullanıcı başına hızın düşmesi normaldir, önemli olan kişi başına hızın kullanılabilir
-              bandın altına inmemesi.
+              {yEksen === "hiz" &&
+                "Çizgi kesiliyorsa orada belleğe sığmıyor demektir. Toplam verim yükselirken kişi başına hızın düşmesi normaldir; önemli olan kişi başına hızın okunur bandın altına inmemesi."}
+              {yEksen === "ttft" && "İlk token gecikmesi: bağlam ve kalabalık arttıkça uzar. 10 sn üzeri kullanıcıyı bekletir."}
+              {yEksen === "bellek" && "Kırmızı %100 çizgisini geçen noktalarda model o ayarla belleğe SIĞMAZ. Altında kalması gerekir."}
             </div>
           </Kutu>
 
