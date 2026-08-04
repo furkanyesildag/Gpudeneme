@@ -79,41 +79,41 @@ const grafikSecStil = {
    kartlarda kartın kendi VRAM'i. Dropdown'da her cihazın yanında gösterilir. */
 const DEVICES = [
   // --- Hazır kutular / appliance (birleşik RAM) ---
-  { id: "spark", ad: "NVIDIA DGX Spark (GB10)", grup: "Hazır kutu", mem: 128, bw: 273, tf: 125, fiyat: 4699, w: 240, tur: "kutu", link: "net", mbu: 0.58, tr: "ithal", mim: "gb10" },
-  { id: "station", ad: "DGX Station / MSI WS300 (GB300)", grup: "Hazır kutu", mem: 784, bw: 5000, tf: 4000, fiyat: 50000, w: 1800, tur: "kutu", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "gb300" },
-  { id: "gx10", ad: "ASUS Ascent GX10 (GB10)", grup: "Hazır kutu", mem: 128, bw: 273, tf: 125, fiyat: 3299, w: 240, tur: "kutu", link: "net", mbu: 0.58, tr: "ithal", mim: "gb10" },
+  { id: "spark", ad: "NVIDIA DGX Spark (GB10)", grup: "Hazır kutu", mem: 128, bw: 273, tf: 125, fiyat: 4699, w: 240, tur: "kutu", link: "net", mbu: 0.58, tr: "sinirli", mim: "gb10" },
+  { id: "station", ad: "DGX Station / MSI WS300 (GB300)", grup: "Hazır kutu", mem: 748, bw: 2000, tf: 4000, fiyat: 85000, w: 1600, tur: "kutu", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "gb300" },
+  { id: "gx10", ad: "ASUS Ascent GX10 (GB10)", grup: "Hazır kutu", mem: 128, bw: 276, tf: 125, fiyat: 2999, w: 240, tur: "kutu", link: "net", mbu: 0.58, tr: "sinirli", mim: "gb10" },
   { id: "m3u96", ad: "Mac Studio M3 Ultra", grup: "Hazır kutu", mem: 96, bw: 819, tf: 110, fiyat: 3999, w: 270, tur: "kutu", link: "net", mbu: 0.52, tr: "kolay", mim: "apple" },
   { id: "m4max", ad: "Mac Studio M4 Max", grup: "Hazır kutu", mem: 128, bw: 546, tf: 70, fiyat: 3699, w: 160, tur: "kutu", link: "net", mbu: 0.52, tr: "kolay", mim: "apple" },
-  { id: "strix", ad: "Framework Desktop (Ryzen AI Max+ 395)", grup: "Hazır kutu", mem: 128, bw: 256, tf: 60, fiyat: 2200, w: 140, tur: "kutu", link: "net", mbu: 0.5, tr: "ithal", mim: "amd" },
-  { id: "evox2", ad: "GMKtec EVO-X2 (Ryzen AI Max+ 395)", grup: "Hazır kutu", mem: 128, bw: 256, tf: 60, fiyat: 1799, w: 140, tur: "kutu", link: "net", mbu: 0.5, tr: "ithal", mim: "amd" },
+  { id: "strix", ad: "Framework Desktop (Ryzen AI Max+ 395)", grup: "Hazır kutu", mem: 128, bw: 256, tf: 60, fiyat: 2200, w: 120, tur: "kutu", link: "net", mbu: 0.5, tr: "ithal", mim: "amd" },
+  { id: "evox2", ad: "GMKtec EVO-X2 (Ryzen AI Max+ 395)", grup: "Hazır kutu", mem: 128, bw: 256, tf: 60, fiyat: 1999, w: 120, tur: "kutu", link: "net", mbu: 0.5, tr: "ithal", mim: "amd" },
 
   // --- İş istasyonu kartları ---
   { id: "pro6000", ad: "NVIDIA RTX PRO 6000 Blackwell", grup: "İş istasyonu kartı", mem: 96, bw: 1792, tf: 1000, fiyat: 13250, w: 600, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
-  { id: "pro5000_72", ad: "NVIDIA RTX PRO 5000 Blackwell", grup: "İş istasyonu kartı", mem: 72, bw: 1344, tf: 700, fiyat: 7000, w: 300, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
-  { id: "pro5000_48", ad: "NVIDIA RTX PRO 5000 Blackwell", grup: "İş istasyonu kartı", mem: 48, bw: 1344, tf: 700, fiyat: 4500, w: 300, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
-  { id: "pro4500", ad: "NVIDIA RTX PRO 4500 Blackwell", grup: "İş istasyonu kartı", mem: 32, bw: 896, tf: 450, fiyat: 2600, w: 200, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
+  { id: "pro5000_72", ad: "NVIDIA RTX PRO 5000 Blackwell", grup: "İş istasyonu kartı", mem: 72, bw: 1344, tf: 535, fiyat: 7000, w: 300, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
+  { id: "pro5000_48", ad: "NVIDIA RTX PRO 5000 Blackwell", grup: "İş istasyonu kartı", mem: 48, bw: 1344, tf: 535, fiyat: 4500, w: 300, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
+  { id: "pro4500", ad: "NVIDIA RTX PRO 4500 Blackwell", grup: "İş istasyonu kartı", mem: 32, bw: 896, tf: 405, fiyat: 2600, w: 200, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
   { id: "l40s", ad: "NVIDIA L40S", grup: "İş istasyonu kartı", mem: 48, bw: 864, tf: 733, fiyat: 8000, w: 350, tur: "kart", link: "pcie", mbu: 0.65, tr: "kurumsal", mim: "ada" },
-  { id: "r9700", ad: "AMD Radeon AI PRO R9700", grup: "İş istasyonu kartı", mem: 32, bw: 645, tf: 190, fiyat: 1300, w: 300, tur: "kart", link: "pcie", mbu: 0.6, tr: "ithal", mim: "amd" },
+  { id: "r9700", ad: "AMD Radeon AI PRO R9700", grup: "İş istasyonu kartı", mem: 32, bw: 640, tf: 383, fiyat: 1300, w: 300, tur: "kart", link: "pcie", mbu: 0.6, tr: "ithal", mim: "amd" },
 
   // --- Tüketici kartları ---
-  { id: "5090", ad: "GeForce RTX 5090", grup: "Tüketici kartı", mem: 32, bw: 1792, tf: 838, fiyat: 2200, w: 575, tur: "kart", link: "pcie", mbu: 0.63, tr: "kolay", mim: "blackwell" },
-  { id: "4090", ad: "GeForce RTX 4090", grup: "Tüketici kartı", mem: 24, bw: 1008, tf: 660, fiyat: 1800, w: 450, tur: "kart", link: "pcie", mbu: 0.63, tr: "kolay", mim: "ada" },
+  { id: "5090", ad: "GeForce RTX 5090", grup: "Tüketici kartı", mem: 32, bw: 1792, tf: 838, fiyat: 2800, w: 575, tur: "kart", link: "pcie", mbu: 0.63, tr: "kolay", mim: "blackwell" },
+  { id: "4090", ad: "GeForce RTX 4090", grup: "Tüketici kartı", mem: 24, bw: 1008, tf: 660, fiyat: 2300, w: 450, tur: "kart", link: "pcie", mbu: 0.63, tr: "kolay", mim: "ada" },
   { id: "3090", ad: "GeForce RTX 3090 (2. el)", grup: "Tüketici kartı", mem: 24, bw: 936, tf: 285, fiyat: 800, w: 350, tur: "kart", link: "pcie", mbu: 0.6, tr: "kolay", mim: "ampere" },
 
   // --- Veri merkezi ---
-  { id: "a100", ad: "NVIDIA A100", grup: "Veri merkezi", mem: 80, bw: 2039, tf: 624, fiyat: 15000, w: 400, tur: "kart", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "ampere" },
+  { id: "a100", ad: "NVIDIA A100 SXM", grup: "Veri merkezi", mem: 80, bw: 2039, tf: 312, fiyat: 18000, w: 400, tur: "kart", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "ampere" },
   { id: "h100s", ad: "NVIDIA H100 SXM", grup: "Veri merkezi", mem: 80, bw: 3350, tf: 1979, fiyat: 30000, w: 700, tur: "kart", link: "nvlink", mbu: 0.72, tr: "kurumsal", mim: "hopper" },
   { id: "h200", ad: "NVIDIA H200 SXM", grup: "Veri merkezi", mem: 141, bw: 4800, tf: 1979, fiyat: 32000, w: 700, tur: "kart", link: "nvlink", mbu: 0.72, tr: "kurumsal", mim: "hopper" },
   { id: "b200", ad: "NVIDIA B200", grup: "Veri merkezi", mem: 192, bw: 8000, tf: 4500, fiyat: 40000, w: 1000, tur: "kart", link: "nvlink", mbu: 0.74, tr: "kurumsal", mim: "blackwell" },
-  { id: "mi300x", ad: "AMD Instinct MI300X", grup: "Veri merkezi", mem: 192, bw: 5300, tf: 1300, fiyat: 15000, w: 750, tur: "kart", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "cdna3" },
-  { id: "mi325x", ad: "AMD Instinct MI325X", grup: "Veri merkezi", mem: 256, bw: 6000, tf: 1300, fiyat: 20000, w: 1000, tur: "kart", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "cdna3" },
-  { id: "mi355x", ad: "AMD Instinct MI355X (CDNA4)", grup: "Veri merkezi", mem: 288, bw: 8000, tf: 2500, fiyat: 25000, w: 1400, tur: "kart", link: "nvlink", mbu: 0.72, tr: "kurumsal", mim: "cdna4" },
+  { id: "mi300x", ad: "AMD Instinct MI300X", grup: "Veri merkezi", mem: 192, bw: 5300, tf: 2610, fiyat: 15000, w: 750, tur: "kart", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "cdna3" },
+  { id: "mi325x", ad: "AMD Instinct MI325X", grup: "Veri merkezi", mem: 256, bw: 6000, tf: 2610, fiyat: 20000, w: 1000, tur: "kart", link: "nvlink", mbu: 0.7, tr: "kurumsal", mim: "cdna3" },
+  { id: "mi355x", ad: "AMD Instinct MI355X (CDNA4)", grup: "Veri merkezi", mem: 288, bw: 8000, tf: 5000, fiyat: 30000, w: 1400, tur: "kart", link: "nvlink", mbu: 0.72, tr: "kurumsal", mim: "cdna4" },
   { id: "gaudi3", ad: "Intel Gaudi 3", grup: "Veri merkezi", mem: 128, bw: 3700, tf: 1835, fiyat: 15000, w: 900, tur: "kart", link: "nvlink", mbu: 0.68, tr: "kurumsal", mim: "gaudi" },
 
   // --- Uç / saha ---
   { id: "thor", ad: "Jetson AGX Thor", grup: "Uç / saha", mem: 128, bw: 273, tf: 400, fiyat: 3499, w: 130, tur: "kutu", link: "net", mbu: 0.55, tr: "sinirli", mim: "thor" },
   { id: "agxorin", ad: "Jetson AGX Orin", grup: "Uç / saha", mem: 64, bw: 204, tf: 138, fiyat: 1999, w: 60, tur: "kutu", link: "net", mbu: 0.55, tr: "sinirli", mim: "ampere" },
-  { id: "orinnano", ad: "Jetson Orin Nano Super", grup: "Uç / saha", mem: 8, bw: 102, tf: 33, fiyat: 499, w: 25, tur: "kutu", link: "net", mbu: 0.55, tr: "kolay", mim: "ampere" },
+  { id: "orinnano", ad: "Jetson Orin Nano Super", grup: "Uç / saha", mem: 8, bw: 102, tf: 33, fiyat: 249, w: 25, tur: "kutu", link: "net", mbu: 0.55, tr: "sinirli", mim: "ampere" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -126,24 +126,24 @@ const DEVICES = [
    hf = HuggingFace repo yolu · kv = KB/token (MLA/kayan pencerede düşüktür) */
 const MODELS = [
   // Qwen
-  { id: "q35_397", ad: "Qwen3.5 397B-A17B", aile: "Qwen", tp: 397, ap: 17, kv: 160, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-397B-A17B", bench: "AIME2026 91.3" },
+  { id: "q35_397", ad: "Qwen3.5 397B-A17B", aile: "Qwen", tp: 397, ap: 17, kv: 188, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-397B-A17B", bench: "AIME2026 91.3" },
   { id: "q35_122", ad: "Qwen3.5 122B-A10B", aile: "Qwen", tp: 122, ap: 10, kv: 110, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-122B-A10B" },
   { id: "q35_35a3", ad: "Qwen3.5 35B-A3B", aile: "Qwen", tp: 35, ap: 3, kv: 96, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-35B-A3B" },
-  { id: "q35_27", ad: "Qwen3.5 27B (dense)", aile: "Qwen", tp: 27, ap: 27, kv: 128, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-27B" },
-  { id: "q35_4", ad: "Qwen3.5 4B", aile: "Qwen", tp: 4, ap: 4, kv: 48, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-4B" },
-  { id: "q35_2", ad: "Qwen3.5 2B", aile: "Qwen", tp: 2, ap: 2, kv: 40, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-2B" },
-  { id: "q35_08", ad: "Qwen3.5 0.8B", aile: "Qwen", tp: 0.8, ap: 0.8, kv: 24, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-0.8B" },
+  { id: "q35_27", ad: "Qwen3.5 27B (dense)", aile: "Qwen", tp: 27, ap: 27, kv: 224, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-27B" },
+  { id: "q35_4", ad: "Qwen3.5 4B", aile: "Qwen", tp: 4, ap: 4, kv: 100, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-4B" },
+  { id: "q35_2", ad: "Qwen3.5 2B", aile: "Qwen", tp: 2, ap: 2, kv: 70, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-2B" },
+  { id: "q35_08", ad: "Qwen3.5 0.8B", aile: "Qwen", tp: 0.8, ap: 0.8, kv: 45, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-0.8B" },
   { id: "q36_35a3", ad: "Qwen3.6 35B-A3B", aile: "Qwen", tp: 35, ap: 3, kv: 96, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.6-35B-A3B" },
-  { id: "q36_27", ad: "Qwen3.6 27B (dense)", aile: "Qwen", tp: 27, ap: 27, kv: 128, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.6-27B" },
+  { id: "q36_27", ad: "Qwen3.6 27B (dense)", aile: "Qwen", tp: 27, ap: 27, kv: 224, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.6-27B" },
   // Kod (kod için özelleştirilmiş modeller)
   { id: "q3coder480", ad: "Qwen3-Coder 480B-A35B", aile: "Kod", tp: 480, ap: 35, kv: 140, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-Coder-480B-A35B-Instruct", bench: "SWE-bench Verified ~69.6%" },
   { id: "q3coder30", ad: "Qwen3-Coder 30B-A3B", aile: "Kod", tp: 30, ap: 3.3, kv: 96, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-Coder-30B-A3B-Instruct" },
-  { id: "q25coder32", ad: "Qwen2.5-Coder 32B", aile: "Kod", tp: 32, ap: 32, kv: 128, ctx: 32, lis: "Apache 2.0", hf: "Qwen/Qwen2.5-Coder-32B-Instruct", bench: "HumanEval 88.4%" },
-  { id: "q25coder7", ad: "Qwen2.5-Coder 7B", aile: "Kod", tp: 7, ap: 7, kv: 72, ctx: 32, lis: "Apache 2.0", hf: "Qwen/Qwen2.5-Coder-7B-Instruct" },
+  { id: "q25coder32", ad: "Qwen2.5-Coder 32B", aile: "Kod", tp: 32, ap: 32, kv: 256, ctx: 32, lis: "Apache 2.0", hf: "Qwen/Qwen2.5-Coder-32B-Instruct", bench: "HumanEval 88.4%" },
+  { id: "q25coder7", ad: "Qwen2.5-Coder 7B", aile: "Kod", tp: 7, ap: 7, kv: 128, ctx: 32, lis: "Apache 2.0", hf: "Qwen/Qwen2.5-Coder-7B-Instruct" },
   { id: "codestral22", ad: "Codestral 22B (FIM/otomatik tamamlama)", aile: "Kod", tp: 22, ap: 22, kv: 100, ctx: 32, lis: "Mistral (MNPL)", hf: "mistralai/Codestral-22B-v0.1", bench: "HumanEval 86.6%" },
   { id: "dscoderv2", ad: "DeepSeek-Coder-V2 236B-A21B", aile: "Kod", tp: 236, ap: 21, kv: 70, ctx: 128, lis: "DeepSeek License", hf: "deepseek-ai/DeepSeek-Coder-V2-Instruct" },
   { id: "dscoderv2lite", ad: "DeepSeek-Coder-V2-Lite 16B-A2.4B", aile: "Kod", tp: 16, ap: 2.4, kv: 40, ctx: 128, lis: "DeepSeek License", hf: "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct", bench: "HumanEval 83.5%" },
-  { id: "kimik27c2", ad: "Kimi K2.7 Code", aile: "Kod", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2.7-Code" },
+  { id: "kimik27c2", ad: "Kimi K2.7 Code", aile: "Kod", tp: 1000, ap: 32, kv: 70, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2.7-Code" },
 
   // DeepSeek (MLA — düşük KV)
   { id: "dsv4pro", ad: "DeepSeek-V4-Pro", aile: "DeepSeek", tp: 1600, ap: 49, kv: 75, ctx: 1000, lis: "MIT", hf: "deepseek-ai/DeepSeek-V4-Pro" },
@@ -151,22 +151,22 @@ const MODELS = [
   { id: "dsv32", ad: "DeepSeek-V3.2", aile: "DeepSeek", tp: 685, ap: 37, kv: 70, ctx: 128, lis: "MIT", hf: "deepseek-ai/DeepSeek-V3.2" },
   { id: "dsv32s", ad: "DeepSeek-V3.2-Speciale", aile: "DeepSeek", tp: 685, ap: 37, kv: 70, ctx: 128, lis: "MIT", hf: "deepseek-ai/DeepSeek-V3.2-Speciale" },
   { id: "dsr1", ad: "DeepSeek-R1", aile: "DeepSeek", tp: 671, ap: 37, kv: 70, ctx: 128, lis: "MIT", hf: "deepseek-ai/DeepSeek-R1" },
-  { id: "dsr1d32", ad: "DeepSeek-R1-Distill-Qwen-32B", aile: "DeepSeek", tp: 32, ap: 32, kv: 128, ctx: 128, lis: "MIT", hf: "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B" },
+  { id: "dsr1d32", ad: "DeepSeek-R1-Distill-Qwen-32B", aile: "DeepSeek", tp: 32, ap: 32, kv: 256, ctx: 128, lis: "MIT", hf: "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B" },
 
   // GLM
-  { id: "glm52", ad: "GLM-5.2", aile: "GLM", tp: 744, ap: 40, kv: 120, ctx: 200, lis: "MIT", hf: "zai-org/GLM-5.2", bench: "SWE-bench Pro 62.1%" },
-  { id: "glm51", ad: "GLM-5.1", aile: "GLM", tp: 744, ap: 40, kv: 120, ctx: 200, lis: "MIT", hf: "zai-org/GLM-5.1" },
-  { id: "glm5", ad: "GLM-5", aile: "GLM", tp: 744, ap: 40, kv: 120, ctx: 200, lis: "MIT", hf: "zai-org/GLM-5", bench: "SWE-bench Verified 77.8%" },
-  { id: "glm46", ad: "GLM-4.6", aile: "GLM", tp: 357, ap: 32, kv: 110, ctx: 200, lis: "MIT", hf: "zai-org/GLM-4.6" },
+  { id: "glm52", ad: "GLM-5.2", aile: "GLM", tp: 744, ap: 40, kv: 240, ctx: 1000, lis: "MIT", hf: "zai-org/GLM-5.2", bench: "SWE-bench Pro 62.1%" },
+  { id: "glm51", ad: "GLM-5.1", aile: "GLM", tp: 744, ap: 40, kv: 240, ctx: 200, lis: "MIT", hf: "zai-org/GLM-5.1" },
+  { id: "glm5", ad: "GLM-5", aile: "GLM", tp: 744, ap: 40, kv: 240, ctx: 200, lis: "MIT", hf: "zai-org/GLM-5", bench: "SWE-bench Verified 77.8%" },
+  { id: "glm46", ad: "GLM-4.6", aile: "GLM", tp: 357, ap: 32, kv: 180, ctx: 200, lis: "MIT", hf: "zai-org/GLM-4.6" },
 
   // Kimi (MLA — düşük KV)
-  { id: "kimik3", ad: "Kimi K3 2.8T-A50B", aile: "Kimi", tp: 2800, ap: 50, kv: 100, ctx: 1000, lis: "Kimi K3 License", hf: "moonshotai/Kimi-K3" },
-  { id: "kimik26", ad: "Kimi K2.6", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2.6" },
-  { id: "kimik25", ad: "Kimi K2.5", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2.5" },
-  { id: "kimik2", ad: "Kimi K2 Instruct", aile: "Kimi", tp: 1000, ap: 32, kv: 100, ctx: 128, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2-Instruct", bench: "SWE-bench Verified 65.8%" },
+  { id: "kimik3", ad: "Kimi K3 2.8T-A104B", aile: "Kimi", tp: 2800, ap: 104, kv: 75, ctx: 1000, lis: "Kimi K3 License", hf: "moonshotai/Kimi-K3" },
+  { id: "kimik26", ad: "Kimi K2.6", aile: "Kimi", tp: 1000, ap: 32, kv: 70, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2.6" },
+  { id: "kimik25", ad: "Kimi K2.5", aile: "Kimi", tp: 1000, ap: 32, kv: 70, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2.5" },
+  { id: "kimik2", ad: "Kimi K2 Instruct", aile: "Kimi", tp: 1000, ap: 32, kv: 70, ctx: 128, lis: "MIT (değiştirilmiş)", hf: "moonshotai/Kimi-K2-Instruct", bench: "SWE-bench Verified 65.8%" },
 
   // MiniMax
-  { id: "mm3", ad: "MiniMax-M3", aile: "MiniMax", tp: 230, ap: 10, kv: 90, ctx: 1000, lis: "Apache 2.0", hf: "MiniMaxAI/MiniMax-M3" },
+  { id: "mm3", ad: "MiniMax-M3 428B-A23B", aile: "MiniMax", tp: 428, ap: 23, kv: 90, ctx: 1000, lis: "Apache 2.0", hf: "MiniMaxAI/MiniMax-M3" },
   { id: "mm2", ad: "MiniMax-M2", aile: "MiniMax", tp: 230, ap: 10, kv: 90, ctx: 200, lis: "Apache 2.0", hf: "MiniMaxAI/MiniMax-M2" },
 
   // Llama
@@ -175,8 +175,8 @@ const MODELS = [
 
   // Mistral
   { id: "mlarge3", ad: "Mistral Large 3 675B-A41B", aile: "Mistral", tp: 675, ap: 41, kv: 120, ctx: 256, lis: "Apache 2.0", hf: "mistralai/Mistral-Large-3-675B-Instruct-2512-NVFP4" },
-  { id: "devstral2", ad: "Devstral 2 123B (dense, kod)", aile: "Kod", tp: 123, ap: 123, kv: 200, ctx: 256, lis: "Apache 2.0", hf: "mistralai/Devstral-2-123B-Instruct-2512", bench: "SWE-bench Verified 72.2%" },
-  { id: "devsmall2", ad: "Devstral Small 2 24B (kod)", aile: "Kod", tp: 24, ap: 24, kv: 64, ctx: 256, lis: "Apache 2.0", hf: "mistralai/Devstral-Small-2-24B-Instruct-2512" },
+  { id: "devstral2", ad: "Devstral 2 123B (dense, kod)", aile: "Kod", tp: 123, ap: 123, kv: 352, ctx: 256, lis: "MIT (değiştirilmiş)", hf: "mistralai/Devstral-2-123B-Instruct-2512", bench: "SWE-bench Verified 72.2%" },
+  { id: "devsmall2", ad: "Devstral Small 2 24B (kod)", aile: "Kod", tp: 24, ap: 24, kv: 128, ctx: 256, lis: "Apache 2.0", hf: "mistralai/Devstral-Small-2-24B-Instruct-2512" },
 
   // gpt-oss
   { id: "oss120", ad: "gpt-oss-120b", aile: "gpt-oss", tp: 117, ap: 5.1, kv: 72, ctx: 128, lis: "Apache 2.0", hf: "openai/gpt-oss-120b" },
@@ -186,29 +186,29 @@ const MODELS = [
   { id: "g4_31", ad: "Gemma 4 31B (dense)", aile: "Gemma", tp: 31, ap: 31, kv: 60, ctx: 256, lis: "Gemma", hf: "google/gemma-4-31B-it" },
   { id: "g4_26a4", ad: "Gemma 4 26B-A4B (MoE)", aile: "Gemma", tp: 26, ap: 4, kv: 48, ctx: 256, lis: "Gemma", hf: "google/gemma-4-26B-A4B-it" },
   { id: "g4_12", ad: "Gemma 4 12B", aile: "Gemma", tp: 12, ap: 12, kv: 40, ctx: 256, lis: "Gemma", hf: "google/gemma-4-12B-it" },
-  { id: "g4_e4", ad: "Gemma 4 E4B", aile: "Gemma", tp: 4, ap: 4, kv: 16, ctx: 256, lis: "Gemma", hf: "google/gemma-4-E4B" },
+  { id: "g4_e4", ad: "Gemma 4 E4B", aile: "Gemma", tp: 4, ap: 4, kv: 16, ctx: 128, lis: "Gemma", hf: "google/gemma-4-E4B" },
   { id: "gemma3_4", ad: "Gemma 3 4B", aile: "Gemma", tp: 4, ap: 4, kv: 16, ctx: 128, lis: "Gemma", hf: "google/gemma-3-4b-it" },
 
   // NVIDIA
   { id: "nem3super120", ad: "Nemotron 3 Super 120B-A12B", aile: "NVIDIA", tp: 120, ap: 12, kv: 80, ctx: 128, lis: "NVIDIA Open Model", hf: "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16" },
   { id: "nem3nano30", ad: "Nemotron 3 Nano 30B-A3B", aile: "NVIDIA", tp: 30, ap: 3, kv: 60, ctx: 128, lis: "NVIDIA Open Model", hf: "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16" },
-  { id: "nem3nano4", ad: "Nemotron 3 Nano 4B", aile: "NVIDIA", tp: 4, ap: 4, kv: 40, ctx: 128, lis: "NVIDIA Open Model", hf: "nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16" },
+  { id: "nem3nano4", ad: "Nemotron 3 Nano 4B", aile: "NVIDIA", tp: 4, ap: 4, kv: 90, ctx: 128, lis: "NVIDIA Open Model", hf: "nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16" },
 
   // Microsoft
-  { id: "phi4", ad: "Phi-4 15B", aile: "Microsoft", tp: 15, ap: 15, kv: 60, ctx: 16, lis: "MIT", hf: "microsoft/phi-4" },
-  { id: "phi4rp", ad: "Phi-4 Reasoning Plus 14B", aile: "Microsoft", tp: 14, ap: 14, kv: 60, ctx: 32, lis: "MIT", hf: "microsoft/Phi-4-reasoning-plus" },
-  { id: "phi4mini", ad: "Phi-4 Mini 3.8B", aile: "Microsoft", tp: 3.8, ap: 3.8, kv: 40, ctx: 128, lis: "MIT", hf: "microsoft/Phi-4-mini-instruct" },
+  { id: "phi4", ad: "Phi-4 15B", aile: "Microsoft", tp: 15, ap: 15, kv: 200, ctx: 16, lis: "MIT", hf: "microsoft/phi-4" },
+  { id: "phi4rp", ad: "Phi-4 Reasoning Plus 14B", aile: "Microsoft", tp: 14, ap: 14, kv: 200, ctx: 32, lis: "MIT", hf: "microsoft/Phi-4-reasoning-plus" },
+  { id: "phi4mini", ad: "Phi-4 Mini 3.8B", aile: "Microsoft", tp: 3.8, ap: 3.8, kv: 100, ctx: 128, lis: "MIT", hf: "microsoft/Phi-4-mini-instruct" },
 
   // Diğer
-  { id: "olmo31_32", ad: "Olmo 3.1 32B Instruct", aile: "Diğer", tp: 32, ap: 32, kv: 140, ctx: 64, lis: "Apache 2.0", hf: "allenai/Olmo-3.1-32B-Instruct" },
-  { id: "olmo3think", ad: "Olmo 3 32B Think", aile: "Diğer", tp: 32, ap: 32, kv: 140, ctx: 64, lis: "Apache 2.0", hf: "allenai/Olmo-3-32B-Think" },
-  { id: "smol3", ad: "SmolLM3 3B", aile: "Diğer", tp: 3, ap: 3, kv: 40, ctx: 128, lis: "Apache 2.0", hf: "HuggingFaceTB/SmolLM3-3B" },
-  { id: "cmdaplus", ad: "Command A Plus 05-2026 218B-A40B", aile: "Diğer", tp: 218, ap: 40, kv: 180, ctx: 256, lis: "CC-BY-NC 4.0", hf: "CohereLabs/command-a-plus-05-2026-bf16" },
+  { id: "olmo31_32", ad: "Olmo 3.1 32B Instruct", aile: "Diğer", tp: 32, ap: 32, kv: 224, ctx: 64, lis: "Apache 2.0", hf: "allenai/Olmo-3.1-32B-Instruct" },
+  { id: "olmo3think", ad: "Olmo 3 32B Think", aile: "Diğer", tp: 32, ap: 32, kv: 224, ctx: 64, lis: "Apache 2.0", hf: "allenai/Olmo-3-32B-Think" },
+  { id: "smol3", ad: "SmolLM3 3B", aile: "Diğer", tp: 3, ap: 3, kv: 100, ctx: 128, lis: "Apache 2.0", hf: "HuggingFaceTB/SmolLM3-3B" },
+  { id: "cmdaplus", ad: "Command A Plus 05-2026 218B-A25B", aile: "Diğer", tp: 218, ap: 25, kv: 180, ctx: 256, lis: "Apache 2.0", hf: "CohereLabs/command-a-plus-05-2026-bf16" },
   { id: "ernie21", ad: "ERNIE 4.5 21B-A3B Thinking", aile: "Diğer", tp: 21, ap: 3, kv: 48, ctx: 128, lis: "Apache 2.0", hf: "baidu/ERNIE-4.5-21B-A3B-Thinking" },
   { id: "hunyuan13", ad: "Hunyuan A13B 80B-A13B", aile: "Diğer", tp: 80, ap: 13, kv: 90, ctx: 256, lis: "Hunyuan License", hf: "tencent/Hunyuan-A13B-Pretrain" },
 
   // Türkçe
-  { id: "kumru2", ad: "Kumru 2B (Türkçe)", aile: "Türkçe", tp: 2, ap: 2, kv: 64, ctx: 8, lis: "Apache 2.0", hf: "vngrs-ai/Kumru-2B" },
+  { id: "kumru2", ad: "Kumru 2B (Türkçe)", aile: "Türkçe", tp: 2, ap: 2, kv: 70, ctx: 8, lis: "Apache 2.0", hf: "vngrs-ai/Kumru-2B" },
   { id: "trendyol7", ad: "Trendyol LLM 7B Chat (Türkçe)", aile: "Türkçe", tp: 7, ap: 7, kv: 128, ctx: 4, lis: "Apache 2.0", hf: "Trendyol/Trendyol-LLM-7B-chat-v1.0" },
 ];
 
@@ -2123,6 +2123,65 @@ export default function Simulator() {
             Bu bir planlama aracıdır, ölçüm değildir. Sonuçlar büyüklük mertebesini ve donanımlar
             arası göreli farkı doğru gösterir; satın alma öncesinde seçilen kurulumun gerçek yükle
             kıyaslanması gerekir.
+          </div>
+        </Kutu>
+
+        {/* Veri güveni / doğrulama */}
+        <Kutu style={{ marginTop: 14 }}>
+          <Etiket>Veri güveni — son doğrulama 4 Ağustos 2026</Etiket>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: "10px 26px",
+              fontSize: 12.5,
+              color: C.ink2,
+              lineHeight: 1.6,
+              marginTop: 8,
+            }}
+          >
+            <div>
+              <b style={{ color: C.ok }}>✓ Doğrulanmış (yüksek güven)</b>
+              <br />
+              Donanım belleği (GB), bellek bant genişliği (GB/s), TDP (W), mimari; model parametre/aktif
+              sayısı, bağlam, lisans ve HuggingFace repo'su. Bağımsız kaynaklardan (üretici + teknik
+              basın) tek tek teyit edildi.
+            </div>
+            <div>
+              <b style={{ color: C.warn }}>≈ Tahmin (mühendislik)</b>
+              <br />
+              KV cache KB/token, bant genişliği verimi (%50–74), token hızı ve ilk-token formülleri.
+              Uzman sağlamasından geçti; büyüklük mertebesi ve göreli fark doğru, ama spec-kesin değil.
+              MLA (DeepSeek/Kimi) ve kayan pencere (Gemma) için "efektif" değerler kullanıldı.
+            </div>
+            <div>
+              <b style={{ color: C.bad }}>$ Yaklaşık ve oynak</b>
+              <br />
+              Fiyatlar ABD sokak/MSRP yaklaşığıdır; 2026 HBM/GDDR kıtlığı sokak fiyatlarını MSRP üzerine
+              çıkarıyor. Türkiye için gümrük + %20 KDV + kur eklenir. <b>Satın alma öncesi canlı teklif
+              alın</b> — bütçeyi bu sayılara kilitlemeyin.
+            </div>
+            <div>
+              <b style={{ color: C.ink }}>Bilinen sınırlar</b>
+              <br />
+              DGX Station GB300 katmanlı bellektir (496 GB LPDDR + 252 GB HBM); tek bant genişliği
+              yaklaşıktır. A100'de FP8 yoktur (FP16 değeri). GLM ve bazı 2026 uçtaki modellerin
+              katman/KV değerleri düşük güvenlidir.
+            </div>
+          </div>
+          <div
+            style={{
+              marginTop: 12,
+              paddingTop: 10,
+              borderTop: `1px solid ${C.line2}`,
+              fontSize: 12,
+              color: C.ink3,
+              lineHeight: 1.6,
+            }}
+          >
+            Alım kararı öncesi: bu araç aday kurulumu daraltmak içindir; final seçim, gerçek modelle ve
+            güncel fiyat teklifiyle bir kez doğrulanmalıdır. TFLOPS sütunu "ilk token" tahmininde
+            kullanılır; bellek ve token hızı sonuçlarını etkilemez.
           </div>
         </Kutu>
       </div>
