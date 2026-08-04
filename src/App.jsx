@@ -872,6 +872,7 @@ export default function Simulator() {
   // Birden çok cihaz seçilince tek küme olarak birleştirilir (tensör paralelliği).
   const topoloji = "kume";
   const [siralama, setSiralama] = useState("verim");
+  const [modelSirala, setModelSirala] = useState("yetenek");
   const [kavramAcik, setKavramAcik] = useState(true);
 
   const model = MODELS.find((m) => m.id === modelId);
@@ -927,6 +928,37 @@ export default function Simulator() {
         return a.birim - b.birim;
       });
   }, [model, quant, kvq, ctxK, kullanici, cikti, topoloji, siralama]);
+
+  // Ters bakış: bu donanıma hangi modeller sığar?
+  const modelUyum = useMemo(() => {
+    const dusuk = [...QUANTS].sort((a, b) => a.bpp - b.bpp); // en az bitten çoğa
+    const rows = MODELS.map((mm) => {
+      const h = hesapla({ model: mm, quant, kvq, ctxK, kullanici, cikti, cihaz, adet, topoloji });
+      let cozum = null; // sığmıyorsa: sığdıran en hafif kuantizasyon
+      if (!h.sigar) {
+        for (const q of dusuk) {
+          const hh = hesapla({ model: mm, quant: q.id, kvq: "q4", ctxK, kullanici, cikti, cihaz, adet, topoloji });
+          if (hh.sigar) {
+            cozum = q;
+            break;
+          }
+        }
+      }
+      return { mm, sigar: h.sigar, kisi: h.kullaniciTokS, toplam: h.toplamTokS, doluluk: h.doluluk, cozum };
+    });
+    rows.sort((a, b) => {
+      if (a.sigar !== b.sigar) return a.sigar ? -1 : 1;
+      if (a.sigar) {
+        if (modelSirala === "hiz") return b.kisi - a.kisi;
+        if (modelSirala === "verim") return b.toplam - a.toplam;
+        return b.mm.tp - a.mm.tp; // yetenek: en büyük model
+      }
+      return b.mm.tp - a.mm.tp;
+    });
+    return rows;
+  }, [quant, kvq, ctxK, kullanici, cikti, cihaz, adet, topoloji, modelSirala]);
+
+  const siganSayisi = modelUyum.filter((x) => x.sigar).length;
 
   const qAktif = QUANTS.find((q) => q.id === quant);
 
@@ -1787,6 +1819,145 @@ export default function Simulator() {
             <div style={{ fontSize: 11.5, color: C.ink3, marginTop: 10, lineHeight: 1.6 }}>
               Satıra tıklayınca o kurulum yukarıdaki panele yüklenir. Kart tipi cihazlarda her 4 karta
               bir {para(ANAKART_FIYAT)} sunucu şasi maliyeti eklenmiştir.
+            </div>
+          </Kutu>
+
+          {/* Ters bakış: bu donanıma ne sığar? */}
+          <Kutu style={{ marginTop: 14 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 10,
+                marginBottom: 12,
+              }}
+            >
+              <div>
+                <Etiket>Bu donanıma hangi modeller sığar?</Etiket>
+                <div style={{ fontSize: 12, color: C.ink2 }}>
+                  {adet} × {cihaz.ad} · {indirGibi ? "BF16 (indirdiğin gibi)" : qAktif.ad} · {ctxK}K ·{" "}
+                  {kullanici} kullanıcı · <b>{siganSayisi}</b> / {modelUyum.length} model sığıyor
+                </div>
+              </div>
+              <select
+                value={modelSirala}
+                onChange={(e) => setModelSirala(e.target.value)}
+                style={{
+                  fontFamily: SANS,
+                  fontSize: 12,
+                  padding: "5px 7px",
+                  border: `1px solid ${C.line}`,
+                  borderRadius: 3,
+                  background: C.paper,
+                }}
+              >
+                <option value="yetenek">Sırala: en büyük (yetenek)</option>
+                <option value="hiz">Sırala: kişi başına hız</option>
+                <option value="verim">Sırala: toplam verim</option>
+              </select>
+            </div>
+
+            <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+                <thead>
+                  <tr style={{ borderBottom: `1.5px solid ${C.ink}` }}>
+                    {[
+                      ["Model", "left"],
+                      ["Boyut", "right"],
+                      ["Durum", "left"],
+                      ["Kişi/s", "right"],
+                      ["Toplam", "right"],
+                      ["%Dolu", "right"],
+                    ].map(([h, a]) => (
+                      <th
+                        key={h}
+                        style={{
+                          textAlign: a,
+                          padding: "7px 8px",
+                          fontFamily: MONO,
+                          fontSize: 10.5,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                          color: C.ink3,
+                          fontWeight: 400,
+                          whiteSpace: "nowrap",
+                          position: "sticky",
+                          top: 0,
+                          background: C.paper,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {modelUyum.map((row) => {
+                    const secili = row.mm.id === modelId;
+                    return (
+                      <tr
+                        key={row.mm.id}
+                        onClick={() => {
+                          setModelId(row.mm.id);
+                          if (!row.sigar && row.cozum) {
+                            setIndirGibi(false);
+                            setQuant(row.cozum.id);
+                            setKvq("q4");
+                          }
+                        }}
+                        style={{
+                          borderBottom: `1px solid ${C.line2}`,
+                          background: secili ? C.steelSoft : "transparent",
+                          cursor: "pointer",
+                          opacity: row.sigar ? 1 : 0.6,
+                        }}
+                      >
+                        <td style={{ padding: "7px 8px" }}>
+                          <div style={{ fontWeight: secili ? 500 : 400 }}>{row.mm.ad}</div>
+                          <div style={{ fontSize: 10.5, color: C.ink3, fontFamily: MONO }}>
+                            {row.mm.aile} · {row.mm.lis}
+                          </div>
+                        </td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontFamily: MONO, whiteSpace: "nowrap" }}>
+                          {row.mm.tp}B
+                          {row.mm.ap !== row.mm.tp ? (
+                            <span style={{ color: C.ink3 }}>/{row.mm.ap}</span>
+                          ) : null}
+                        </td>
+                        <td style={{ padding: "7px 8px", whiteSpace: "nowrap" }}>
+                          {row.sigar ? (
+                            <span style={{ color: row.doluluk > 0.88 ? C.warn : C.ok, fontWeight: 500 }}>
+                              {row.doluluk > 0.88 ? "sınırda" : "✓ sığar"}
+                            </span>
+                          ) : row.cozum ? (
+                            <span style={{ color: C.steel, fontFamily: MONO, fontSize: 11.5 }}>
+                              {row.cozum.ad.split(" ")[0]} ile
+                            </span>
+                          ) : (
+                            <span style={{ color: C.bad }}>sığmaz</span>
+                          )}
+                        </td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontFamily: MONO, color: row.sigar && row.kisi < 12 ? C.warn : C.ink }}>
+                          {row.sigar ? row.kisi.toFixed(1) : "—"}
+                        </td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontFamily: MONO }}>
+                          {row.sigar ? Math.round(row.toplam) : "—"}
+                        </td>
+                        <td style={{ padding: "7px 8px", textAlign: "right", fontFamily: MONO, color: C.ink3 }}>
+                          {row.sigar ? `%${Math.round(row.doluluk * 100)}` : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ fontSize: 11.5, color: C.ink3, marginTop: 10, lineHeight: 1.6 }}>
+              Sığmayanlarda "X ile" ifadesi, o modeli bu donanıma sığdıran en hafif ağırlık
+              kuantizasyonunu (KV cache Q4 ile birlikte) gösterir. Satıra tıklayınca model yüklenir;
+              sığmıyorsa öneri kuantizasyon da otomatik uygulanır.
             </div>
           </Kutu>
         </div>
