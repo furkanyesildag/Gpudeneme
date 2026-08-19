@@ -94,6 +94,7 @@ const DEVICES = [
   { id: "pro4500", ad: "NVIDIA RTX PRO 4500 Blackwell", grup: "İş istasyonu kartı", mem: 32, bw: 896, tf: 405, fiyat: 2600, w: 200, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "blackwell" },
   { id: "l40s", ad: "NVIDIA L40S", grup: "İş istasyonu kartı", mem: 48, bw: 864, tf: 733, fiyat: 8000, w: 350, tur: "kart", link: "pcie", mbu: 0.65, tr: "kurumsal", mim: "ada" },
   { id: "r9700", ad: "AMD Radeon AI PRO R9700", grup: "İş istasyonu kartı", mem: 32, bw: 640, tf: 383, fiyat: 1300, w: 300, tur: "kart", link: "pcie", mbu: 0.6, tr: "ithal", mim: "amd" },
+  { id: "rtx4000ada", ad: "NVIDIA RTX 4000 Ada", grup: "İş istasyonu kartı", mem: 20, bw: 360, tf: 213, fiyat: 1250, w: 130, tur: "kart", link: "pcie", mbu: 0.65, tr: "sinirli", mim: "ada" },
 
   // --- Tüketici kartları ---
   { id: "5090", ad: "GeForce RTX 5090", grup: "Tüketici kartı", mem: 32, bw: 1792, tf: 838, fiyat: 2800, w: 575, tur: "kart", link: "pcie", mbu: 0.63, tr: "kolay", mim: "blackwell" },
