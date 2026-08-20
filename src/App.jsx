@@ -136,6 +136,7 @@ const MODELS = [
   { id: "q35_08", ad: "Qwen3.5 0.8B", aile: "Qwen", tp: 0.8, ap: 0.8, kv: 45, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-0.8B" },
   { id: "q36_35a3", ad: "Qwen3.6 35B-A3B", aile: "Qwen", tp: 35, ap: 3, kv: 96, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.6-35B-A3B" },
   { id: "q36_27", ad: "Qwen3.6 27B (dense)", aile: "Qwen", tp: 27, ap: 27, kv: 224, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.6-27B" },
+  { id: "q38_27", ad: "Qwen3.8 27B (dense, VL)", aile: "Qwen", tp: 27, ap: 27, kv: 224, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3.8-27B" },
   // Kod (kod için özelleştirilmiş modeller)
   { id: "q3coder480", ad: "Qwen3-Coder 480B-A35B", aile: "Kod", tp: 480, ap: 35, kv: 140, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-Coder-480B-A35B-Instruct", bench: "SWE-bench Verified ~69.6%" },
   { id: "q3coder30", ad: "Qwen3-Coder 30B-A3B", aile: "Kod", tp: 30, ap: 3.3, kv: 96, ctx: 256, lis: "Apache 2.0", hf: "Qwen/Qwen3-Coder-30B-A3B-Instruct" },
@@ -211,6 +212,13 @@ const MODELS = [
   // Türkçe
   { id: "kumru2", ad: "Kumru 2B (Türkçe)", aile: "Türkçe", tp: 2, ap: 2, kv: 70, ctx: 8, lis: "Apache 2.0", hf: "vngrs-ai/Kumru-2B" },
   { id: "trendyol7", ad: "Trendyol LLM 7B Chat (Türkçe)", aile: "Türkçe", tp: 7, ap: 7, kv: 128, ctx: 4, lis: "Apache 2.0", hf: "Trendyol/Trendyol-LLM-7B-chat-v1.0" },
+
+  // Topluluk finetune'ları (resmi değil — tek geliştirici, üretim öncesi test edilmeli)
+  { id: "qwopus35_27", ad: "Qwopus 3.5 27B v3 (topluluk)", aile: "Topluluk", tp: 27, ap: 27, kv: 224, ctx: 256, lis: "Apache 2.0", hf: "Jackrong/Qwopus3.5-27B-v3" },
+  { id: "qwopus36_27", ad: "Qwopus 3.6 27B v2 (topluluk)", aile: "Topluluk", tp: 27, ap: 27, kv: 224, ctx: 256, lis: "Apache 2.0", hf: "Jackrong/Qwopus3.6-27B-v2-GGUF" },
+  { id: "qwopus36c_27", ad: "Qwopus 3.6 27B Coder (topluluk)", aile: "Topluluk", tp: 27, ap: 27, kv: 224, ctx: 256, lis: "Apache 2.0", hf: "Jackrong/Qwopus3.6-27B-Coder-MTP-GGUF" },
+  { id: "qwopus35_9", ad: "Qwopus 3.5 9B v3 (topluluk)", aile: "Topluluk", tp: 9, ap: 9, kv: 144, ctx: 128, lis: "Apache 2.0", hf: "Jackrong/Qwopus3.5-9B-v3-GGUF" },
+  { id: "qopusdistill27", ad: "Qwen3.5-27B Opus-Distilled (topluluk)", aile: "Topluluk", tp: 27, ap: 27, kv: 224, ctx: 256, lis: "Apache 2.0", hf: "Jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled" },
 ];
 
 const QUANTS = [
