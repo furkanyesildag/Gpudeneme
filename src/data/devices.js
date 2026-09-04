@@ -64,9 +64,9 @@ export const DEVICES = [
     not: "70 W, tek slot, 16 GB — küçük ofis sunucusuna ek güç kablosu olmadan takılır." },
 
   /* ---------- Hazır kutular / birleşik bellek ---------- */
-  { id: "spark", ad: "NVIDIA DGX Spark (GB10)", grup: "Hazır kutu", mem: 128, bw: 273, tf: 125, w: 240, usd: 4699, try: 260000, tur: "kutu", link: "net", mbu: 0.58, tr: "sinirli", mim: "gb10",
+  { id: "spark", ad: "NVIDIA DGX Spark (GB10)", grup: "Hazır kutu", mem: 128, bw: 273, tf: 125, w: 240, usd: 4699, try: 260000, tur: "kutu", link: "net", mbu: 0.70, tr: "sinirli", mim: "gb10",
     not: "128 GB birleşik bellek — büyük modeli SIĞDIRIR ama 273 GB/s bant genişliği hızı sınırlar. Prototip/geliştirme için, çok kullanıcılı servis için değil." },
-  { id: "gx10", ad: "ASUS Ascent GX10 (GB10)", grup: "Hazır kutu", mem: 128, bw: 276, tf: 125, w: 240, usd: 2999, try: 172000, tur: "sinirli", tur2: 0, link: "net", mbu: 0.58, mim: "gb10" },
+  { id: "gx10", ad: "ASUS Ascent GX10 (GB10)", grup: "Hazır kutu", mem: 128, bw: 276, tf: 125, w: 240, usd: 2999, try: 172000, tur: "sinirli", tur2: 0, link: "net", mbu: 0.70, mim: "gb10" },
   { id: "station", ad: "DGX Station / MSI WS300 (GB300)", grup: "Hazır kutu", mem: 748, bw: 2000, tf: 4000, w: 1600, usd: 85000, try: 4500000, tur: "kutu", link: "nvlink", mbu: 0.70, tr: "kurumsal", mim: "gb300",
     not: "Katmanlı bellek: 496 GB LPDDR5X + 252 GB HBM3e. Buradaki tek bant genişliği değeri ortalama bir yaklaşıktır." },
   { id: "m3u", ad: "Mac Studio M3 Ultra (96 GB)", grup: "Hazır kutu", mem: 96, bw: 819, tf: 110, w: 270, usd: 3999, try: 210000, tur: "kutu", link: "net", mbu: 0.52, tr: "kolay", mim: "apple",
@@ -95,8 +95,15 @@ export const DEVICES = [
   { id: "orinnano", ad: "Jetson Orin Nano Super 8 GB", grup: "Uç / saha", mem: 8, bw: 102, tf: 33, w: 25, usd: 249, try: 15000, tur: "kutu", link: "net", mbu: 0.55, tr: "sinirli", mim: "ampere" },
 ];
 
+/* Bellek tipi — MoE erişim cezası ve gerçekçi bant genişliği için gerekli.
+   Mimari adı bunu belirlemez: B200 ve RTX 5090 ikisi de "Blackwell" ama
+   biri HBM3e biri GDDR7 kullanır. */
+const HBM = new Set(["b200", "h200", "h100s", "a100", "mi355x", "mi325x", "mi300x", "gaudi3", "l40s"]);
+const LPDDR = new Set(["spark", "gx10", "station", "m3u", "m4max", "m4pro", "strix", "evox2", "thor", "agxorin", "orinnano"]);
+
 /* Yukarıdaki kayıtlarda gözden kaçan alanları tamamla / normalize et. */
 for (const d of DEVICES) {
+  d.bellekTipi = HBM.has(d.id) ? "hbm" : LPDDR.has(d.id) ? "lpddr" : "gddr";
   if (!d.tur || (d.tur !== "kart" && d.tur !== "kutu")) {
     d.tur = d.grup === "Hazır kutu" || d.grup === "Uç / saha" ? "kutu" : "kart";
   }

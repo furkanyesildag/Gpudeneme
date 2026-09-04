@@ -30,9 +30,15 @@ Türkiye fiyatını ve elektrik maliyetini çıkarır.
   belirlersin; her satırın **Maks. C**, **sohbet kapasitesi** ve **ajan kapasitesi**
   değeri buna göre yeniden hesaplanır. Bu hedefler hiçbir satırı gizlemez — sayıların
   ne anlama geldiğini değiştirir.
-- **"Bu hız neye benziyor?"** — 18 tok/s'nin ne demek olduğunu kimse sezgisel bilmez.
-  Örnek metin gerçekten o hızda yazdırılır, böylece beklemenin nasıl hissettirdiğini
-  doğrudan görürsün. Hedef hızını kendi kurulumunun hızıyla yan yana karşılaştırabilirsin.
+- **"İlk sohbetinde ne göreceksin"** — 18 tok/s'nin ne demek olduğunu kimse sezgisel
+  bilmez. Seçtiğin model ve donanımla gerçek bir sohbet turu canlandırılır: istek gider,
+  ilk token gecikmesi kadar beklersin, **düşünme modu açıksa** model önce düşünce üretir
+  (ve sen bu sürede asıl cevabı görmezsin), sonra yanıt akar. Düşünmenin cevabın ilk
+  harfini kaç saniye ötelediğini görmenin en hızlı yolu bu.
+- **Satın alma bantları** — "bu para bandında ne alınır, nerede tıkanır" sorusunun
+  cevabı. Beş banda ayrılmış gerçek yapılandırmalar; her kartta simülatörün kendi
+  hesabı ve simülatörün göremediği şeyler (stok, garanti, PCIe hattı, platform büyüme
+  yolu) yan yana. Tek tıkla simülatöre yüklenir.
 - **LLM Altyapı Danışmanı** — DeepSeek destekli sohbet. Bir HuggingFace linki
   yapıştırdığında modeli **canlı çeker**, `config.json`'ından bellek ve hız hesabını
   yapar ve senin seçtiğin donanımda çalışıp çalışmayacağını söyler. Performans
@@ -55,13 +61,15 @@ src/
   data/devices.js    44 donanım — bellek, bant genişliği, TL fiyat, TR tedarik
   data/quants.js     9 ağırlık + 3 KV kuantizasyon şeması
   data/concepts.js   kavram sözlüğü ve hazır senaryolar
+  data/bantlar.js    satın alma bantları (fiyat, kime uygun, nerede tıkanır)
   engine.js          hesap motoru (bellek, hız, TTFT, kapasite, maliyet, elektrik)
   hf.js              HuggingFace analizörü — link → config.json → model kaydı
   chat/prompt.js     danışmanın sistem promptu + bilgi tabanı
   chat/api.js        DeepSeek istemcisi (akışlı)
   chat/ChatBot.jsx   danışman arayüzü
   components/        arayüz parçaları, markdown gösterici, hedef paneli,
-                     "bu hız neye benziyor" yazma benzetimi
+                     sohbet turu canlandırması
+  sections/          sayfa bölümleri (sonuç, bantlar, tablolar, grafik, bilgi)
   App.jsx            ana ekran
 ```
 
@@ -133,6 +141,22 @@ dalına yapılan her push'ta projeyi derleyip GitHub Pages'e dağıtır. İş ak
 > İlk dağıtım için depo **Settings → Pages → Build and deployment → Source**
 > ayarının **GitHub Actions** olması gerekir. İş akışı bunu otomatik yapmayı dener;
 > izin nedeniyle yapamazsa bu ayarı bir kez elle seçmek yeterlidir.
+
+## Seyrek MoE cezası
+
+Dense bir modelde ağırlıklar her adımda baştan sona sırayla okunur. Seyrek bir MoE'de
+her token **farklı** uzmanları uyandırır; erişim dağınık olur ve gerçekleşen bant
+genişliği teorik değerin altına düşer. Etkinin şiddeti bellek tipine bağlıdır:
+LPDDR birleşik bellekte ağır, HBM'de hafiftir.
+
+Katsayı, DGX Spark üzerinde yayımlanmış iki ölçümden kalibre edildi — biri dense
+(Qwen3.6-27B NVFP4, 12,63 tok/s) biri çok seyrek (Qwen3.8-Flash-Next NVFP4, %3 aktif,
+16,8 tok/s). Dense ölçüm cihazın bant genişliği kullanımını, seyrek ölçüm de cezayı
+belirledi; simülatör şu an iki noktayı da %1 içinde tutturuyor.
+
+Pratik sonucu şu: aynı kutuda 180B'lik seyrek bir model, 27B'lik dense bir modelden
+hızlı koşabilir (aktif parametresi çok daha az), ama teorik bant genişliğinin ancak
+üçte birini kullanır.
 
 ## Kapasite nasıl hesaplanır
 

@@ -34,6 +34,40 @@ export const TP_ETIKET = {
   net: "Ağ / USB4 (ayrı kutular)",
 };
 
+/* ------------------------------------------------------------------ */
+/*  SEYREK MoE CEZASI                                                  */
+/*                                                                     */
+/*  Dense bir modelde her adımda ağırlıklar baştan sona sırayla        */
+/*  okunur — bellek denetleyicisi bunu iyi ardışıklar. Seyrek bir      */
+/*  MoE'de ise her token FARKLI uzmanları uyandırır; erişim dağınık    */
+/*  olur ve gerçekleşen bant genişliği teorik değerin altına düşer.    */
+/*                                                                     */
+/*  Bu etkinin şiddeti bellek tipine bağlıdır: LPDDR tabanlı birleşik  */
+/*  bellekte (DGX Spark, Strix Halo, Jetson) ağırdır; HBM'de yüksek    */
+/*  paralellik sayesinde hafiftir.                                     */
+/*                                                                     */
+/*  Kalibrasyon — OpenZeka'nın yayımladığı tek-Spark ölçümleri:        */
+/*    Qwen3.6-27B NVFP4 (dense)     : 12,63 tok/s                      */
+/*    Qwen3.8-Flash-Next NVFP4 (%3) : 16,8 tok/s (MTP'siz)             */
+/*  Dense ölçüm cihazın MBU'sunu, seyrek ölçüm de bu cezayı belirledi. */
+/* ------------------------------------------------------------------ */
+
+/* 0 = ceza yok, 1 = tam ceza. BELLEK TİPİNE göre — mimari adına değil.
+   Apple birleşik belleği LPDDR'dir ama veri yolu çok geniş olduğu için
+   dağınık erişimi diğer LPDDR kutulardan iyi tolere eder. */
+export const MOE_CEZA = { lpddr: 1.0, gddr: 0.35, hbm: 0.15 };
+const APPLE_CEZA = 0.55;
+
+/** Seyrek MoE'nin gerçekleşen bant genişliğine etkisi (0-1 çarpan). */
+export function moeVerimi(model, cihaz) {
+  const seyreklik = Math.max(0.005, Math.min(1, model.ap / model.tp));
+  if (seyreklik >= 0.999) return 1; // dense: ceza yok
+  // Üs, DGX Spark + Qwen3.8-Flash-Next ölçümünden kalibre edildi.
+  const tamCeza = Math.pow(seyreklik, 0.358);
+  const ceza = cihaz.mim === "apple" ? APPLE_CEZA : MOE_CEZA[cihaz.bellekTipi] ?? 0.35;
+  return 1 - ceza * (1 - tamCeza);
+}
+
 /* Elektrik: Türkiye mesken + ticarethane ortalaması (2026, TL/kWh, dağıtım dahil) */
 export const ELEKTRIK_TL_KWH = 3.4;
 
@@ -145,7 +179,8 @@ export function hesapla({
      + yığındaki KV cache. KV okuması dikkat çekirdeğinde tam olarak
      taranmaz (sayfalama, flash-attention); ~0,55 katsayısı bunu yansıtır. */
   const adimBaytGB = aktifGB + kvGB * 0.55;
-  const adimHiz = adimBaytGB > 0 ? (kumeBW * cihaz.mbu) / adimBaytGB : 0;
+  const moeVerim = moeVerimi(model, cihaz);
+  const adimHiz = adimBaytGB > 0 ? (kumeBW * cihaz.mbu * moeVerim) / adimBaytGB : 0;
   const kullaniciTokS = adimHiz;
   const toplamTokS = adimHiz * kullanici;
 
@@ -203,7 +238,7 @@ export function hesapla({
     kullaniciTokS, toplamTokS, ttftTek, ttftYogun, ciktiSure, yanitSure,
     maxKullanici, maxCtxK, maxCtxBellek, maxCtxModelSinirli: maxCtxBellek > modelTavani,
     minAdet, maliyet, maliyetTL, guc, host,
-    link, tpEtki, kumeBW, kumeTF, ctx, ayrilanCtx, girdiTok,
+    link, tpEtki, kumeBW, kumeTF, ctx, ayrilanCtx, girdiTok, moeVerim,
     kvKBtok: kvKBperToken(model.kv, ayrilanCtx, kvBayt),
     yillikElektrikTL, milyonTokenTL,
     ctxAsimi: ctxK > (model.ext || model.ctx),
