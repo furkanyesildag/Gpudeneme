@@ -86,7 +86,7 @@ Model verileri **programatik olarak** huggingface.co API'sinden ve her deponun
 `config.json` dosyasından çekilip doğrulandı (son doğrulama: 4 Eylül 2026):
 
 - Parametre sayıları → safetensors üstverisi
-- Katman sayısı, dikkat başlıkları, KV geometrisi, bağlam → `config.json`
+- Katman sayısı, attention head sayısı, KV geometrisi, bağlam → `config.json`
 - Lisans → model kartı üstverisi
 
 Donanım belirtimleri üreticiden; bant genişlikleri veri yolu genişliği × bellek
