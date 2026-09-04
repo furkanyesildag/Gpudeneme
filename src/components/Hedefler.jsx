@@ -82,7 +82,7 @@ export default function Hedefler({
   const varsayilanMi = ALANLAR.every((a) => hedef[a.k] === VARSAYILAN_HEDEF[a.k]);
 
   return (
-    <Kart style={{ padding: S.lg, marginBottom: S.md }}>
+    <Kart style={{ padding: S.lg }}>
       <SohbetOnizleme
         tps={tps} ttftMs={ttftMs} sigar={sigar}
         modelAd={modelAd} donanimAd={donanimAd}

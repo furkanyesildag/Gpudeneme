@@ -398,18 +398,25 @@ export default function ChatBot({ baglam, hfCtx, acikDis, setAcikDis }) {
         </div>
       )}
 
+      {/* Dar ekranda yalnızca simge: geniş bir düğme sayfa içeriğinin
+          (kaydırak değerleri gibi) üstüne binip okunmaz hale getiriyordu. */}
       <button
         onClick={() => setAcik((v) => !v)}
         aria-expanded={acik}
         aria-label={acik ? "Danışmanı kapat" : "Danışmana sor"}
+        title={acik ? "Danışmanı kapat" : "Danışmana sor"}
         style={{
-          display: "flex", alignItems: "center", gap: 8, background: "var(--ink)",
-          color: "#fff", border: "none", borderRadius: 24, padding: "11px 17px",
-          fontFamily: SANS, fontSize: 13, fontWeight: 600, cursor: "pointer",
-          boxShadow: "0 6px 20px rgba(0,0,0,0.28)",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          background: "var(--ink)", color: "#fff", border: "none",
+          borderRadius: dar && !acik ? "50%" : 24,
+          width: dar && !acik ? 52 : undefined,
+          height: dar && !acik ? 52 : undefined,
+          padding: dar && !acik ? 0 : "11px 17px",
+          fontFamily: SANS, fontSize: dar && !acik ? 21 : 13, fontWeight: 600,
+          cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,0.28)",
         }}
       >
-        {acik ? "▾ Danışmanı kapat" : dar ? "💬 Danışman" : "💬 Danışmana sor"}
+        {acik ? "▾ Danışmanı kapat" : dar ? "💬" : "💬 Danışmana sor"}
       </button>
     </div>
   );

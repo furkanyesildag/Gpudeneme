@@ -336,10 +336,6 @@ export default function Simulator() {
             style={{
               flex: "1 1 300px", minWidth: 285, maxWidth: 360,
               display: "flex", flexDirection: "column", gap: S.md,
-              position: "sticky", top: S.md,
-              maxHeight: `calc(100vh - ${S.xl}px)`, overflowY: "auto",
-              // Yapışkan sütun yalnızca yan yana düzende anlamlı; dar ekranda
-              // sütunlar alt alta düştüğü için tarayıcı sticky'yi zaten yok sayar.
             }}
           >
             <Bolum baslik="Model">
@@ -410,7 +406,11 @@ export default function Simulator() {
                 alt="İlk token gecikmesini bu belirler. Önek önbelleği açıksa yalnızca yeni token'lar sayılır."
               />
               <Kaydirac etiket="Eşzamanlı kullanıcı" deger={kullanici} onChange={setKullanici} min={1} max={64} step={1} goster={`${kullanici} kişi`} />
-              <Kaydirac etiket="Ortalama yanıt uzunluğu" deger={cikti} onChange={setCikti} min={100} max={8000} step={100} goster={`${cikti} tok ≈ ${harfYazi(cikti)}`} />
+              <Kaydirac
+                etiket="Ortalama yanıt uzunluğu" deger={cikti} onChange={setCikti}
+                min={100} max={8000} step={100} goster={`${cikti} token`}
+                alt={`Yaklaşık ${harfYazi(cikti)} — modelin bir yanıtta ürettiği metin.`}
+              />
               <Kaydirac
                 etiket="KV doluluk varsayımı" deger={kvOran} onChange={setKvOran}
                 min={10} max={100} step={5} goster={`%${kvOran}`}
@@ -454,19 +454,22 @@ export default function Simulator() {
               kullanici={kullanici} cikti={cikti} kvOran={kvOran} hedef={hedef}
               tpsDurum={tpsDurum} ttftDurum={ttftDurum} bildirimler={bildirimler}
             />
+
+            {/* Sohbet önizlemesi sonucun hemen altında: aynı kurulumun
+                sayısal ve yaşanan hâli yan yana okunuyor. */}
+            <div style={{ marginTop: S.md }}>
+              <Hedefler
+                hedef={hedef} setHedef={setHedef} kap={kap}
+                tps={r.sigar ? r.kullaniciTokS : 0}
+                ttftMs={r.sigar ? r.ttftYogun * 1000 : 0}
+                sigar={r.sigar}
+                modelAd={model.ad} donanimAd={`${adet} × ${cihaz.ad}`}
+                dusunme={dusunme} setDusunme={setDusunme}
+                dusunmeTok={dusunmeTok} setDusunmeTok={setDusunmeTok}
+              />
+            </div>
           </div>
         </div>
-
-        {/* ---------------- Sohbet önizlemesi + hedefler ---------------- */}
-        <Hedefler
-          hedef={hedef} setHedef={setHedef} kap={kap}
-          tps={r.sigar ? r.kullaniciTokS : 0}
-          ttftMs={r.sigar ? r.ttftYogun * 1000 : 0}
-          sigar={r.sigar}
-          modelAd={model.ad} donanimAd={`${adet} × ${cihaz.ad}`}
-          dusunme={dusunme} setDusunme={setDusunme}
-          dusunmeTok={dusunmeTok} setDusunmeTok={setDusunmeTok}
-        />
 
         {/* ---------------- Sekmeli alt bölüm ---------------- */}
         <Sekmeler sekmeler={SEKMELER} aktif={sekme} onChange={setSekme} />
