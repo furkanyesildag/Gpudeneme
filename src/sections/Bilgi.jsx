@@ -9,20 +9,20 @@ import { ELEKTRIK_TL_KWH } from "../engine.js";
 /* Kavramlar, varsayımlar ve veri güveni — sayfanın "neden böyle" bölümü. */
 
 const VARSAYIMLAR = [
-  ["KV cache", "Her modelin katman geometrisi HuggingFace config.json'undan okundu: kaç katman KV tutuyor, kaçı kayan pencereli, MLA mı GQA mı. Lineer/Mamba katmanları bağlamla büyüyen KV tutmadığı için sayılmaz — Qwen3.5+, GLM-5.3-Flash ve Nemotron-H'de KV bu yüzden çok düşük çıkar."],
-  ["Çözme hızı", "Bellek bant genişliği sınırlı kabul edilir. Adım başına okunan bayt = aktif ağırlık + yığındaki KV cache × 0,55. Gerçekleşen bant genişliği kullanımı (MBU) cihaza göre %50-74."],
+  ["KV cache", "Her modelin katman geometrisi HuggingFace config.json'undan okundu: kaç katman KV tutuyor, kaçı sliding window, MLA mı GQA mı. Lineer/Mamba katmanları bağlamla büyüyen KV tutmadığı için sayılmaz — Qwen3.5+, GLM-5.3-Flash ve Nemotron-H'de KV bu yüzden çok düşük çıkar."],
+  ["Decode hızı", "Bellek bant genişliği sınırlı kabul edilir. Adım başına okunan bayt = aktif ağırlık + batch'teki KV cache × 0,55. Gerçekleşen bant genişliği kullanımı (MBU) cihaza göre %50-74."],
   ["Seyrek MoE cezası", "MoE'de her token farklı uzmanları uyandırır; erişim dağınık olduğu için gerçekleşen bant genişliği düşer. Etki LPDDR birleşik bellekte ağır, HBM'de hafiftir. Katsayı, DGX Spark üzerinde yayımlanmış dense ve seyrek ölçüm çiftinden kalibre edildi."],
-  ["İlk token", "Prefill hesap sınırlı kabul edilir, hesap verimi %42, girdi olarak istem uzunluğu alınır (bağlam penceresi değil). Yoğun anda her ek kullanıcı için %62 kuyruk gecikmesi eklenir. Önek önbelleği açıksa gerçek istem çok daha kısadır."],
+  ["İlk token", "Prefill hesap sınırlı kabul edilir, hesap verimi %42, girdi olarak prompt uzunluğu alınır (bağlam penceresi değil). Yoğun anda her ek kullanıcı için %62 kuyruk gecikmesi eklenir. Prefix caching açıksa gerçek prompt çok daha kısadır."],
   ["Kapasite", "Maks. C, hem hız hem ilk token hedefinin tutulduğu en yüksek eşzamanlı istek sayısıdır (ikili aramayla bulunur). Sohbet ve ajan kapasitesi bunun kullanım çarpanlarıyla çarpımıdır — çarpanlar davranış varsayımıdır, ölçüm değil."],
-  ["Ara bağlantı", "Tensör paralelliği verimi NVLink %86, aynı kasada PCIe %60, ağ/USB4 üzerinden %33. Spark ve Mac kümelerinin düşük çıkması bu yüzdendir."],
+  ["Interconnect", "Tensor parallelism (TP) verimi NVLink %86, aynı kasada PCIe %60, ağ/USB4 üzerinden %33. Spark ve Mac kümelerinin düşük çıkması bu yüzdendir."],
   ["Bellek payı", "Birleşik bellekli kutularda %12, ayrık kartlarda %6 sistem payı düşülür. Çalışma zamanı için ayrıca 1,2 GB + ağırlığın %5'i + cihaz başına 0,35 GB ayrılır."],
   ["Ana sistem", "Ayrık kartlara, onları çalıştıracak bilgisayarın maliyeti ve gücü eklenir; kart sayısına göre basamaklıdır (masaüstü → çok yuvalı iş istasyonu → sunucu şasisi)."],
 ];
 
 const GUVEN = [
-  ["olumlu", "✓ Doğrudan kaynaktan", `Model parametre sayıları HuggingFace safetensors üstverisinden; katman sayısı, dikkat başlıkları, KV geometrisi, bağlam ve lisans config.json'dan programatik olarak çekildi. ${MODELS.length} deponun hepsi tek tek doğrulandı.`],
+  ["olumlu", "✓ Doğrudan kaynaktan", `Model parametre sayıları HuggingFace safetensors üstverisinden; katman sayısı, attention head sayısı, KV geometrisi, bağlam ve lisans config.json'dan programatik olarak çekildi. ${MODELS.length} deponun hepsi tek tek doğrulandı.`],
   ["olumlu", "✓ Üretici belirtimi", `${DEVICES.length} donanımın belleği, bant genişliği, TDP'si ve mimarisi üretici belirtimlerinden. Bant genişlikleri veri yolu genişliği × bellek hızından çapraz doğrulandı.`],
-  ["uyari", "≈ Mühendislik tahmini", "MBU (%50-74), prefill verimi (%42), KV okuma katsayısı (0,55), MoE ceza üssü, tensör paralelliği verimleri ve TFLOPS değerleri. Büyüklük mertebesi ve göreli fark doğrudur, spec-kesin değildir."],
+  ["uyari", "≈ Mühendislik tahmini", "MBU (%50-74), prefill verimi (%42), KV okuma katsayısı (0,55), MoE ceza üssü, tensor parallelism verimleri ve TFLOPS değerleri. Büyüklük mertebesi ve göreli fark doğrudur, spec-kesin değildir."],
   ["tehlike", "$ Yaklaşık ve oynak", "Fiyatlar. TL değerleri Eylül 2026 Türkiye perakende gözlemidir ve kurla, stokla, satıcıyla değişir. Satın alma öncesi canlı teklif alın — bütçeyi bu sayılara kilitlemeyin."],
 ];
 
@@ -31,7 +31,7 @@ const SINIRLAR =
   "A100 ve Ampere kartlarda FP8 yoktur — TFLOPS sütunu FP16 değeridir. Llama 4 ve bazı depolar kapalıdır (gated), " +
   "config'leri okunamadığı için KV geometrisi model kartından alınmıştır. TFLOPS yalnızca ilk-token tahmininde " +
   "kullanılır; bellek ve token hızı sonuçlarını etkilemez. Simülatör ağırlıkların sistem RAM'ine taşınmasını " +
-  "(offload) ve spekülatif kod çözmeyi (MTP/EAGLE) modellemez — ikisi de gerçekte sonucu iyileştirir.";
+  "(offload) ve speculative decodingyi (MTP/EAGLE) modellemez — ikisi de gerçekte sonucu iyileştirir.";
 
 export default function Bilgi() {
   const [kavramAcik, setKavramAcik] = React.useState(true);

@@ -3,8 +3,8 @@
 /*                                                                     */
 /*  Tasarım kararı: KV cache artık model başına sabit bir "KB/token"   */
 /*  değil, config.json'dan çıkarılmış GEOMETRİDEN bağlam uzunluğuna    */
-/*  göre hesaplanıyor. Bu, kayan pencereli (Gemma, gpt-oss, Command A) */
-/*  ve hibrit lineer dikkatli (Qwen3.5+, GLM-5.3-Flash, Nemotron)      */
+/*  göre hesaplanıyor. Bu, sliding window kullanan (Gemma, gpt-oss, Command A) */
+/*  ve hybrid linear dikkatli (Qwen3.5+, GLM-5.3-Flash, Nemotron)      */
 /*  modellerin uzun bağlamdaki gerçek davranışını doğru yansıtır.      */
 /* ------------------------------------------------------------------ */
 
@@ -25,7 +25,7 @@ export function anaSistem(kartSayisi) {
   return { ...son, usd: son.usd * adet, w: son.w * adet, adet };
 }
 
-/* Tensör paralelliği verimi: tek modeli N cihaza bölünce elde kalan oran. */
+/* Tensor parallelism (TP) verimi: tek modeli N cihaza bölünce elde kalan oran. */
 export const TP_ETKI = { tek: 1.0, nvlink: 0.86, pcie: 0.6, net: 0.33 };
 export const TP_ETIKET = {
   tek: "Tek cihaz",
@@ -83,7 +83,7 @@ export const ITHALAT = 1.35; // nakliye + gümrük + %20 KDV kabaca
  *  kv.e  : katman başına token başına eleman
  *  kv.L  : KV tutan katman sayısı (kesirli olabilir — DeepSeek V4'te
  *          katman başına sıkıştırma oranlarının toplamı)
- *  kv.sw : bunların kaçı kayan pencereli
+ *  kv.sw : bunların kaçı sliding window katmanı
  *  kv.w  : pencere genişliği (token)
  *  kvBayt: eleman başına bayt (FP16 = 2, FP8 = 1, Q4 ≈ 0,56)  */
 export function kvBaytToplam(kv, tokenSayisi, kvBayt) {
@@ -102,15 +102,15 @@ export function kvKBperToken(kv, tokenSayisi, kvBayt = 2) {
 
 /** Modelin uzun bağlam davranışı için kısa etiket.
  *  Lt = toplam katman, L = KV tutan katman. L belirgin olarak küçükse
- *  katmanların çoğu lineer/Mamba dikkat kullanıyor demektir. */
+ *  katmanların çoğu linear/Mamba attention kullanıyor demektir. */
 export function kvTipi(kv) {
   const hibrit = kv.Lt && kv.L < kv.Lt * 0.75;
   const mla = kv.e <= 640;
-  if (hibrit && mla) return "hibrit lineer + MLA";
-  if (hibrit) return "hibrit lineer";
-  if (kv.sw && kv.sw >= kv.L * 0.4) return "kayan pencere";
-  if (mla) return "MLA / sıkıştırılmış";
-  return "tam (GQA)";
+  if (hibrit && mla) return "hybrid linear + MLA";
+  if (hibrit) return "hybrid linear";
+  if (kv.sw && kv.sw >= kv.L * 0.4) return "sliding window";
+  if (mla) return "MLA (sıkıştırılmış)";
+  return "full attention (GQA)";
 }
 
 /* ------------------------------------------------------------------ */
@@ -159,7 +159,7 @@ export function hesapla({
   const cihazKullanilabilir = cihaz.mem * (1 - rezerv);
   const toplamBellek = cihazKullanilabilir * adet;
 
-  /* Ara bağlantı verimi */
+  /* Interconnect verimi */
   const link = adet > 1 ? cihaz.link : "tek";
   const tpEtki = TP_ETKI[link];
   const kumeBW = cihaz.bw * adet * tpEtki;
@@ -174,9 +174,9 @@ export function hesapla({
   const sigar = gerekliGB <= toplamBellek;
   const doluluk = toplamBellek > 0 ? gerekliGB / toplamBellek : Infinity;
 
-  /* ---- Çözme (decode) hızı ----
+  /* ---- Decode hızı ----
      Bellek bant genişliği sınırlı. Her adımda okunan bayt = aktif ağırlıklar
-     + yığındaki KV cache. KV okuması dikkat çekirdeğinde tam olarak
+     + batch'teki KV cache. KV okuması attention kernel'inde tam olarak
      taranmaz (sayfalama, flash-attention); ~0,55 katsayısı bunu yansıtır. */
   const adimBaytGB = aktifGB + kvGB * 0.55;
   const moeVerim = moeVerimi(model, cihaz);
@@ -185,8 +185,8 @@ export function hesapla({
   const toplamTokS = adimHiz * kullanici;
 
   /* ---- İlk token gecikmesi (prefill) ----
-     Hesap sınırlı. İstem uzunluğu × 2 × aktif parametre FLOP.
-     Toplu işlemede prefill'ler sıraya girer, bu yüzden kullanıcı sayısıyla
+     Hesap sınırlı. Prompt uzunluğu × 2 × aktif parametre FLOP.
+     Batchingde prefill'ler sıraya girer, bu yüzden kullanıcı sayısıyla
      doğrusala yakın büyür (kuyrukta bekleme). */
   const flops = 2 * model.ap * 1e9 * girdiTok;
   const prefillVerim = kumeTF * 1e12 * 0.42;
@@ -198,7 +198,7 @@ export function hesapla({
   const maxKullanici = kvKullaniciGB > 0 ? Math.max(0, Math.floor(kalanGB / kvKullaniciGB)) : 0;
 
   // Bu kullanıcı sayısıyla sığan en uzun bağlam — KV geometrisi doğrusal
-  // olmayabildiği için (kayan pencere) ikili arama ile bulunur.
+  // olmayabildiği için (sliding window) ikili arama ile bulunur.
   let maxCtxK = 0;
   if (kalanGB > 0 && kullanici > 0) {
     let lo = 0, hi = 4096; // K token

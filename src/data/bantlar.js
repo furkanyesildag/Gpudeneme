@@ -24,12 +24,12 @@ export const BANTLAR = [
       kullanici: 1, cikti: 800, indirGibi: false,
     },
     tekKullanici:
-      "Flash-Next'in topluluk NVFP4 buildini (109 GB, loader yaması gerekiyor) çalıştırır. MTP ile ~24,6 tok/s, onsuz ~16,8. Sohbet için yaşanır; uzun RAG istemlerinde ilk token saniyelerle ölçülür.",
-    ekip: "Hayır. 273 GB/s bant genişliği toplu işlemeyi (batching) taşımaz.",
+      "Flash-Next'in topluluk NVFP4 buildini (109 GB, loader yaması gerekiyor) çalıştırır. MTP ile ~24,6 tok/s, onsuz ~16,8. Sohbet için yaşanır; uzun RAG prompt'larında ilk token saniyelerle ölçülür.",
+    ekip: "Hayır. 273 GB/s bant genişliği batching'i (batching) taşımaz.",
     kime:
       "Tek kişi; “en ucuza bu modeli elime alıp deneyeyim” diyen. Ya da ileride bir üretim sistemi kuracaksa onun yanındaki geliştirme kutusu.",
     tikanma:
-      "Ekibe hiçbir şekilde açılamaz. Birleşik bellek olduğu için uzman offload avantajı yok. İkinci Spark eklemek ağ üzerinden gider, tensör paralelliği verimi ~%33'e düşer.",
+      "Ekibe hiçbir şekilde açılamaz. Birleşik bellek olduğu için uzman offload avantajı yok. İkinci Spark eklemek ağ üzerinden gider, tensor parallelism verimi ~%33'e düşer.",
     ilginc:
       "Aynı kutuda Flash-Next (180B ama 6B aktif), 27B dense modelden HIZLI koşar — bellek bant genişliği sınırlı bir dünyada belirleyici olan toplam parametre değil aktif parametredir.",
     renk: "steel",
@@ -95,14 +95,14 @@ export const BANTLAR = [
     ad: "2× PRO 6000, aynı platform",
     fiyat: "2,9-3,3 milyon ₺",
     ozet: "Büyük MoE kesin, ekip kesin, 5 yıllık plan.",
-    ne: "4. bant + ikinci kart. Toplam 192 GB VRAM, tensör paralelliği TP=2.",
+    ne: "4. bant + ikinci kart. Toplam 192 GB VRAM, tensor parallelism TP=2.",
     ayar: {
       modelId: "qwen38_flash_next", cihazId: "pro6000", adet: 2,
       quant: "nvfp4", kvq: "fp8", ctxK: 262, girdiK: 4,
       kullanici: 8, cikti: 800, indirGibi: false,
     },
     tekKullanici:
-      "Flash-Next resmi FP8 checkpoint, n-gram gömme katmanı host RAM'de, GPU'da ~125 GiB, ~50 GB KV alanı. Modelin KV'si token başına ~12 KB olduğu için bu alan devasa. Ayrıca 27B'yi ikinci karta koyup iki modeli aynı anda servis edebilirsin.",
+      "Flash-Next resmi FP8 checkpoint, n-gram embedding katmanı host RAM'de, GPU'da ~125 GiB, ~50 GB KV alanı. Modelin KV'si token başına ~12 KB olduğu için bu alan devasa. Ayrıca 27B'yi ikinci karta koyup iki modeli aynı anda servis edebilirsin.",
     ekip: "8 kişi Flash-Next'te 262K bağlamla rahat. Ajan yükü geldiğinde de dayanır.",
     kime: "“Büyük MoE kesin, ekip kesin, 5 yıl” diyen ve bütçenin tavanını kullanabilen.",
     tikanma:

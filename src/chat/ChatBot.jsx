@@ -65,7 +65,7 @@ function uygunlukDurumu(a, ctx) {
       `**✓ ÇALIŞIR.** ${don}\n\n${dokum} → belleğin %${Math.round(r.doluluk * 100)}'i dolu.\n\n` +
       `Beklenen: kullanıcı başına **~${r.kullaniciTokS.toFixed(1)} tok/s**, toplam ~${Math.round(r.toplamTokS)} tok/s, ` +
       `ilk token ~${sureYazi(r.ttftYogun)}.` +
-      (r.doluluk > 0.88 ? "\n\n⚠ Bellek sınırda — üretimde ani uzun istem taşırabilir." : "") +
+      (r.doluluk > 0.88 ? "\n\n⚠ Bellek sınırda — üretimde ani uzun prompt taşırabilir." : "") +
       (r.kullaniciTokS < 10 ? "\n\n⚠ Kullanıcı başına hız okuma bandının altında." : "")
     );
   }

@@ -21,7 +21,7 @@ Türkiye fiyatını ve elektrik maliyetini çıkarır.
   **Türkiye tedarik durumu ve TL fiyatı**.
 - **Gerçek KV cache hesabı** — model başına uydurma bir "KB/token" değil; her modelin
   HuggingFace `config.json` dosyasından okunan katman geometrisi. Kaç katman KV
-  tutuyor, kaçı kayan pencereli, MLA mı GQA mı, hangi katmanlar lineer dikkat
+  tutuyor, kaçı sliding window kullanan, MLA mı GQA mı, hangi katmanlar linear attention
   kullanıyor. Bu sayede Qwen3.5+, GLM-5.3-Flash, Nemotron-H gibi hibrit modellerin
   uzun bağlamdaki gerçek avantajı doğru görünür.
 - **İş yükü profilleri** — "ortalama istemim kaç K token?" sorusunu kimse

@@ -10,10 +10,10 @@
 /*    kv   KV cache geometrisi — config.json'dan hesaplandı:           */
 /*           e  katman başına token başına ELEMAN sayısı               */
 /*              (GQA: 2·kv_head·head_dim · MLA: kv_lora + rope)        */
-/*           L  KV tutan (tam dikkatli) katman sayısı — lineer/Mamba   */
+/*           L  KV tutan (full attention) katman sayısı — linear/Mamba   */
 /*              katmanlar sayılmaz, çünkü bağlamla büyüyen KV tutmaz   */
-/*           sw kayan pencereli katman sayısı (L'nin içinde)           */
-/*           w  kayan pencere genişliği (token)                        */
+/*           sw sliding window katmanı sayısı (L'nin içinde)           */
+/*           w  sliding window genişliği (token)                        */
 /*    vl   görsel giriş (çok kipli)                                    */
 /*    gated HuggingFace'te erişim onayı gerekiyor                      */
 /*                                                                     */
@@ -25,8 +25,8 @@ export const MODELS = [
 
   /* --- Qwen --- */
   { id: "qwen38_24t_a95b", ad: "Qwen3.8-2.4T-A95B", aile: "Qwen", tp: 2446.2, ap: 95, ctx: 262, lis: "Apache 2.0", hf: "Qwen/Qwen3.8-2.4T-A95B", kv: { e: 2048, L: 23, sw: 0, w: 0, Lt: 92 }, not: "Qwen3.8-Max'ın açık ağırlık sürümü. Yalnızca düşünme modu.", ext: 1010 },
-  { id: "qwen38_flash_next", ad: "Qwen3.8-Flash-Next 180B-A6B", aile: "Qwen", tp: 180.0, ap: 6, ctx: 262, lis: "Apache 2.0", hf: "Qwen/Qwen3.8-Flash-Next", kv: { e: 1024, L: 12, sw: 0, w: 0, Lt: 48 }, not: "125B gövde + 51B n-gram gömme + 4B MTP. Gated DeltaNet hibrit — KV çok küçük.", ext: 1000, vl: true },
-  { id: "qwen38_27b", ad: "Qwen3.8 27B", aile: "Qwen", tp: 27.8, ap: 27.8, ctx: 262, lis: "Apache 2.0", hf: "Qwen/Qwen3.8-27B", kv: { e: 2048, L: 16, sw: 0, w: 0, Lt: 64 }, not: "64 katmanın 48'i lineer dikkat — 27B dense'e göre KV'si çok düşük.", ext: 1000, vl: true },
+  { id: "qwen38_flash_next", ad: "Qwen3.8-Flash-Next 180B-A6B", aile: "Qwen", tp: 180.0, ap: 6, ctx: 262, lis: "Apache 2.0", hf: "Qwen/Qwen3.8-Flash-Next", kv: { e: 1024, L: 12, sw: 0, w: 0, Lt: 48 }, not: "125B gövde + 51B n-gram embedding + 4B MTP. Gated DeltaNet hibrit — KV çok küçük.", ext: 1000, vl: true },
+  { id: "qwen38_27b", ad: "Qwen3.8 27B", aile: "Qwen", tp: 27.8, ap: 27.8, ctx: 262, lis: "Apache 2.0", hf: "Qwen/Qwen3.8-27B", kv: { e: 2048, L: 16, sw: 0, w: 0, Lt: 64 }, not: "64 katmanın 48'i linear attention — 27B dense'e göre KV'si çok düşük.", ext: 1000, vl: true },
   { id: "qwen36_27b", ad: "Qwen3.6 27B", aile: "Qwen", tp: 27.8, ap: 27.8, ctx: 262, lis: "Apache 2.0", hf: "Qwen/Qwen3.6-27B", kv: { e: 2048, L: 16, sw: 0, w: 0, Lt: 64 }, vl: true },
   { id: "qwen36_35b_a3b", ad: "Qwen3.6 35B-A3B", aile: "Qwen", tp: 36.0, ap: 3, ctx: 262, lis: "Apache 2.0", hf: "Qwen/Qwen3.6-35B-A3B", kv: { e: 1024, L: 10, sw: 0, w: 0, Lt: 40 }, vl: true },
   { id: "qwen35_397b_a17b", ad: "Qwen3.5 397B-A17B", aile: "Qwen", tp: 403.4, ap: 17, ctx: 262, lis: "Apache 2.0", hf: "Qwen/Qwen3.5-397B-A17B", kv: { e: 1024, L: 15, sw: 0, w: 0, Lt: 60 }, vl: true },
@@ -50,7 +50,7 @@ export const MODELS = [
 
   /* --- GLM --- */
   { id: "glm_53", ad: "GLM-5.3 753B-A40B", aile: "GLM", tp: 753.3, ap: 40, ctx: 1024, lis: "MIT", hf: "zai-org/GLM-5.3", kv: { e: 576, L: 78, sw: 0, w: 0, Lt: 78 }, bench: "SWE-bench Verified / uzun ufuk kodlamada GLM-5.2 üstü", not: "GLM-5.2 ile aynı taban model; kazanç tamamen post-training'den." },
-  { id: "glm_53_flash", ad: "GLM-5.3-Flash 320B-A18B", aile: "GLM", tp: 321.3, ap: 18, ctx: 1024, lis: "MIT", hf: "zai-org/GLM-5.3-Flash", kv: { e: 512, L: 11, sw: 0, w: 0, Lt: 45 }, bench: "GLM-5.2'yi geçiyor, 1/10 fiyat", not: "GLM-5 ailesinin ilk doğuştan çok kipli modeli. 45 katmanın 34'ü lineer — KV cache çok küçük.", vl: true },
+  { id: "glm_53_flash", ad: "GLM-5.3-Flash 320B-A18B", aile: "GLM", tp: 321.3, ap: 18, ctx: 1024, lis: "MIT", hf: "zai-org/GLM-5.3-Flash", kv: { e: 512, L: 11, sw: 0, w: 0, Lt: 45 }, bench: "GLM-5.2'yi geçiyor, 1/10 fiyat", not: "GLM-5 ailesinin ilk doğuştan çok kipli modeli. 45 katmanın 34'ü linear attention — KV cache çok küçük.", vl: true },
   { id: "glm_52", ad: "GLM-5.2 753B-A40B", aile: "GLM", tp: 753.3, ap: 40, ctx: 1024, lis: "MIT", hf: "zai-org/GLM-5.2", kv: { e: 576, L: 78, sw: 0, w: 0, Lt: 78 } },
   { id: "glm_51", ad: "GLM-5.1 753B-A40B", aile: "GLM", tp: 753.9, ap: 40, ctx: 200, lis: "MIT", hf: "zai-org/GLM-5.1", kv: { e: 576, L: 78, sw: 0, w: 0, Lt: 78 } },
   { id: "glm_5", ad: "GLM-5 753B-A40B", aile: "GLM", tp: 753.9, ap: 40, ctx: 200, lis: "MIT", hf: "zai-org/GLM-5", kv: { e: 576, L: 78, sw: 0, w: 0, Lt: 78 } },
@@ -87,13 +87,13 @@ export const MODELS = [
   { id: "minimax_m2", ad: "MiniMax-M2 229B-A10B", aile: "MiniMax", tp: 228.7, ap: 10, ctx: 196, lis: "MiniMax (özel)", hf: "MiniMaxAI/MiniMax-M2", kv: { e: 2048, L: 62, sw: 0, w: 0, Lt: 62 } },
 
   /* --- Tencent --- */
-  { id: "hy4_preview", ad: "Hy4 preview 770B-A49B", aile: "Tencent", tp: 780.0, ap: 49, ctx: 1024, lis: "Apache 2.0", hf: "tencent/Hy4-preview", kv: { e: 576, L: 78, sw: 0, w: 0, Lt: 78 }, not: "78 katman, 256 uzman + 1 paylaşımlı, top-8. Yerleşik MTP katmanı ile spekülatif kod çözme." },
+  { id: "hy4_preview", ad: "Hy4 preview 770B-A49B", aile: "Tencent", tp: 780.0, ap: 49, ctx: 1024, lis: "Apache 2.0", hf: "tencent/Hy4-preview", kv: { e: 576, L: 78, sw: 0, w: 0, Lt: 78 }, not: "78 katman, 256 uzman + 1 paylaşımlı, top-8. Yerleşik MTP katmanı ile speculative decoding." },
   { id: "hy3", ad: "Hy3 299B-A19B", aile: "Tencent", tp: 298.8, ap: 19, ctx: 262, lis: "Apache 2.0", hf: "tencent/Hy3", kv: { e: 2048, L: 80, sw: 0, w: 0, Lt: 80 } },
   { id: "hy_mt2_30b_a3b", ad: "Hy-MT2 30B-A3B (çeviri)", aile: "Tencent", tp: 30.1, ap: 3, ctx: 262, lis: "Apache 2.0", hf: "tencent/Hy-MT2-30B-A3B", kv: { e: 1024, L: 48, sw: 0, w: 0, Lt: 48 }, not: "Çeviriye özel; Türkçe dahil çok dilli." },
   { id: "hunyuan_a13b_pretrain", ad: "Hunyuan A13B 80B-A13B", aile: "Tencent", tp: 80.4, ap: 13, ctx: 32, lis: "Tencent (özel)", hf: "tencent/Hunyuan-A13B-Pretrain", kv: { e: 2048, L: 32, sw: 0, w: 0, Lt: 32 } },
 
   /* --- Ling --- */
-  { id: "ling_30_flash", ad: "Ling-3.0-flash 124B-A5.1B", aile: "Ling", tp: 127.5, ap: 5.1, ctx: 262, lis: "MIT", hf: "inclusionAI/Ling-3.0-flash", kv: { e: 576, L: 42, sw: 0, w: 0, Lt: 42 }, not: "5:1 KDA + MLA hibrit lineer dikkat. 1/64 seyrek MoE — çok düşük KV, çok hızlı." },
+  { id: "ling_30_flash", ad: "Ling-3.0-flash 124B-A5.1B", aile: "Ling", tp: 127.5, ap: 5.1, ctx: 262, lis: "MIT", hf: "inclusionAI/Ling-3.0-flash", kv: { e: 576, L: 42, sw: 0, w: 0, Lt: 42 }, not: "5:1 KDA + MLA hybrid linear dikkat. 1/64 seyrek MoE — çok düşük KV, çok hızlı." },
   { id: "ling_30_tiny", ad: "Ling-3.0-tiny 8B-A1.2B", aile: "Ling", tp: 7.9, ap: 1.2, ctx: 131, lis: "MIT", hf: "inclusionAI/Ling-3.0-tiny", kv: { e: 576, L: 24, sw: 0, w: 0, Lt: 24 } },
 
   /* --- Llama --- */
@@ -115,7 +115,7 @@ export const MODELS = [
   { id: "qwen25_coder_7b_instruct", ad: "Qwen2.5-Coder 7B", aile: "Kod", tp: 7.6, ap: 7.6, ctx: 32, lis: "Apache 2.0", hf: "Qwen/Qwen2.5-Coder-7B-Instruct", kv: { e: 1024, L: 28, sw: 0, w: 0, Lt: 28 } },
   { id: "deepseek_coder_v2_instruct", ad: "DeepSeek-Coder-V2 236B-A21B", aile: "Kod", tp: 235.7, ap: 21, ctx: 163, lis: "DeepSeek (özel)", hf: "deepseek-ai/DeepSeek-Coder-V2-Instruct", kv: { e: 576, L: 60, sw: 0, w: 0, Lt: 60 } },
   { id: "deepseek_coder_v2_lite_instruct", ad: "DeepSeek-Coder-V2-Lite 16B-A2.4B", aile: "Kod", tp: 15.7, ap: 2.4, ctx: 163, lis: "DeepSeek (özel)", hf: "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct", kv: { e: 576, L: 27, sw: 0, w: 0, Lt: 27 }, bench: "HumanEval 83.5" },
-  { id: "north_mini_code_10", ad: "North-Mini-Code 1.0 30B-A2.2B", aile: "Kod", tp: 30.5, ap: 2.2, ctx: 500, lis: "Apache 2.0", hf: "CohereLabs/North-Mini-Code-1.0", kv: { e: 1024, L: 49, sw: 36, w: 4096, Lt: 49 }, not: "500K bağlam, kayan pencere — kod tabanı taramada çok verimli." },
+  { id: "north_mini_code_10", ad: "North-Mini-Code 1.0 30B-A2.2B", aile: "Kod", tp: 30.5, ap: 2.2, ctx: 500, lis: "Apache 2.0", hf: "CohereLabs/North-Mini-Code-1.0", kv: { e: 1024, L: 49, sw: 36, w: 4096, Lt: 49 }, not: "500K bağlam, sliding window — kod tabanı taramada çok verimli." },
 
   /* --- gpt-oss --- */
   { id: "gpt_oss_120b", ad: "gpt-oss-120b", aile: "gpt-oss", tp: 116.8, ap: 5.1, ctx: 131, lis: "Apache 2.0", hf: "openai/gpt-oss-120b", kv: { e: 1024, L: 36, sw: 18, w: 128, Lt: 36 }, not: "MXFP4 ile yayımlandı; 80 GB tek kartta çalışır. Katmanların yarısı 128 pencereli." },
@@ -147,7 +147,7 @@ export const MODELS = [
   { id: "granite_42_3b", ad: "Granite 4.2 3B", aile: "IBM", tp: 3.7, ap: 3.7, ctx: 131, lis: "Apache 2.0", hf: "ibm-granite/granite-4.2-3b", kv: { e: 1024, L: 40, sw: 0, w: 0, Lt: 40 } },
 
   /* --- Cohere --- */
-  { id: "command_a_plus_05_2026_bf16", ad: "Command A Plus 218B-A25B", aile: "Cohere", tp: 218.8, ap: 25, ctx: 200, lis: "Apache 2.0", hf: "CohereLabs/command-a-plus-05-2026-bf16", kv: { e: 2048, L: 32, sw: 24, w: 4096, Lt: 32 }, not: "Türkçe dahil çok dilli; kayan pencere ile KV düşük.", vl: true },
+  { id: "command_a_plus_05_2026_bf16", ad: "Command A Plus 218B-A25B", aile: "Cohere", tp: 218.8, ap: 25, ctx: 200, lis: "Apache 2.0", hf: "CohereLabs/command-a-plus-05-2026-bf16", kv: { e: 2048, L: 32, sw: 24, w: 4096, Lt: 32 }, not: "Türkçe dahil çok dilli; sliding window ile KV düşük.", vl: true },
 
   /* --- Açık kaynak --- */
   { id: "olmo_31_32b_instruct", ad: "Olmo 3.1 32B Instruct", aile: "Açık kaynak", tp: 32.2, ap: 32.2, ctx: 65, lis: "Apache 2.0", hf: "allenai/Olmo-3.1-32B-Instruct", kv: { e: 2048, L: 64, sw: 48, w: 4096, Lt: 64 }, not: "Veri + eğitim kodu da açık — tam denetlenebilir." },

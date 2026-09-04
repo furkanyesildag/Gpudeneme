@@ -105,7 +105,7 @@ export function konfigdenKV(cfg) {
     }
     return {
       e, L: attn, sw, w: swa,
-      tip: attn < t.layer_types.length ? "hibrit lineer" : sw ? "kayan pencere" : mla ? "MLA" : "GQA",
+      tip: attn < t.layer_types.length ? "hybrid linear" : sw ? "sliding window" : mla ? "MLA" : "GQA",
     };
   }
 
@@ -116,7 +116,7 @@ export function konfigdenKV(cfg) {
 
   const maxPos = t.max_position_embeddings || 0;
   if (swa && (!maxPos || swa < maxPos)) {
-    return { e, L, sw: L, w: swa, tip: "kayan pencere" };
+    return { e, L, sw: L, w: swa, tip: "sliding window" };
   }
   return { e, L, sw: 0, w: 0, tip: mla ? "MLA" : "GQA" };
 }
@@ -209,7 +209,7 @@ export async function modeliAnalizEt(girdiRepo, sinyal) {
   let tahminiTp = false;
   if (!tp && cfg) {
     const t = cfg.text_config || cfg;
-    // Kaba parametre tahmini: katman × (dikkat + MLP) + gömme
+    // Kaba parametre tahmini: katman × (attention + MLP) + embedding
     const L = t.num_hidden_layers, hs = t.hidden_size, V = t.vocab_size || 0;
     const inter = t.intermediate_size || (hs ? 4 * hs : 0);
     const uzman = t.n_routed_experts || t.num_experts || t.num_local_experts || 0;

@@ -131,12 +131,14 @@ export default function Sonuc({
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: `${S.xl}px ${S.xl}px` }}>
           <OlcumGrubu baslik="Hız">
             <Olcum
-              etiket="İlk token" deger={r.sigar ? sureYazi(r.ttftYogun) : "—"}
+              etiket="İlk token · TTFT" deger={r.sigar ? sureYazi(r.ttftYogun) : "—"}
               renk={r.sigar ? HEDEF_RENK[ttftDurum] : C.ink3}
-              alt={`hedef ≤ ${hedef.ttftMs} ms`} />
+              alt={`hedef ≤ ${hedef.ttftMs} ms`}
+              ipucu="Time to first token: isteği gönderdikten sonra cevabın ilk harfinin gelmesine kadar geçen süre. Prefill (prompt işleme) süresi artı kuyrukta bekleme." />
             <Olcum
               etiket="Toplam verim" deger={r.sigar ? Math.round(r.toplamTokS) : "—"} birim="tok/s"
-              alt={`${kullanici} eşzamanlı`} />
+              alt={`${kullanici} eşzamanlı`}
+              ipucu="Throughput: tüm kullanıcılar toplamında saniyede üretilen token. Batching sayesinde eşzamanlılık arttıkça yükselir." />
             <Olcum
               etiket="Tam yanıt" deger={r.sigar ? sureYazi(r.yanitSure) : "—"}
               alt={`${cikti} token`} />

@@ -2,7 +2,7 @@
 /*  KUANTİZASYON                                                       */
 /*  bpp = parametre başına BAYT (bytes per parameter).                 */
 /*  Gerçek dosya boyutları GGUF/kuantize repolardan gözlenen           */
-/*  ortalamalardır; gömme ve norm katmanları genelde daha yüksek       */
+/*  ortalamalardır; embedding ve norm katmanları genelde daha yüksek       */
 /*  hassasiyette kaldığı için saf bit oranından biraz yüksektir.       */
 /* ------------------------------------------------------------------ */
 

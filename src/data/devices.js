@@ -11,7 +11,7 @@
 /*  try   Türkiye'de gözlenen yaklaşık perakende fiyat (TL) — bilinen  */
 /*        modellerde; yoksa usd üzerinden ithalat katsayısıyla tahmin  */
 /*  tur   "kart" (ayrık GPU) | "kutu" (hazır sistem / birleşik bellek) */
-/*  link  çoklu kullanımda ara bağlantı: nvlink | pcie | net           */
+/*  link  çoklu kullanımda interconnect: nvlink | pcie | net           */
 /*  mbu   ölçülen bant genişliği kullanım oranı (Model Bandwidth Util.)*/
 /*  tr    Türkiye tedarik durumu                                       */
 /*  mim   mimari — kuantizasyon donanım desteğini belirler             */

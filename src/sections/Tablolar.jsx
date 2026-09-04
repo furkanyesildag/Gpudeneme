@@ -50,7 +50,7 @@ export function DonanimTablosu({ ortak, model, cihazId, hedef, kullanici, girdiK
     ["Donanım", "left", ""],
     ["Adet", "right", "Bu iş yükünü belleğe sığdıran en az cihaz sayısı"],
     ["Kişi/s", "right", `${kullanici} eşzamanlı istekte kullanıcı başına hız · hedef ≥ ${hedef.tps}`],
-    ["İlk tok", "right", `${kullanici} eşzamanlı istekte ilk token · hedef ≤ ${hedef.ttftMs} ms`],
+    ["TTFT", "right", `Time to first token — ${kullanici} eşzamanlı istekte ilk token gecikmesi · hedef ≤ ${hedef.ttftMs} ms`],
     ["Maks. C", "right", "Her iki hedefin de tutulduğu en yüksek eşzamanlı istek"],
     ["Sohbet", "right", `Maks. C × ${hedef.sohbetKat} kişi`],
     ["Ajan", "right", `Maks. C × ${hedef.ajanKat} kişi`],
@@ -62,7 +62,7 @@ export function DonanimTablosu({ ortak, model, cihazId, hedef, kullanici, girdiK
   return (
     <Bolum
       baslik="Tüm donanımlar, bu iş yükü için"
-      aciklama={`${model.ad} · ${ctxYazi(ctxK)} bağlam · ${ctxYazi(girdiK)} istem · hedef ≥${hedef.tps} tok/s, ≤${hedef.ttftMs} ms`}
+      aciklama={`${model.ad} · ${ctxYazi(ctxK)} bağlam · ${ctxYazi(girdiK)} prompt · hedef ≥${hedef.tps} tok/s, ≤${hedef.ttftMs} ms`}
       ic={false}
       sag={
         <>

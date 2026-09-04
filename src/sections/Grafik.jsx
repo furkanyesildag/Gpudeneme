@@ -133,7 +133,7 @@ export default function Grafik({ ortak, model, cihaz, adet, girdiK, hedef }) {
       </div>
       <Aciklama>
         {yEksen === "hiz" && "Çizgi kesiliyorsa orada belleğe sığmıyor. Toplam verim yükselirken kişi başına hızın düşmesi normaldir; önemli olan yeşil hedef çizgisinin altına inmemesi."}
-        {yEksen === "ttft" && "İlk token gecikmesi istem uzunluğu ve kalabalıkla büyür. Yeşil çizgi senin hedefin."}
+        {yEksen === "ttft" && "İlk token gecikmesi prompt uzunluğu ve kalabalıkla büyür. Yeşil çizgi senin hedefin."}
         {yEksen === "bellek" && "Ağırlıklar sabit kalırken KV cache'in nasıl büyüdüğünü gösterir. Kırmızı çizgiyi geçen noktalarda model o ayarla belleğe sığmaz."}
       </Aciklama>
     </Bolum>

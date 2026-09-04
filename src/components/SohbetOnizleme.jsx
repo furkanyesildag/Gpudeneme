@@ -9,7 +9,7 @@ import { sureYazi } from "../engine.js";
 /*  donanımla GERÇEK bir sohbet turunu canlandırır:                    */
 /*                                                                     */
 /*    1. İstek gider          → ekranda hiçbir şey yok                 */
-/*    2. İlk token gecikmesi  → model istemi okuyor (bekleme)          */
+/*    2. İlk token gecikmesi  → model prompt'u okuyor (bekleme)          */
 /*    3. Düşünme (açıksa)     → düşünce token'ları akar ama            */
 /*                              kullanıcı hâlâ CEVABI görmez           */
 /*    4. Yanıt                → asıl metin akar                        */
@@ -47,7 +47,7 @@ const KAR_TOK = 4; // token ≈ 4 karakter
 
 const EVRE = {
   bos: { ad: "hazır", renk: "ink3" },
-  bekleme: { ad: "istem işleniyor", renk: "warn" },
+  bekleme: { ad: "prefill · prompt işleniyor", renk: "warn" },
   dusunme: { ad: "model düşünüyor", renk: "steel" },
   yanit: { ad: "yanıt yazılıyor", renk: "ok" },
   bitti: { ad: "tamamlandı", renk: "ok" },
@@ -194,7 +194,7 @@ export default function SohbetOnizleme({
 
       {/* ---- zaman çizelgesi ---- */}
       <div style={{ display: "flex", height: 4, background: C.line2 }}>
-        <div style={{ width: `${(t0 / t2) * 100}%`, background: C.warn, opacity: gecen >= 0 ? 1 : 0.3 }} title={`İstem işleniyor: ${sureYazi(t0 / 1000)}`} />
+        <div style={{ width: `${(t0 / t2) * 100}%`, background: C.warn, opacity: gecen >= 0 ? 1 : 0.3 }} title={`Prefill (prompt işleniyor): ${sureYazi(t0 / 1000)}`} />
         {dusunme && <div style={{ width: `${(dusunmeSuresi / t2) * 100}%`, background: C.steel }} title={`Düşünme: ${sureYazi(dusunmeSuresi / 1000)}`} />}
         <div style={{ width: `${(yanitSuresi / t2) * 100}%`, background: C.ok }} title={`Yanıt: ${sureYazi(yanitSuresi / 1000)}`} />
       </div>
@@ -259,7 +259,7 @@ export default function SohbetOnizleme({
 
             {evre === "bekleme" && (
               <div style={{ ...T.kucuk, color: C.ink3 }}>
-                <span style={{ letterSpacing: 2 }}>•••</span> model istemi okuyor
+                <span style={{ letterSpacing: 2 }}>•••</span> model prompt'u okuyor
               </div>
             )}
           </>
@@ -274,7 +274,7 @@ export default function SohbetOnizleme({
         }}
       >
         {[
-          ["İstem işleniyor", t0, C.warn],
+          ["Prefill (prompt işleniyor)", t0, C.warn],
           ...(dusunme ? [["Düşünme", dusunmeSuresi, C.steel]] : []),
           ["Yanıt yazılıyor", yanitSuresi, C.ok],
         ].map(([ad, ms, renk]) => (

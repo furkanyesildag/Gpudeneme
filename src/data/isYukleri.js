@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------ */
 /*  İŞ YÜKÜ PROFİLLERİ                                                 */
 /*                                                                     */
-/*  "Ortalama istemim kaç K token?" sorusunu kimse cevaplayamaz. Ama   */
+/*  "Ortalama prompt'um kaç K token?" sorusunu kimse cevaplayamaz. Ama   */
 /*  herkes NE İNŞA ETTİĞİNİ bilir. Profil, o bilgiden beş iş yükü      */
 /*  kaydırağını da doldurur.                                           */
 /*                                                                     */
@@ -27,7 +27,7 @@ export const IS_YUKLERI = [
     is: { ctxK: 16, girdiK: 1, kullanici: 8, cikti: 400, kvOran: 40 },
     hedef: { ttftMs: 800, tps: 20, sohbetKat: 6, ajanKat: 2 },
     neden:
-      "Sohbet turları kısadır ve önek önbelleği açıkken her turda yalnızca yeni mesaj işlenir — bu yüzden istem 1K civarında kalır, pencerenin tamamı dolmaz. Kullanıcılar sorular arasında okur ve yazar, yani bir yuva birçok kişiye yeter (×6). İlk token 1 saniyenin altında olmalı; insan ekrana bakıyor.",
+      "Sohbet turları kısadır ve prefix caching açıkken her turda yalnızca yeni mesaj işlenir — bu yüzden prompt 1K civarında kalır, pencerenin tamamı dolmaz. Kullanıcılar sorular arasında okur ve yazar, yani bir yuva birçok kişiye yeter (×6). İlk token 1 saniyenin altında olmalı; insan ekrana bakıyor.",
   },
   {
     id: "sohbet_uzun",
@@ -36,7 +36,7 @@ export const IS_YUKLERI = [
     is: { ctxK: 64, girdiK: 4, kullanici: 6, cikti: 700, kvOran: 75 },
     hedef: { ttftMs: 1500, tps: 20, sohbetKat: 4, ajanKat: 1.5 },
     neden:
-      "Konuşma uzadıkça geçmiş birikir ve KV cache pencereyi büyük ölçüde doldurur (%75). Önek önbelleği geçmişi yeniden işlemekten kurtarır, o yüzden istem yine kısa kalır — ama bellek yükü kalıcıdır. Asıl darboğaz burada hız değil, kullanıcı başına KV maliyetidir.",
+      "Konuşma uzadıkça geçmiş birikir ve KV cache pencereyi büyük ölçüde doldurur (%75). Prefix caching geçmişi yeniden işlemekten kurtarır, o yüzden prompt yine kısa kalır — ama bellek yükü kalıcıdır. Asıl darboğaz burada hız değil, kullanıcı başına KV maliyetidir.",
   },
   {
     id: "rag",
@@ -45,16 +45,16 @@ export const IS_YUKLERI = [
     is: { ctxK: 32, girdiK: 12, kullanici: 12, cikti: 600, kvOran: 55 },
     hedef: { ttftMs: 2500, tps: 18, sohbetKat: 5, ajanKat: 2 },
     neden:
-      "Her soruda vektör veritabanından 8-15 parça getirilir; istem 10-15K'ya çıkar ve her seferinde FARKLI olduğu için önek önbelleği pek işe yaramaz — ilk token bu yüzden uzar. İç arama araçları kalabalık kullanılır ama seyrek: yüksek eşzamanlılık, yüksek çarpan.",
+      "Her soruda vektör veritabanından 8-15 parça getirilir; prompt 10-15K'ya çıkar ve her seferinde FARKLI olduğu için prefix caching pek işe yaramaz — ilk token bu yüzden uzar. İç arama araçları kalabalık kullanılır ama seyrek: yüksek eşzamanlılık, yüksek çarpan.",
   },
   {
     id: "dokuman",
     ad: "Doküman özetleme / analiz",
-    ozet: "Belgenin tamamı isteme giriyor",
+    ozet: "Belgenin tamamı prompt'a giriyor",
     is: { ctxK: 128, girdiK: 96, kullanici: 2, cikti: 1500, kvOran: 90 },
     hedef: { ttftMs: 30000, tps: 15, sohbetKat: 2, ajanKat: 1 },
     neden:
-      "İstemin kendisi belgedir — 100 sayfalık bir şartname ~100K token eder. Devasa prefill yüzünden ilk token dakikalarla ölçülebilir ve bu KABUL EDİLEBİLİR; kullanıcı zaten dosyayı yükleyip bekliyordur. Buna karşılık aynı anda çok az kişi çalışır ve KV neredeyse tamamen dolar.",
+      "Prompt'un kendisi belgedir — 100 sayfalık bir şartname ~100K token eder. Devasa prefill yüzünden ilk token dakikalarla ölçülebilir ve bu KABUL EDİLEBİLİR; kullanıcı zaten dosyayı yükleyip bekliyordur. Buna karşılık aynı anda çok az kişi çalışır ve KV neredeyse tamamen dolar.",
   },
   {
     id: "kod_ajani",
@@ -76,7 +76,7 @@ export const IS_YUKLERI = [
   },
   {
     id: "toplu",
-    ad: "Toplu işleme / gece işi",
+    ad: "Batching / gece işi",
     ozet: "Etiketleme, sınıflandırma, veri dönüştürme",
     is: { ctxK: 16, girdiK: 6, kullanici: 32, cikti: 500, kvOran: 50 },
     hedef: { ttftMs: 60000, tps: 4, sohbetKat: 1, ajanKat: 1 },

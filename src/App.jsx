@@ -186,7 +186,7 @@ export default function Simulator() {
     } else if (r.doluluk > 0.9) {
       out.push({
         tip: "uyari", baslik: "Bellek sınırında",
-        metin: `Bellek %${Math.round(r.doluluk * 100)} dolu. Üretimde %80'in altını hedefle — ani uzun istem veya ek kullanıcı taşırır.`,
+        metin: `Bellek %${Math.round(r.doluluk * 100)} dolu. Üretimde %80'in altını hedefle — ani uzun prompt veya ek kullanıcı taşırır.`,
       });
     }
 
@@ -198,7 +198,7 @@ export default function Simulator() {
     else if (r.ctxYarn)
       out.push({
         tip: "uyari", baslik: "YaRN/RoPE uzatması gerekiyor",
-        metin: `${model.ad} doğuştan ${ctxYazi(model.ctx)} destekliyor. ${ctxYazi(ctxK)} için RoPE ölçeklendirmesi açman gerekir; kısa istemlerde kalite bir miktar düşebilir.`,
+        metin: `${model.ad} doğuştan ${ctxYazi(model.ctx)} destekliyor. ${ctxYazi(ctxK)} için RoPE ölçeklendirmesi açman gerekir; kısa prompt'larda kalite bir miktar düşebilir.`,
       });
 
     if (indirGibi)
@@ -228,17 +228,17 @@ export default function Simulator() {
         baslik: `${adet} cihaz tek küme · ${TP_ETIKET[r.link]} · verim %${Math.round(r.tpEtki * 100)}`,
         metin:
           r.link === "net"
-            ? "Bu cihazlar ancak ağ/USB4 ile kümelenir; tensör paralelliği verimi ~%33. Tek güçlü cihaz çoğu zaman çok sayıda zayıf kutudan iyidir."
+            ? "Bu cihazlar ancak ağ/USB4 ile kümelenir; tensor parallelism verimi ~%33. Tek güçlü cihaz çoğu zaman çok sayıda zayıf kutudan iyidir."
             : r.link === "pcie"
             ? `Aynı kasada PCIe üzerinden bölünür, verim ~%60.${cihaz.slot ? ` Her kart ${cihaz.slot} slot kaplıyor — ${adet} kart için uygun anakart ve kasa gerekir.` : ""}`
             : "NVLink ile bağlanır, verim ~%86. Çok kartlı kurulumda en iyi seçenek.",
       });
 
     const tip = kvTipi(model.kv);
-    if (tip !== "tam (GQA)")
+    if (tip !== "full attention (GQA)")
       out.push({
-        tip: "olumlu", baslik: `Verimli dikkat: ${tip}`,
-        metin: `Şu ayarda token başına ${r.kvKBtok.toFixed(0)} KB — tam dikkatli bir modelde bu çok daha yüksek olurdu. Uzun bağlam bu modelde belirgin ucuz.`,
+        tip: "olumlu", baslik: `Verimli attention: ${tip}`,
+        metin: `Şu ayarda token başına ${r.kvKBtok.toFixed(0)} KB — full attention kullanan bir modelde bu çok daha yüksek olurdu. Uzun bağlam bu modelde belirgin ucuz.`,
       });
 
     if (model.gated)
@@ -255,7 +255,7 @@ export default function Simulator() {
       out.push({
         tip: ttftDurum === "kotu" ? "tehlike" : "uyari",
         baslik: `İlk token hedefi ${ttftDurum === "kotu" ? "aşılıyor" : "sınırda"}`,
-        metin: `Yoğun anda ~${sureYazi(r.ttftYogun)}, hedefin ${hedef.ttftMs} ms. İstemi (${ctxYazi(girdiK)}) kısaltmak veya önek önbelleği açmak bunu düşürür. Ajan işlerinde uzun ilk token tolere edilebilir — o durumda hedefi yükselt.`,
+        metin: `Yoğun anda ~${sureYazi(r.ttftYogun)}, hedefin ${hedef.ttftMs} ms. Prompt'u (${ctxYazi(girdiK)}) kısaltmak veya prefix caching açmak bunu düşürür. Ajan işlerinde uzun ilk token tolere edilebilir — o durumda hedefi yükselt.`,
       });
     if (r.sigar && kap.maxC > 0 && kullanici > kap.maxC)
       out.push({
@@ -272,7 +272,7 @@ export default function Simulator() {
     `Donanım: ${adet} × ${cihaz.ad} (${cihaz.mem}GB ${cihaz.bellekTipi.toUpperCase()}, ${cihaz.bw}GB/s, ${MIM_AD[cihaz.mim]}, ${cihaz.w}W, ~$${cihaz.fiyat}/${paraTL(cihaz.try)}, TR: ${TR_DURUM[cihaz.tr].ad})` +
     `${adet > 1 ? `, tek küme, ${TP_ETIKET[r.link]}, TP verimi %${Math.round(r.tpEtki * 100)}` : ""}.\n` +
     `Ayar: ${indirGibi ? "BF16 + FP16 KV (kuantizasyon yok)" : `${qAktif.ad} ağırlık / ${kvAktif.ad} KV`}, ` +
-    `${ctxYazi(ctxK)} bağlam (KV için %${kvOran} doluluk varsayımı), ortalama istem ${ctxYazi(girdiK)}, ` +
+    `${ctxYazi(ctxK)} bağlam (KV için %${kvOran} doluluk varsayımı), ortalama prompt ${ctxYazi(girdiK)}, ` +
     `${kullanici} eşzamanlı kullanıcı, ortalama yanıt ${cikti} token.\n` +
     `Hesap: ağırlık ${gb(r.agirlikGB)} GB + KV ${gb(r.kvGB)} GB (${r.kvKBtok.toFixed(0)} KB/token) + çalışma ${gb(r.ekGB)} GB = ${gb(r.gerekliGB)} / ${gb(r.toplamBellek)} GB. ` +
     (r.sigar
@@ -455,9 +455,9 @@ export default function Simulator() {
                 alt={`Modelin desteği: ${ctxYazi(model.ctx)}${ctxK > model.ctx ? " — aşıyorsun" : ""}`}
               />
               <Kaydirac
-                etiket="Ortalama istem uzunluğu" deger={girdiK} onChange={setGirdiK}
+                etiket="Ortalama prompt uzunluğu" deger={girdiK} onChange={setGirdiK}
                 min={1} max={Math.max(4, ctxK)} olcek="log" goster={`${ctxYazi(girdiK)} token`}
-                alt="İlk token gecikmesini bu belirler. Önek önbelleği açıksa yalnızca yeni token'lar sayılır."
+                alt="İlk token gecikmesini bu belirler. Prefix caching açıksa yalnızca yeni token'lar sayılır."
               />
               <Kaydirac etiket="Eşzamanlı kullanıcı" deger={kullanici} onChange={setKullanici} min={1} max={64} step={1} goster={`${kullanici} kişi`} />
               <Kaydirac
