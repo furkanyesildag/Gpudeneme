@@ -4,19 +4,92 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Yerel LLM Kapasite Simülasyonu</title>
-    <meta
-      name="description"
-      content="Yerel LLM altyapısı için donanım, adet ve token kapasitesi simülasyonu."
-    />
-    <link
-      rel="preconnect"
-      href="https://fonts.googleapis.com"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <meta name="description" content="Açık ağırlıklı LLM'leri yerel donanımda çalıştırmayı planla: bellek bütçesi, token hızı, ilk token gecikmesi, Türkiye fiyatları ve elektrik maliyeti. 100+ model, 40+ donanım." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#12171C" />
+    <link rel="canonical" href="https://furkanyesildag.github.io/Gpudeneme/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Yerel LLM Kapasite Simülasyonu" />
+    <meta property="og:description" content="Hangi donanım, kaç adet, ne kadar token? Açık ağırlıklı LLM'leri yerelde çalıştırmak için kapasite ve maliyet simülasyonu." />
+    <meta property="og:locale" content="tr_TR" />
+    <meta name="twitter:card" content="summary" />
+
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231E4D6B'/%3E%3Crect x='7' y='9' width='18' height='4' rx='1' fill='%23fff'/%3E%3Crect x='7' y='15' width='12' height='4' rx='1' fill='%23C2703D'/%3E%3Crect x='7' y='21' width='7' height='4' rx='1' fill='%239AA4AB'/%3E%3C/svg%3E" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+
     <style>
+      /* ---- Açık tema (varsayılan) ---- */
+      :root {
+        --ink: #12171c;
+        --ink2: #3b454e;
+        --ink3: #6b7780;
+        --line: #d8dee2;
+        --line2: #edf0f2;
+        --paper: #ffffff;
+        --wash: #f4f6f7;
+        --steel: #1e4d6b;
+        --steel-soft: #e7eef3;
+        --ok: #0e6e5e;
+        --ok-soft: #e2f0ec;
+        --warn: #96600a;
+        --warn-soft: #faf0dc;
+        --bad: #98211f;
+        --bad-soft: #fae9e8;
+        --kv: #c2703d;
+        --ovh: #9aa4ab;
+        --acc: #1e4d6b;
+      }
+
+      /* ---- Koyu tema: sistem tercihi (açık'a sabitlenmemişse) ---- */
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --ink: #e8edf1;
+          --ink2: #b3c0c9;
+          --ink3: #8998a3;
+          --line: #33414c;
+          --line2: #232e37;
+          --paper: #161d23;
+          --wash: #0f151a;
+          --steel: #7db4d8;
+          --steel-soft: #1a2b38;
+          --ok: #4cc4a8;
+          --ok-soft: #14302b;
+          --warn: #e0a94a;
+          --warn-soft: #33280f;
+          --bad: #f0736e;
+          --bad-soft: #3a1c1b;
+          --kv: #e0966a;
+          --ovh: #6b7780;
+          --acc: #7db4d8;
+        }
+      }
+
+      /* ---- Koyu tema: kullanıcı açıkça seçti ---- */
+      :root[data-theme="dark"] {
+        --ink: #e8edf1;
+        --ink2: #b3c0c9;
+        --ink3: #8998a3;
+        --line: #33414c;
+        --line2: #232e37;
+        --paper: #161d23;
+        --wash: #0f151a;
+        --steel: #7db4d8;
+        --steel-soft: #1a2b38;
+        --ok: #4cc4a8;
+        --ok-soft: #14302b;
+        --warn: #e0a94a;
+        --warn-soft: #33280f;
+        --bad: #f0736e;
+        --bad-soft: #3a1c1b;
+        --kv: #e0966a;
+        --ovh: #6b7780;
+        --acc: #7db4d8;
+      }
+
       html,
       body,
       #root {
@@ -24,12 +97,50 @@
         margin: 0;
       }
       body {
-        background: #f4f6f7;
+        background: var(--wash);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      /* Grafiklerde ve tablolarda seçim rengi okunur kalsın */
+      ::selection {
+        background: var(--steel-soft);
+        color: var(--ink);
+      }
+      /* Klavye ile gezerken odak görünsün */
+      :focus-visible {
+        outline: 2px solid var(--steel);
+        outline-offset: 2px;
+      }
+      /* Sohbet imleci */
+      @keyframes yanip {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      /* İnce kaydırma çubukları */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--line) transparent;
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="padding: 32px; font-family: system-ui, sans-serif; color: #12171c">
+        <h1>Yerel LLM Kapasite Simülasyonu</h1>
+        <p>Bu araç hesaplamaları tarayıcıda yaptığı için JavaScript gerektirir. Lütfen JavaScript'i etkinleştirin.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -1,13 +1,16 @@
 {
   "name": "gpudeneme",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "Yerel LLM altyapısı kapasite simülasyonu",
+  "description": "Yerel LLM altyapısı kapasite simülasyonu — 102 açık ağırlıklı model, 44 donanım, Türkiye fiyatlarıyla",
+  "keywords": ["llm", "gpu", "kapasite", "simülasyon", "vram", "kv-cache", "kuantizasyon"],
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dogrula": "node scripts/dogrula.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -1,11 +1,22 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// GitHub Pages, projeyi https://<kullanici>.github.io/Gpudeneme/ altında sunar.
-// Bu yüzden base yolu depo adıyla eşleşmelidir.
 // Göreli taban (./) kullanıyoruz: proje hangi alt yolda sunulursa sunulsun
-// varlık yolları doğru çözülür; olası taban-yolu/önbellek sorunlarını eler.
+// (GitHub Pages'te /Gpudeneme/) varlık yolları doğru çözülür.
 export default defineConfig({
   base: "./",
   plugins: [react()],
+  build: {
+    // Grafik kütüphanesini ayrı parçaya al: veri güncellendiğinde
+    // ziyaretçi 400 KB'lık recharts'ı yeniden indirmesin.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          recharts: ["recharts"],
+          react: ["react", "react-dom"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 700,
+  },
 });

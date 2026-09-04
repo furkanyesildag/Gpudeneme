@@ -1,0 +1,246 @@
+/* ------------------------------------------------------------------ */
+/*  HESAP MOTORU                                                       */
+/*                                                                     */
+/*  Tasarım kararı: KV cache artık model başına sabit bir "KB/token"   */
+/*  değil, config.json'dan çıkarılmış GEOMETRİDEN bağlam uzunluğuna    */
+/*  göre hesaplanıyor. Bu, kayan pencereli (Gemma, gpt-oss, Command A) */
+/*  ve hibrit lineer dikkatli (Qwen3.5+, GLM-5.3-Flash, Nemotron)      */
+/*  modellerin uzun bağlamdaki gerçek davranışını doğru yansıtır.      */
+/* ------------------------------------------------------------------ */
+
+import { QUANT_HARITA, KVQUANT_HARITA } from "./data/quants.js";
+import { ANA_SISTEM } from "./data/devices.js";
+
+/** Kartları çalıştıracak ana sistemin maliyeti ve gücü.
+ *  Tek karta 8500$'lık sunucu şasisi yazmak gerçeği çarpıtıyordu:
+ *  1-2 kart normal bir masaüstüne, 3-4 kart çok yuvalı bir iş
+ *  istasyonuna, 5+ kart gerçek sunucu şasisine ihtiyaç duyar. */
+export function anaSistem(kartSayisi) {
+  if (kartSayisi <= 0) return { ad: "", usd: 0, w: 0, adet: 0 };
+  for (const k of ANA_SISTEM) {
+    if (kartSayisi <= k.maxKart) return { ...k, adet: 1 };
+  }
+  const son = ANA_SISTEM[ANA_SISTEM.length - 1];
+  const adet = Math.ceil(kartSayisi / son.maxKart);
+  return { ...son, usd: son.usd * adet, w: son.w * adet, adet };
+}
+
+/* Tensör paralelliği verimi: tek modeli N cihaza bölünce elde kalan oran. */
+export const TP_ETKI = { tek: 1.0, nvlink: 0.86, pcie: 0.6, net: 0.33 };
+export const TP_ETIKET = {
+  tek: "Tek cihaz",
+  nvlink: "NVLink",
+  pcie: "PCIe (aynı kasa)",
+  net: "Ağ / USB4 (ayrı kutular)",
+};
+
+/* Elektrik: Türkiye mesken + ticarethane ortalaması (2026, TL/kWh, dağıtım dahil) */
+export const ELEKTRIK_TL_KWH = 3.4;
+
+/* Kur ve ithalat katsayısı — TL karşılıklarını üretmek için (4 Eylül 2026) */
+export const USD_TRY = 48.4;
+export const ITHALAT = 1.35; // nakliye + gümrük + %20 KDV kabaca
+
+/* ------------------------------------------------------------------ */
+/*  KV CACHE                                                           */
+/* ------------------------------------------------------------------ */
+
+/** Bir dizinin TAMAMI için KV cache boyutu (bayt).
+ *  kv.e  : katman başına token başına eleman
+ *  kv.L  : KV tutan katman sayısı (kesirli olabilir — DeepSeek V4'te
+ *          katman başına sıkıştırma oranlarının toplamı)
+ *  kv.sw : bunların kaçı kayan pencereli
+ *  kv.w  : pencere genişliği (token)
+ *  kvBayt: eleman başına bayt (FP16 = 2, FP8 = 1, Q4 ≈ 0,56)  */
+export function kvBaytToplam(kv, tokenSayisi, kvBayt) {
+  const tamKatman = Math.max(0, kv.L - (kv.sw || 0));
+  const pencereli = kv.sw || 0;
+  const pencere = kv.w || tokenSayisi;
+  const etkinToken = tamKatman * tokenSayisi + pencereli * Math.min(tokenSayisi, pencere);
+  return kv.e * etkinToken * kvBayt;
+}
+
+/** Gösterim için: bu bağlamda token başına ortalama KV (KB). */
+export function kvKBperToken(kv, tokenSayisi, kvBayt = 2) {
+  if (tokenSayisi <= 0) return 0;
+  return kvBaytToplam(kv, tokenSayisi, kvBayt) / tokenSayisi / 1024;
+}
+
+/** Modelin uzun bağlam davranışı için kısa etiket.
+ *  Lt = toplam katman, L = KV tutan katman. L belirgin olarak küçükse
+ *  katmanların çoğu lineer/Mamba dikkat kullanıyor demektir. */
+export function kvTipi(kv) {
+  const hibrit = kv.Lt && kv.L < kv.Lt * 0.75;
+  const mla = kv.e <= 640;
+  if (hibrit && mla) return "hibrit lineer + MLA";
+  if (hibrit) return "hibrit lineer";
+  if (kv.sw && kv.sw >= kv.L * 0.4) return "kayan pencere";
+  if (mla) return "MLA / sıkıştırılmış";
+  return "tam (GQA)";
+}
+
+/* ------------------------------------------------------------------ */
+/*  ANA HESAP                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * @param model    MODELS kaydı
+ * @param quant    ağırlık kuantizasyon id'si
+ * @param kvq      KV cache kuantizasyon id'si
+ * @param ctxK     kullanılacak bağlam penceresi (K token)
+ * @param girdiK   ortalama İSTEM uzunluğu (K token) — ilk token gecikmesini bu belirler
+ * @param kullanici eşzamanlı kullanıcı
+ * @param cikti    ortalama yanıt uzunluğu (token)
+ * @param cihaz    DEVICES kaydı
+ * @param adet     cihaz adedi
+ * @param kvOran   KV cache için ayrılan bağlamın oranı (0-1); 1 = her kullanıcı
+ *                 pencereyi tamamen doldurmuş kabul edilir (kötü senaryo)
+ */
+export function hesapla({
+  model, quant, kvq, ctxK, girdiK, kullanici, cikti, cihaz, adet, kvOran = 1,
+}) {
+  const q = QUANT_HARITA[quant] || QUANT_HARITA.bf16;
+  const kvqe = KVQUANT_HARITA[kvq] || KVQUANT_HARITA.fp16;
+  const bpp = q.bpp;
+  const kvBayt = 2 * kvqe.f;
+
+  const agirlikGB = (model.tp * 1e9 * bpp) / 1024 ** 3;
+  const aktifGB = (model.ap * 1e9 * bpp) / 1024 ** 3;
+
+  const ctx = Math.round(ctxK * 1024);
+  const ayrilanCtx = Math.max(1, Math.round(ctx * kvOran));
+  const girdiTok = Math.max(1, Math.round((girdiK ?? ctxK / 2) * 1024));
+
+  /* ---- Küme topolojisi: tüm cihazlar tek modeli paylaşır ---- */
+  const kartMi = cihaz.tur === "kart";
+  // Hazır kutular (Mac Studio, Spark, mini PC) kendi başına bir bilgisayardır;
+  // ayrık kartlar ise onları takacak bir ana sisteme ihtiyaç duyar.
+  const host = kartMi ? anaSistem(adet) : { ad: "", usd: 0, w: 0, adet: 0 };
+  const maliyet = cihaz.fiyat * adet + host.usd;
+  const maliyetTL = cihaz.try * adet + host.usd * USD_TRY * ITHALAT;
+  const guc = cihaz.w * adet + host.w;
+
+  /* Kullanılabilir bellek: işletim sistemi + sürücü payı düşülmüş. */
+  const rezerv = cihaz.tur === "kutu" ? 0.12 : 0.06;
+  const cihazKullanilabilir = cihaz.mem * (1 - rezerv);
+  const toplamBellek = cihazKullanilabilir * adet;
+
+  /* Ara bağlantı verimi */
+  const link = adet > 1 ? cihaz.link : "tek";
+  const tpEtki = TP_ETKI[link];
+  const kumeBW = cihaz.bw * adet * tpEtki;
+  const kumeTF = cihaz.tf * adet * (adet > 1 ? 0.9 : 1);
+
+  /* ---- Bellek bütçesi ---- */
+  const kvKullaniciGB = kvBaytToplam(model.kv, ayrilanCtx, kvBayt) / 1024 ** 3;
+  const kvGB = kullanici * kvKullaniciGB;
+  // Çalışma zamanı: CUDA bağlamı, aktivasyonlar, parçalanma payı.
+  const ekGB = 1.2 + 0.05 * agirlikGB + 0.35 * adet;
+  const gerekliGB = agirlikGB + kvGB + ekGB;
+  const sigar = gerekliGB <= toplamBellek;
+  const doluluk = toplamBellek > 0 ? gerekliGB / toplamBellek : Infinity;
+
+  /* ---- Çözme (decode) hızı ----
+     Bellek bant genişliği sınırlı. Her adımda okunan bayt = aktif ağırlıklar
+     + yığındaki KV cache. KV okuması dikkat çekirdeğinde tam olarak
+     taranmaz (sayfalama, flash-attention); ~0,55 katsayısı bunu yansıtır. */
+  const adimBaytGB = aktifGB + kvGB * 0.55;
+  const adimHiz = adimBaytGB > 0 ? (kumeBW * cihaz.mbu) / adimBaytGB : 0;
+  const kullaniciTokS = adimHiz;
+  const toplamTokS = adimHiz * kullanici;
+
+  /* ---- İlk token gecikmesi (prefill) ----
+     Hesap sınırlı. İstem uzunluğu × 2 × aktif parametre FLOP.
+     Toplu işlemede prefill'ler sıraya girer, bu yüzden kullanıcı sayısıyla
+     doğrusala yakın büyür (kuyrukta bekleme). */
+  const flops = 2 * model.ap * 1e9 * girdiTok;
+  const prefillVerim = kumeTF * 1e12 * 0.42;
+  const ttftTek = prefillVerim > 0 ? flops / prefillVerim : Infinity;
+  const ttftYogun = ttftTek * (1 + (kullanici - 1) * 0.62);
+
+  /* ---- Kapasite sınırları ---- */
+  const kalanGB = toplamBellek - agirlikGB - ekGB;
+  const maxKullanici = kvKullaniciGB > 0 ? Math.max(0, Math.floor(kalanGB / kvKullaniciGB)) : 0;
+
+  // Bu kullanıcı sayısıyla sığan en uzun bağlam — KV geometrisi doğrusal
+  // olmayabildiği için (kayan pencere) ikili arama ile bulunur.
+  let maxCtxK = 0;
+  if (kalanGB > 0 && kullanici > 0) {
+    let lo = 0, hi = 4096; // K token
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) / 2;
+      const need =
+        (kullanici * kvBaytToplam(model.kv, Math.max(1, mid * 1024 * kvOran), kvBayt)) / 1024 ** 3;
+      if (need <= kalanGB) lo = mid; else hi = mid;
+    }
+    maxCtxK = lo;
+  }
+  // Bellek izin verse bile model kendi bağlam sınırının ötesine çıkamaz.
+  const modelTavani = model.ext || model.ctx;
+  const maxCtxBellek = maxCtxK;
+  maxCtxK = Math.min(maxCtxK, modelTavani);
+
+  /* ---- Bu iş yükü için gereken minimum adet ---- */
+  let minAdet = null;
+  for (let n = 1; n <= 128; n++) {
+    const bellek = cihazKullanilabilir * n;
+    const ek = 1.2 + 0.05 * agirlikGB + 0.35 * n;
+    if (agirlikGB + kvGB + ek <= bellek) { minAdet = n; break; }
+  }
+
+  const ciktiSure = cikti / Math.max(kullaniciTokS, 0.01);
+  const yanitSure = ttftYogun + ciktiSure;
+
+  /* ---- İşletme maliyeti ---- */
+  const yillikKWh = (guc / 1000) * 24 * 365;
+  const yillikElektrikTL = yillikKWh * ELEKTRIK_TL_KWH;
+  // Sürekli %100 yükte yıllık üretilebilecek token (gerçekte doluluk düşer)
+  const yillikToken = toplamTokS * 3600 * 24 * 365;
+  const milyonTokenTL = yillikToken > 0 ? (yillikElektrikTL / yillikToken) * 1e6 : 0;
+
+  return {
+    agirlikGB, aktifGB, kvGB, kvKullaniciGB, ekGB, gerekliGB, toplamBellek, sigar, doluluk,
+    kullaniciTokS, toplamTokS, ttftTek, ttftYogun, ciktiSure, yanitSure,
+    maxKullanici, maxCtxK, maxCtxBellek, maxCtxModelSinirli: maxCtxBellek > modelTavani,
+    minAdet, maliyet, maliyetTL, guc, host,
+    link, tpEtki, kumeBW, kumeTF, ctx, ayrilanCtx, girdiTok,
+    kvKBtok: kvKBperToken(model.kv, ayrilanCtx, kvBayt),
+    yillikElektrikTL, milyonTokenTL,
+    ctxAsimi: ctxK > (model.ext || model.ctx),
+    ctxYarn: ctxK > model.ctx && ctxK <= (model.ext || model.ctx),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  YARDIMCI BİÇİMLEYİCİLER                                            */
+/* ------------------------------------------------------------------ */
+
+export const ctxYazi = (k) =>
+  k >= 1000
+    ? `${(k / 1000) % 1 === 0 ? k / 1000 : (k / 1000).toFixed(1)}M`
+    : `${Math.round(k)}K`;
+
+export const harfYazi = (tok) => {
+  const h = tok * 4;
+  return h >= 1000 ? `~${(h / 1000).toFixed(h < 10000 ? 1 : 0)}b harf` : `~${h} harf`;
+};
+
+export const para = (x) =>
+  x >= 1000 ? `$${(x / 1000).toFixed(x >= 10000 ? 0 : 1)}k` : `$${Math.round(x)}`;
+
+export const paraTL = (x) => {
+  if (x >= 1e6) return `${(x / 1e6).toFixed(x >= 1e7 ? 1 : 2)} mn ₺`;
+  if (x >= 1000) return `${Math.round(x / 1000)}b ₺`;
+  return `${Math.round(x)} ₺`;
+};
+
+export const gb = (x) => (x >= 100 ? x.toFixed(0) : x.toFixed(1));
+
+/* Süreyi insan gibi yaz: 0.4 sn / 12 sn / 3 dk 20 sn */
+export function sureYazi(sn) {
+  if (!isFinite(sn)) return "—";
+  if (sn < 1) return `${(sn * 1000).toFixed(0)} ms`;
+  if (sn < 90) return `${sn.toFixed(sn < 10 ? 1 : 0)} sn`;
+  const d = Math.floor(sn / 60);
+  return `${d} dk ${Math.round(sn % 60)} sn`;
+}
