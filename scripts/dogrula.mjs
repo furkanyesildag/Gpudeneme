@@ -9,6 +9,7 @@ import { MODELS, AILE_SIRA, MODEL_HARITA } from "../src/data/models.js";
 import { DEVICES, GRUP_SIRA, MIM_AD, YIGIN, TR_DURUM, TR_NOT, CIHAZ_HARITA } from "../src/data/devices.js";
 import { QUANTS, KVQUANTS, DUSUK_QUANT_ONER } from "../src/data/quants.js";
 import { SENARYOLAR } from "../src/data/concepts.js";
+import { IS_YUKLERI, eslesenProfil } from "../src/data/isYukleri.js";
 import { hesapla, kapasite, hedefDurumu, kvKBperToken, kvTipi, VARSAYILAN_HEDEF, HEDEF_SINIR } from "../src/engine.js";
 
 const hatalar = [];
@@ -109,6 +110,43 @@ for (const s of SENARYOLAR) {
   if (rBf.agirlikGB <= r1.agirlikGB) hata("motor: BF16 ağırlığı Q4'ten büyük değil");
 }
 
+/* ---------------- İş yükü profilleri ---------------- */
+{
+  const gorulen = new Set();
+  for (const p of IS_YUKLERI) {
+    const et = `iş yükü "${p.id}"`;
+    if (gorulen.has(p.id)) hata(`${et}: id tekrar ediyor`);
+    gorulen.add(p.id);
+    for (const alan of ["ad", "ozet", "neden", "is", "hedef"])
+      if (!p[alan]) hata(`${et}: "${alan}" eksik`);
+    const i = p.is;
+    for (const alan of ["ctxK", "girdiK", "kullanici", "cikti", "kvOran"])
+      if (typeof i[alan] !== "number") hata(`${et}: is.${alan} sayı değil`);
+    if (i.girdiK > i.ctxK) hata(`${et}: istem (${i.girdiK}K) bağlamdan (${i.ctxK}K) uzun`);
+    if (i.kvOran < 10 || i.kvOran > 100) hata(`${et}: kvOran aralık dışı (${i.kvOran})`);
+    for (const [k, v] of Object.entries(p.hedef)) {
+      const lim = HEDEF_SINIR[k];
+      if (!lim) { hata(`${et}: bilinmeyen hedef alanı "${k}"`); continue; }
+      if (v < lim.min || v > lim.max) hata(`${et}: hedef.${k} sınır dışı (${v})`);
+    }
+    // Profil kendi kendini tanıyabilmeli, yoksa arayüzde hep "özel" görünür
+    if (eslesenProfil(p.is, p.hedef) !== p.id) hata(`${et}: eslesenProfil kendi profilini bulamıyor`);
+    // Profil en az bir modelle ulaşılabilir olmalı — yoksa hedef gerçek dışıdır
+    const ulasilir = MODELS.some((m) =>
+      DEVICES.some((d) => {
+        const a = { model: m, quant: "q4", kvq: "fp8", cihaz: d, adet: 1,
+          ctxK: i.ctxK, girdiK: i.girdiK, cikti: i.cikti, kvOran: i.kvOran / 100 };
+        return kapasite(a, p.hedef, 64).maxC > 0;
+      })
+    );
+    if (!ulasilir) hata(`${et}: hiçbir model/donanım eşleşmesi bu hedefleri tutturamıyor — hedef gerçek dışı`);
+  }
+  // Değiştirilmiş bir ayar profile eşleşmemeli
+  const ilk = IS_YUKLERI[0];
+  if (eslesenProfil({ ...ilk.is, kullanici: ilk.is.kullanici + 7 }, ilk.hedef) !== null)
+    hata("eslesenProfil: değiştirilmiş iş yükünü hâlâ profille eşleştiriyor");
+}
+
 /* ---------------- Kapasite modeli ---------------- */
 {
   const m = MODEL_HARITA["qwen38_27b"], d = CIHAZ_HARITA["5090"];
@@ -183,7 +221,7 @@ if (process.argv.includes("--canli")) {
 }
 
 /* ---------------- Rapor ---------------- */
-console.log(`\n${MODELS.length} model · ${DEVICES.length} cihaz · ${QUANTS.length} kuantizasyon · ${SENARYOLAR.length} senaryo kontrol edildi.`);
+console.log(`\n${MODELS.length} model · ${DEVICES.length} cihaz · ${QUANTS.length} kuantizasyon · ${SENARYOLAR.length} senaryo · ${IS_YUKLERI.length} iş yükü profili kontrol edildi.`);
 if (uyarilar.length) {
   console.log(`\n${uyarilar.length} uyarı:`);
   uyarilar.forEach((u) => console.log("  ⚠ " + u));

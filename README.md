@@ -24,6 +24,12 @@ Türkiye fiyatını ve elektrik maliyetini çıkarır.
   tutuyor, kaçı kayan pencereli, MLA mı GQA mı, hangi katmanlar lineer dikkat
   kullanıyor. Bu sayede Qwen3.5+, GLM-5.3-Flash, Nemotron-H gibi hibrit modellerin
   uzun bağlamdaki gerçek avantajı doğru görünür.
+- **İş yükü profilleri** — "ortalama istemim kaç K token?" sorusunu kimse
+  cevaplayamaz, ama herkes ne inşa ettiğini bilir. Dokuz profil (kısa sohbet, uzun
+  sohbet, RAG, doküman analizi, kod ajanı, IDE kod tamamlama, toplu işleme, çeviri,
+  sesli asistan) beş iş yükü kaydırağını **ve** dört performans hedefini birden
+  doldurur. İkisi tek karardır: IDE tamamlamada 300 ms şarttır, gece çalışan toplu
+  işte 60 saniye bile umursanmaz. Her profil neden o değerleri aldığını açıklar.
 - **Performans hedefleri ve kullanıcı kapasitesi** — "kaç kişi kaldırır?" sorusunun
   tek doğru cevabı yoktur; neyin kabul edilebilir sayıldığına bağlıdır. Dört değeri
   (en yüksek ilk token, en düşük token hızı, sohbet ve ajan kullanım çarpanları) sen
@@ -62,6 +68,7 @@ src/
   data/quants.js     9 ağırlık + 3 KV kuantizasyon şeması
   data/concepts.js   kavram sözlüğü ve hazır senaryolar
   data/bantlar.js    satın alma bantları (fiyat, kime uygun, nerede tıkanır)
+  data/isYukleri.js  iş yükü profilleri (kaydıraklar + performans hedefleri)
   engine.js          hesap motoru (bellek, hız, TTFT, kapasite, maliyet, elektrik)
   hf.js              HuggingFace analizörü — link → config.json → model kaydı
   chat/prompt.js     danışmanın sistem promptu + bilgi tabanı
@@ -157,6 +164,24 @@ belirledi; simülatör şu an iki noktayı da %1 içinde tutturuyor.
 Pratik sonucu şu: aynı kutuda 180B'lik seyrek bir model, 27B'lik dense bir modelden
 hızlı koşabilir (aktif parametresi çok daha az), ama teorik bant genişliğinin ancak
 üçte birini kullanır.
+
+## İş yükü profilleri neden hedefleri de değiştirir
+
+Aynı donanım ve aynı model, iş yüküne göre bambaşka sonuç verir. Örnek:
+Qwen3.8-27B (Q4) + tek RTX 5090 →
+
+| İş yükü | KV cache | İlk token | Sohbet kapasitesi |
+| --- | --- | --- | --- |
+| Kısa sohbet / soru-cevap | 1,7 GB | 0,9 sn | 42 kişi |
+| Doküman özetleme | 7,2 GB | 25 sn | 4 kişi |
+| Toplu işleme | 6,4 GB | 20 sn | 48 kişi |
+
+25 saniyelik ilk token doküman analizinde **yeşildir** — kullanıcı dosyayı yükleyip
+beklemektedir. Aynı süre IDE kod tamamlamada felakettir. Bu yüzden profil, kaydıraklarla
+birlikte hedefleri de ayarlar; yoksa kapasite sayıları anlamsız kalır.
+
+Profil bir başlangıç noktasıdır, kilit değil: herhangi bir kaydırağı oynattığın an
+seçim "Özel"e döner.
 
 ## Kapasite nasıl hesaplanır
 

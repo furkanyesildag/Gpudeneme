@@ -8,6 +8,7 @@ import {
 } from "./data/devices.js";
 import { QUANTS, QUANT_HARITA, KVQUANTS, KVQUANT_HARITA, DUSUK_QUANT_ONER } from "./data/quants.js";
 import { SENARYOLAR } from "./data/concepts.js";
+import { IS_YUKLERI, IS_YUKU_HARITA, eslesenProfil } from "./data/isYukleri.js";
 import {
   hesapla, kapasite, hedefDurumu, kvTipi, ctxYazi, harfYazi,
   para, paraTL, gb, sureYazi, TP_ETIKET, VARSAYILAN_HEDEF,
@@ -56,9 +57,11 @@ function quantUyum(cihaz, quantId) {
   return { tip: "bilgi", mesaj: "GGUF/llama.cpp tabanlı: CPU dahil her donanımda çalışır. Güvenli ve taşınabilir yerel format." };
 }
 
+/* İş yükü kısmı "Kısa sohbet / soru-cevap" profiliyle birebir aynı;
+   uygulama böylece adı ve gerekçesi olan tutarlı bir durumla açılıyor. */
 const VARSAYILAN = {
   modelId: "qwen38_27b", cihazId: "5090", adet: 1, quant: "q4", kvq: "fp8",
-  ctxK: 32, girdiK: 2, kullanici: 4, cikti: 800, kvOran: 60, indirGibi: false,
+  ctxK: 16, girdiK: 1, kullanici: 8, cikti: 400, kvOran: 40, indirGibi: false,
 };
 
 const HEDEF_RENK = { iyi: C.ok, sinir: C.warn, kotu: C.bad };
@@ -87,7 +90,9 @@ export default function Simulator() {
   const [cikti, setCikti] = useState(ilk.cikti);
   const [kvOran, setKvOran] = useState(ilk.kvOran);
   const [indirGibi, setIndirGibi] = useState(ilk.indirGibi);
-  const [hedef, setHedef] = useState(() => ({ ...VARSAYILAN_HEDEF, ...ilk.hedef }));
+  const [hedef, setHedef] = useState(() => ({
+    ...VARSAYILAN_HEDEF, ...IS_YUKU_HARITA.sohbet_kisa.hedef, ...ilk.hedef,
+  }));
 
   const [dusunme, setDusunme] = useState(false);
   const [dusunmeTok, setDusunmeTok] = useState(800);
@@ -136,6 +141,23 @@ export default function Simulator() {
 
   const tpsDurum = r.sigar ? hedefDurumu(r.kullaniciTokS, hedef.tps, true) : "kotu";
   const ttftDurum = r.sigar ? hedefDurumu(r.ttftYogun * 1000, hedef.ttftMs, false) : "kotu";
+
+  /* Şu anki iş yükü + hedef ikilisi hangi profile denk geliyor? */
+  const aktifProfil = useMemo(
+    () => eslesenProfil({ ctxK, girdiK, kullanici, cikti, kvOran }, hedef),
+    [ctxK, girdiK, kullanici, cikti, kvOran, hedef]
+  );
+
+  /* Bir iş yükü profili uygula: beş kaydırak + dört performans hedefi.
+     İkisi tek karardır — ne inşa ettiğin hem sayıları hem de neyin
+     kabul edilebilir olduğunu belirler. Model ve donanıma dokunmaz. */
+  const profilUygula = useCallback((id) => {
+    const p = IS_YUKU_HARITA[id];
+    if (!p) return;
+    setCtxK(p.is.ctxK); setGirdiK(p.is.girdiK); setKullanici(p.is.kullanici);
+    setCikti(p.is.cikti); setKvOran(p.is.kvOran);
+    setHedef((h) => ({ ...h, ...p.hedef }));
+  }, []);
 
   /* Bir hazır ayarı (senaryo veya bant) yükle. */
   const ayarYukle = useCallback((a) => {
@@ -258,6 +280,10 @@ export default function Simulator() {
       : `SIĞMIYOR — en az ${r.minAdet || "çok daha fazla"} adet gerekir.`) +
     (r.moeVerim < 0.999 ? ` Seyrek MoE erişim cezası nedeniyle gerçekleşen bant genişliği teorik değerin %${Math.round(r.moeVerim * 100)}'i alındı.` : "") +
     `\nMaliyet: ${para(r.maliyet)} (~${paraTL(r.maliyetTL)}), ${r.guc} W, yıllık elektrik ~${paraTL(r.yillikElektrikTL)}.` +
+    (aktifProfil
+      ? `\nKULLANICININ İŞ YÜKÜ: "${IS_YUKU_HARITA[aktifProfil].ad}" — ${IS_YUKU_HARITA[aktifProfil].ozet}. ` +
+        `Tavsiyeni bu iş türüne göre ver; farklı iş yüklerinin darboğazı farklıdır.`
+      : "\nKULLANICININ İŞ YÜKÜ: hazır profillerden birine uymuyor, kaydırakları elle ayarlamış.") +
     `\nKULLANICININ PERFORMANS HEDEFLERİ: ilk token ≤ ${hedef.ttftMs} ms, hız ≥ ${hedef.tps} tok/s, sohbet çarpanı ×${hedef.sohbetKat}, ajan çarpanı ×${hedef.ajanKat}. ` +
     (kap.maxC
       ? `Bu hedeflerle en fazla ${kap.maxC} eşzamanlı istek → ~${kap.sohbet} sohbet veya ~${kap.ajan} ajan kullanıcısı.`
@@ -394,7 +420,35 @@ export default function Simulator() {
               )}
             </Bolum>
 
-            <Bolum baslik="İş yükü">
+            <Bolum baslik="İş yükü" aciklama="Ne inşa ettiğini seç, beş değer birden dolsun">
+              <Secim
+                etiket="İş yükü profili"
+                deger={aktifProfil || "ozel"}
+                onChange={(v) => v !== "ozel" && profilUygula(v)}
+              >
+                <option value="ozel">Özel — kaydırakları kendim ayarlıyorum</option>
+                {IS_YUKLERI.map((p) => (
+                  <option key={p.id} value={p.id}>{p.ad} — {p.ozet}</option>
+                ))}
+              </Secim>
+
+              {aktifProfil ? (
+                <div
+                  style={{
+                    background: C.steelSoft, borderLeft: `3px solid ${C.steel}`,
+                    borderRadius: RADIUS.sm, padding: `${S.sm}px ${S.md}px`,
+                    marginBottom: S.md, ...T.mini, color: C.ink2,
+                  }}
+                >
+                  {IS_YUKU_HARITA[aktifProfil].neden}
+                </div>
+              ) : (
+                <div style={{ ...T.mini, color: C.ink3, marginBottom: S.md }}>
+                  Kaydıraklardan birini oynattığın an profil "özel"e döner — profil
+                  yalnızca bir başlangıç noktasıdır, kilit değil.
+                </div>
+              )}
+
               <Kaydirac
                 etiket="Bağlam penceresi" deger={ctxK} onChange={setCtxK}
                 min={4} max={1024} olcek="log" goster={`${ctxYazi(ctxK)} token`}
