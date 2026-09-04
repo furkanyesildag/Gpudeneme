@@ -9,7 +9,7 @@ import { MODELS, AILE_SIRA, MODEL_HARITA } from "../src/data/models.js";
 import { DEVICES, GRUP_SIRA, MIM_AD, YIGIN, TR_DURUM, TR_NOT, CIHAZ_HARITA } from "../src/data/devices.js";
 import { QUANTS, KVQUANTS, DUSUK_QUANT_ONER } from "../src/data/quants.js";
 import { SENARYOLAR } from "../src/data/concepts.js";
-import { hesapla, kvKBperToken, kvTipi } from "../src/engine.js";
+import { hesapla, kapasite, hedefDurumu, kvKBperToken, kvTipi, VARSAYILAN_HEDEF, HEDEF_SINIR } from "../src/engine.js";
 
 const hatalar = [];
 const uyarilar = [];
@@ -107,6 +107,49 @@ for (const s of SENARYOLAR) {
   if (r1.maxCtxK > (m.ext || m.ctx)) hata("motor: bağlam tavanı modelin sınırını aşıyor");
   const rBf = hesapla({ ...taban, quant: "bf16" });
   if (rBf.agirlikGB <= r1.agirlikGB) hata("motor: BF16 ağırlığı Q4'ten büyük değil");
+}
+
+/* ---------------- Kapasite modeli ---------------- */
+{
+  const m = MODEL_HARITA["qwen38_27b"], d = CIHAZ_HARITA["5090"];
+  const args = { model: m, quant: "q4", kvq: "fp8", ctxK: 32, girdiK: 2, cikti: 800, cihaz: d, adet: 1, kvOran: 0.6 };
+  const h = { ...VARSAYILAN_HEDEF };
+
+  const k = kapasite(args, h);
+  if (k.maxC < 1) hata(`kapasite: varsayılan hedeflerle referans kurulum C=1'i bile geçemiyor (sebep: ${k.sebep})`);
+  if (k.sohbet !== Math.floor(k.maxC * h.sohbetKat)) hata("kapasite: sohbet kapasitesi çarpanla tutmuyor");
+  if (k.ajan !== Math.floor(k.maxC * h.ajanKat)) hata("kapasite: ajan kapasitesi çarpanla tutmuyor");
+
+  // Maks. C gerçekten sınır mı? C'de karşılamalı, C+1'de karşılamamalı.
+  const sinirda = hesapla({ ...args, kullanici: k.maxC });
+  const bir_fazla = hesapla({ ...args, kullanici: k.maxC + 1 });
+  const karsilar = (r) => r.sigar && r.kullaniciTokS >= h.tps && r.ttftYogun * 1000 <= h.ttftMs;
+  if (!karsilar(sinirda)) hata("kapasite: Maks. C hedefleri karşılamıyor");
+  if (karsilar(bir_fazla)) hata("kapasite: Maks. C + 1 de hedefleri karşılıyor — sınır yanlış bulunmuş");
+
+  // Hedefi sıkılaştırmak kapasiteyi ARTIRMAMALI (tek yönlülük)
+  const siki = kapasite(args, { ...h, tps: h.tps * 2 });
+  if (siki.maxC > k.maxC) hata("kapasite: hız hedefi sıkılaşınca kapasite arttı");
+  const sikiT = kapasite(args, { ...h, ttftMs: Math.max(HEDEF_SINIR.ttftMs.min, h.ttftMs / 4) });
+  if (sikiT.maxC > k.maxC) hata("kapasite: ilk token hedefi sıkılaşınca kapasite arttı");
+  // Gevşetmek azaltmamalı
+  const gevsek = kapasite(args, { ...h, tps: 1, ttftMs: 60000 });
+  if (gevsek.maxC < k.maxC) hata("kapasite: hedefler gevşeyince kapasite azaldı");
+
+  // Karşılanamayan hedefte sebep doğru raporlanıyor mu?
+  const imkansiz = kapasite(args, { ...h, tps: 100000 });
+  if (imkansiz.maxC !== 0 || imkansiz.sebep !== "hiz") hata("kapasite: ulaşılamaz hız hedefinde sebep 'hiz' değil");
+  const imkansizT = kapasite(args, { ...h, ttftMs: HEDEF_SINIR.ttftMs.min });
+  if (imkansizT.maxC !== 0 || imkansizT.sebep !== "ttft") hata("kapasite: ulaşılamaz ilk token hedefinde sebep 'ttft' değil");
+  const sigmaz = kapasite({ ...args, quant: "bf16" }, { ...h, tps: 1, ttftMs: 60000 });
+  if (sigmaz.maxC !== 0 || sigmaz.sebep !== "bellek") hata("kapasite: belleğe sığmayan kurulumda sebep 'bellek' değil");
+
+  // Renklendirme kararları
+  if (hedefDurumu(30, 20, true) !== "iyi") hata("hedefDurumu: hedefin üstündeki hız 'iyi' değil");
+  if (hedefDurumu(18, 20, true) !== "sinir") hata("hedefDurumu: hedefe yakın hız 'sinir' değil");
+  if (hedefDurumu(5, 20, true) !== "kotu") hata("hedefDurumu: hedefin çok altındaki hız 'kotu' değil");
+  if (hedefDurumu(800, 1000, false) !== "iyi") hata("hedefDurumu: hedefin altındaki gecikme 'iyi' değil");
+  if (hedefDurumu(5000, 1000, false) !== "kotu") hata("hedefDurumu: hedefin çok üstündeki gecikme 'kotu' değil");
 }
 
 /* ---------------- Canlı HuggingFace doğrulaması (isteğe bağlı) ---------------- */

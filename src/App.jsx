@@ -13,10 +13,11 @@ import {
 import { QUANTS, QUANT_HARITA, KVQUANTS, KVQUANT_HARITA, DUSUK_QUANT_ONER } from "./data/quants.js";
 import { KAVRAMLAR, SENARYOLAR } from "./data/concepts.js";
 import {
-  hesapla, kvKBperToken, kvTipi, ctxYazi, harfYazi, para, paraTL, gb,
-  sureYazi, TP_ETIKET, ELEKTRIK_TL_KWH,
+  hesapla, kapasite, hedefDurumu, kvKBperToken, kvTipi, ctxYazi, harfYazi,
+  para, paraTL, gb, sureYazi, TP_ETIKET, ELEKTRIK_TL_KWH, VARSAYILAN_HEDEF,
 } from "./engine.js";
 import { Etiket, Kutu, BolumBasligi, Sayac, Bildirim, Secim, Kaydirac, Onay, Rozet, Dugme } from "./components/ui.jsx";
+import Hedefler from "./components/Hedefler.jsx";
 import ChatBot from "./chat/ChatBot.jsx";
 import { durumuOku, durumuYaz } from "./urlDurum.js";
 
@@ -56,8 +57,11 @@ function quantUyum(cihaz, quantId) {
 
 const VARSAYILAN = {
   modelId: "qwen38_27b", cihazId: "5090", adet: 1, quant: "q4", kvq: "fp8",
-  ctxK: 32, girdiK: 8, kullanici: 4, cikti: 800, kvOran: 60, indirGibi: false,
+  ctxK: 32, girdiK: 2, kullanici: 4, cikti: 800, kvOran: 60, indirGibi: false,
 };
+
+/* Hedefe göre renk: yeşil karşılıyor, sarı sınırda, kırmızı karşılamıyor. */
+const HEDEF_RENK = { iyi: C.ok, sinir: C.warn, kotu: C.bad };
 
 /* ------------------------------------------------------------------ */
 
@@ -87,6 +91,7 @@ export default function Simulator() {
     try { return localStorage.getItem("tema") || "sistem"; } catch { return "sistem"; }
   });
   const [sohbetAcik, setSohbetAcik] = useState(false);
+  const [hedef, setHedef] = useState(() => ({ ...VARSAYILAN_HEDEF, ...ilk.hedef }));
 
   /* Tema */
   useEffect(() => {
@@ -120,8 +125,8 @@ export default function Simulator() {
 
   /* URL'i güncel tut */
   useEffect(() => {
-    durumuYaz({ modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi });
-  }, [modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi]);
+    durumuYaz({ modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi, hedef });
+  }, [modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi, hedef]);
 
   const ortak = useMemo(
     () => ({ quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran: kvOran / 100 }),
@@ -132,6 +137,17 @@ export default function Simulator() {
     () => hesapla({ ...ortak, model, cihaz, adet }),
     [ortak, model, cihaz, adet]
   );
+
+  /* Seçili kurulumun hedeflere göre kapasitesi. `kullanici` kasıtlı olarak
+     dışarıda: kapasite fonksiyonu onu tarayarak Maks. C'yi bulur. */
+  const kap = useMemo(() => {
+    const { kullanici: _yoksay, ...tabanArgs } = ortak;
+    return kapasite({ ...tabanArgs, model, cihaz, adet }, hedef);
+  }, [ortak, model, cihaz, adet, hedef]);
+
+  /* Şu anki eşzamanlılıkta hedefler tutuyor mu? */
+  const tpsDurum = r.sigar ? hedefDurumu(r.kullaniciTokS, hedef.tps, true) : "kotu";
+  const ttftDurum = r.sigar ? hedefDurumu(r.ttftYogun * 1000, hedef.ttftMs, false) : "kotu";
 
   const senaryoUygula = useCallback((s) => {
     const a = s.ayar;
@@ -173,6 +189,7 @@ export default function Simulator() {
 
   /* ---------------- Donanım karşılaştırması ---------------- */
   const tablo = useMemo(() => {
+    const { kullanici: _yoksay, ...tabanArgs } = ortak;
     return DEVICES.map((d) => {
       if (trFiltre !== "hepsi" && d.tr !== trFiltre) return null;
       let bulunan = null;
@@ -182,11 +199,17 @@ export default function Simulator() {
       }
       if (!bulunan) return null;
       const { n, h } = bulunan;
+      // Kapasite, sığdıran en küçük adet üzerinden hesaplanır — tablo zaten
+      // "bu cihazdan en az kaç tane gerekir" sorusunu cevaplıyor.
+      const k = kapasite({ ...tabanArgs, model, cihaz: d, adet: n }, hedef);
       return {
         d, n,
         kisiBasi: h.kullaniciTokS, toplam: h.toplamTokS, ttft: h.ttftYogun,
         maliyet: h.maliyet, maliyetTL: h.maliyetTL, guc: h.guc,
+        maxC: k.maxC, sohbet: k.sohbet, ajan: k.ajan, sebep: k.sebep,
         birim: h.maliyet / Math.max(h.toplamTokS, 0.01),
+        // Sohbet kullanıcısı başına donanım maliyeti — asıl karşılaştırılabilir sayı
+        kisiBasiMaliyet: k.sohbet > 0 ? h.maliyetTL / k.sohbet : Infinity,
       };
     })
       .filter(Boolean)
@@ -195,9 +218,11 @@ export default function Simulator() {
         if (siralama === "hiz") return b.kisiBasi - a.kisiBasi;
         if (siralama === "ucuz") return a.maliyet - b.maliyet;
         if (siralama === "guc") return a.guc - b.guc;
+        if (siralama === "kapasite") return b.sohbet - a.sohbet;
+        if (siralama === "kisiMaliyet") return a.kisiBasiMaliyet - b.kisiBasiMaliyet;
         return a.birim - b.birim;
       });
-  }, [ortak, model, siralama, trFiltre]);
+  }, [ortak, model, siralama, trFiltre, hedef]);
 
   /* ---------------- Bu donanıma hangi modeller sığar? ---------------- */
   const modelUyum = useMemo(() => {
@@ -320,21 +345,27 @@ export default function Simulator() {
 
     if (model.not) out.push({ tip: "bilgi", baslik: "Model notu", metin: model.not });
 
-    if (r.sigar && r.kullaniciTokS < 10)
+    if (r.sigar && tpsDurum !== "iyi")
       out.push({
-        tip: "uyari",
-        baslik: "Kişi başına hız düşük",
-        metin: `Kullanıcı başına ~${r.kullaniciTokS.toFixed(1)} tok/s — rahat okuma bandının (15-30) altında. Daha az eşzamanlı kullanıcı, daha düşük bitli ağırlık ya da daha yüksek bant genişlikli donanım gerekir.`,
+        tip: tpsDurum === "kotu" ? "tehlike" : "uyari",
+        baslik: `Hız hedefi ${tpsDurum === "kotu" ? "karşılanmıyor" : "sınırda"}`,
+        metin: `Kullanıcı başına ~${r.kullaniciTokS.toFixed(1)} tok/s, hedefin ${hedef.tps} tok/s. Daha az eşzamanlı kullanıcı, daha düşük bitli ağırlık ya da daha yüksek bant genişlikli donanım gerekir. Bu hızın okurken neye benzediğini yukarıdaki "Bu hız neye benziyor?" bölümünden deneyebilirsin.`,
       });
-    if (r.sigar && r.ttftYogun > 15)
+    if (r.sigar && ttftDurum !== "iyi")
+      out.push({
+        tip: ttftDurum === "kotu" ? "tehlike" : "uyari",
+        baslik: `İlk token hedefi ${ttftDurum === "kotu" ? "aşılıyor" : "sınırda"}`,
+        metin: `Yoğun anda ilk token ~${sureYazi(r.ttftYogun)}, hedefin ${hedef.ttftMs} ms. İstem uzunluğunu (${ctxYazi(girdiK)}) kısaltmak, önek önbelleği (prefix caching) açmak veya daha yüksek TFLOPS'lu donanım bunu düşürür. Ajan/kod işlerinde uzun ilk token tolere edilebilir — o durumda hedefi yükselt.`,
+      });
+    if (r.sigar && kap.maxC > 0 && kullanici > kap.maxC)
       out.push({
         tip: "uyari",
-        baslik: "İlk token uzun",
-        metin: `Yoğun anda ilk token ~${sureYazi(r.ttftYogun)}. İstem uzunluğunu (${ctxYazi(girdiK)}) kısaltmak, prefix caching açmak veya daha yüksek TFLOPS'lu donanım bunu düşürür. Ajan/kod işlerinde bu tolere edilebilir, sohbette edilemez.`,
+        baslik: `Seçtiğin eşzamanlılık kapasitenin üstünde`,
+        metin: `Bu kurulum hedeflerini en fazla ${kap.maxC} eşzamanlı istekte tutabiliyor; sen ${kullanici} seçtin. Belleğe sığıyor ama hız veya ilk token hedefin dışına çıkıyor. Hedeflere göre bu donanım ~${kap.sohbet} sohbet ya da ~${kap.ajan} ajan kullanıcısı taşır.`,
       });
 
     return out;
-  }, [model, quant, kvq, cihaz, adet, r, qAktif, kvAktif, indirGibi, ctxK, girdiK, kullanici]);
+  }, [model, quant, kvq, cihaz, adet, r, qAktif, kvAktif, indirGibi, ctxK, girdiK, kullanici, hedef, kap, tpsDurum, ttftDurum]);
 
   /* ---------------- Görünüm yardımcıları ---------------- */
   const durumRenk = !r.sigar ? C.bad : r.doluluk > 0.9 ? C.warn : C.ok;
@@ -356,7 +387,13 @@ export default function Simulator() {
     (r.sigar
       ? `SIĞIYOR (%${Math.round(r.doluluk * 100)} dolu). Kullanıcı başına ~${r.kullaniciTokS.toFixed(1)} tok/s, toplam ~${Math.round(r.toplamTokS)} tok/s, ilk token ~${sureYazi(r.ttftYogun)}. Bu bağlamda en fazla ${r.maxKullanici} kullanıcı; bu kullanıcı sayısıyla en fazla ${ctxYazi(Math.floor(r.maxCtxK))} bağlam.`
       : `SIĞMIYOR — en az ${r.minAdet || "çok daha fazla"} adet gerekir.`) +
-    `\nMaliyet: ${para(r.maliyet)} (~${paraTL(r.maliyetTL)}) donanım, ${r.guc} W çekiş, yıllık elektrik ~${paraTL(r.yillikElektrikTL)}.`;
+    `\nMaliyet: ${para(r.maliyet)} (~${paraTL(r.maliyetTL)}) donanım, ${r.guc} W çekiş, yıllık elektrik ~${paraTL(r.yillikElektrikTL)}.` +
+    `\nKullanıcININ PERFORMANS HEDEFLERİ: ilk token ≤ ${hedef.ttftMs} ms, kullanıcı başına hız ≥ ${hedef.tps} tok/s, ` +
+    `sohbet çarpanı ×${hedef.sohbetKat}, ajan çarpanı ×${hedef.ajanKat}. ` +
+    (kap.maxC
+      ? `Bu hedeflerle kurulum en fazla ${kap.maxC} eşzamanlı isteği taşıyor → yaklaşık ${kap.sohbet} sohbet kullanıcısı veya ${kap.ajan} ajan kullanıcısı.`
+      : `Bu hedefler C=1'de bile karşılanmıyor (sebep: ${kap.sebep === "bellek" ? "belleğe sığmıyor" : kap.sebep === "hiz" ? "token hızı yetersiz" : "ilk token çok uzun"}). Kapasite sıfır. Ya hedefleri gevşetmesi ya donanımı büyütmesi gerekir.`) +
+    ` Tavsiye verirken bu hedefleri esas al; hedefler gerçekçi değilse bunu söyle.`;
 
   const hfCtx = {
     quant, kvq, ctxK, girdiK, kullanici, cikti, cihaz, adet,
@@ -412,6 +449,14 @@ export default function Simulator() {
           </div>
         </div>
       </Kutu>
+
+      {/* ---------------- Performans hedefleri ---------------- */}
+      <Hedefler
+        hedef={hedef}
+        setHedef={setHedef}
+        buKurulumTps={r.sigar ? r.kullaniciTokS : 0}
+        buKurulumAd="bu kurulum"
+      />
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
         {/* ================= SOL: KONTROLLER ================= */}
@@ -601,21 +646,37 @@ export default function Simulator() {
           {/* Sayaçlar */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(148px, 1fr))", gap: 11, marginBottom: 13 }}>
             <Sayac etiket="Kullanıcı başına" deger={r.sigar ? r.kullaniciTokS.toFixed(1) : "—"} birim="tok/s"
-              alt={r.sigar ? `${cikti} token ${sureYazi(r.ciktiSure)}'de` : "sığmıyor"}
-              renk={!r.sigar ? C.ink3 : r.kullaniciTokS < 10 ? C.bad : r.kullaniciTokS < 15 ? C.warn : C.ok} />
+              alt={r.sigar ? `hedef ≥ ${hedef.tps} · ${cikti} token ${sureYazi(r.ciktiSure)}'de` : "sığmıyor"}
+              renk={!r.sigar ? C.ink3 : HEDEF_RENK[tpsDurum]}
+              ipucu={`Hedefin ${hedef.tps} tok/s. ${r.sigar ? (tpsDurum === "iyi" ? "Karşılanıyor." : tpsDurum === "sinir" ? "Sınırda." : "Karşılanmıyor.") : ""}`} />
             <Sayac etiket="Toplam verim" deger={r.sigar ? Math.round(r.toplamTokS) : "—"} birim="tok/s"
               alt={`${kullanici} kullanıcı eşzamanlı`} />
             <Sayac etiket="İlk token (yoğun)" deger={r.sigar ? sureYazi(r.ttftYogun) : "—"} birim=""
-              alt={`tek istekte ${sureYazi(r.ttftTek)}`}
-              renk={!r.sigar ? C.ink3 : r.ttftYogun > 15 ? C.bad : r.ttftYogun > 5 ? C.warn : C.ok} />
+              alt={`hedef ≤ ${hedef.ttftMs} ms · tek istekte ${sureYazi(r.ttftTek)}`}
+              renk={!r.sigar ? C.ink3 : HEDEF_RENK[ttftDurum]}
+              ipucu={`Hedefin ${hedef.ttftMs} ms. ${r.sigar ? (ttftDurum === "iyi" ? "Karşılanıyor." : ttftDurum === "sinir" ? "Sınırda." : "Karşılanmıyor.") : ""}`} />
             <Sayac etiket="Tam yanıt süresi" deger={r.sigar ? sureYazi(r.yanitSure) : "—"} birim=""
               alt="ilk token + yazma süresi" />
             <Sayac etiket="Donanım yatırımı" deger={paraTL(r.maliyetTL)} birim=""
               alt={`${para(r.maliyet)} · ${r.guc} W${r.host?.ad ? ` · ${r.host.ad} dahil` : ""}`} />
             <Sayac etiket="Yıllık elektrik" deger={paraTL(r.yillikElektrikTL)} birim=""
               alt={`7/24 açık · ${ELEKTRIK_TL_KWH} TL/kWh`} />
-            <Sayac etiket="Bu bağlamda tavan" deger={r.maxKullanici} birim="kişi"
-              alt={`${ctxYazi(ctxK)} bağlamla sığan en fazla kullanıcı`} />
+            <Sayac etiket="Maks. eşzamanlılık" deger={kap.maxC || "—"} birim="istek"
+              alt={kap.maxC
+                ? `hedefleri karşılayan en yüksek C`
+                : kap.sebep === "bellek" ? "C=1'de bile belleğe sığmıyor"
+                : kap.sebep === "hiz" ? `C=1'de bile hız hedefin (${hedef.tps}) altında`
+                : `C=1'de bile ilk token hedefi (${hedef.ttftMs} ms) aşılıyor`}
+              renk={kap.maxC ? C.ok : C.bad}
+              ipucu="Hem token hızı hem ilk token hedefinin hâlâ tutulduğu en yüksek eşzamanlı istek sayısı." />
+            <Sayac etiket="Sohbet kapasitesi" deger={kap.sohbet || "—"} birim="kişi"
+              alt={`Maks. C × ${hedef.sohbetKat} · sohbet kullanımı seyrektir`}
+              renk={kap.sohbet ? C.ok : C.bad} />
+            <Sayac etiket="Ajan kapasitesi" deger={kap.ajan || "—"} birim="kişi"
+              alt={`Maks. C × ${hedef.ajanKat} · ajanlar yuvayı yoğun kullanır`}
+              renk={kap.ajan ? C.ok : C.bad} />
+            <Sayac etiket="Bellek tavanı" deger={r.maxKullanici} birim="kişi"
+              alt={`${ctxYazi(ctxK)} bağlamla belleğe sığan en fazla kullanıcı (hız gözetmeden)`} />
             <Sayac etiket="Bu kişi sayısında tavan" deger={ctxYazi(Math.floor(r.maxCtxK))} birim=""
               alt={r.maxCtxModelSinirli
                 ? `bellek ${ctxYazi(Math.floor(r.maxCtxBellek))} kaldırırdı — modelin sınırı ${ctxYazi(model.ext || model.ctx)}`
@@ -722,7 +783,11 @@ export default function Simulator() {
               <div>
                 <Etiket>Tüm donanımlar, bu iş yükü için</Etiket>
                 <div style={{ fontSize: 12, color: C.ink2 }}>
-                  {model.ad} · {ctxYazi(ctxK)} · {kullanici} kullanıcı · her satır gereken minimum adedi gösterir
+                  {model.ad} · {ctxYazi(ctxK)} bağlam · {ctxYazi(girdiK)} istem · her satır gereken minimum adedi gösterir
+                  <br />
+                  <span style={{ fontFamily: MONO, fontSize: 11, color: C.ink3 }}>
+                    hedef: ≥{hedef.tps} tok/s · ≤{hedef.ttftMs} ms · sohbet ×{hedef.sohbetKat} · ajan ×{hedef.ajanKat}
+                  </span>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
@@ -737,6 +802,8 @@ export default function Simulator() {
                   <option value="verim">Sırala: toplam verim</option>
                   <option value="hiz">Sırala: kişi başına hız</option>
                   <option value="ucuz">Sırala: en ucuz</option>
+                  <option value="kapasite">Sırala: sohbet kapasitesi</option>
+                  <option value="kisiMaliyet">Sırala: kullanıcı başına maliyet</option>
                   <option value="birim">Sırala: token başına maliyet</option>
                   <option value="guc">Sırala: en az güç</option>
                 </select>
@@ -747,9 +814,19 @@ export default function Simulator() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                 <thead>
                   <tr style={{ borderBottom: `1.5px solid ${C.ink}` }}>
-                    {[["Donanım", "left"], ["Adet", "right"], ["Kişi/s", "right"], ["Toplam", "right"],
-                      ["İlk tok", "right"], ["Maliyet", "right"], ["Güç", "right"], ["$/tok/s", "right"]].map(([h, a]) => (
-                      <th key={h} style={{ ...thStil, textAlign: a }}>{h}</th>
+                    {[
+                      ["Donanım", "left", ""],
+                      ["Adet", "right", "Bu iş yükünü belleğe sığdıran en az cihaz sayısı"],
+                      ["Kişi/s", "right", `Seçili ${kullanici} eşzamanlı istekte kullanıcı başına token hızı · hedef ≥ ${hedef.tps}`],
+                      ["İlk tok", "right", `Seçili ${kullanici} eşzamanlı istekte ilk token · hedef ≤ ${hedef.ttftMs} ms`],
+                      ["Maks. C", "right", "Her iki hedefin de hâlâ tutulduğu en yüksek eşzamanlı istek sayısı"],
+                      ["Sohbet", "right", `Maks. C × ${hedef.sohbetKat} — taşıyabileceği sohbet kullanıcısı`],
+                      ["Ajan", "right", `Maks. C × ${hedef.ajanKat} — taşıyabileceği ajan kullanıcısı`],
+                      ["Maliyet", "right", "Donanım + ana sistem, Türkiye yaklaşığı"],
+                      ["₺/kişi", "right", "Sohbet kullanıcısı başına donanım maliyeti"],
+                      ["Güç", "right", "Toplam çekiş"],
+                    ].map(([h, a, ip]) => (
+                      <th key={h} title={ip} style={{ ...thStil, textAlign: a }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -768,24 +845,27 @@ export default function Simulator() {
                           </div>
                         </td>
                         {[
-                          `${row.n}×`,
-                          row.kisiBasi.toFixed(1),
-                          Math.round(row.toplam),
-                          sureYazi(row.ttft),
-                          paraTL(row.maliyetTL),
-                          `${row.guc}W`,
-                          `$${row.birim.toFixed(0)}`,
-                        ].map((v, i) => (
-                          <td key={i} style={{
+                          { v: `${row.n}×` },
+                          { v: row.kisiBasi.toFixed(1), renk: HEDEF_RENK[hedefDurumu(row.kisiBasi, hedef.tps, true)] },
+                          { v: sureYazi(row.ttft), renk: HEDEF_RENK[hedefDurumu(row.ttft * 1000, hedef.ttftMs, false)] },
+                          { v: row.maxC || "0", renk: row.maxC ? C.ink : C.bad, kalin: true,
+                            ip: row.maxC ? "" : row.sebep === "bellek" ? "C=1'de belleğe sığmıyor" : row.sebep === "hiz" ? "C=1'de hız hedefin altında" : "C=1'de ilk token hedefi aşılıyor" },
+                          { v: row.sohbet || "0", renk: row.sohbet ? C.ok : C.bad },
+                          { v: row.ajan || "0", renk: row.ajan ? C.steel : C.bad },
+                          { v: paraTL(row.maliyetTL) },
+                          { v: isFinite(row.kisiBasiMaliyet) ? paraTL(row.kisiBasiMaliyet) : "—", renk: C.ink2 },
+                          { v: `${row.guc}W` },
+                        ].map((h, i) => (
+                          <td key={i} title={h.ip || undefined} style={{
                             padding: "7px 8px", textAlign: "right", fontFamily: MONO, whiteSpace: "nowrap",
-                            color: i === 1 && row.kisiBasi < 10 ? C.bad : i === 1 && row.kisiBasi < 15 ? C.warn : i === 3 && row.ttft > 15 ? C.bad : C.ink,
-                          }}>{v}</td>
+                            color: h.renk || C.ink, fontWeight: h.kalin ? 600 : 400,
+                          }}>{h.v}</td>
                         ))}
                       </tr>
                     );
                   })}
                   {!tablo.length && (
-                    <tr><td colSpan={8} style={{ padding: 16, textAlign: "center", color: C.ink3, fontSize: 12.5 }}>
+                    <tr><td colSpan={10} style={{ padding: 16, textAlign: "center", color: C.ink3, fontSize: 12.5 }}>
                       Bu filtreyle hiçbir donanım bu iş yükünü 32 adede kadar taşıyamıyor. Bağlamı, kullanıcı sayısını düşür ya da kuantizasyon uygula.
                     </td></tr>
                   )}
@@ -793,6 +873,11 @@ export default function Simulator() {
               </table>
             </div>
             <div style={{ fontSize: 11.5, color: C.ink3, marginTop: 10, lineHeight: 1.6 }}>
+              <b>Maks. C</b>, hem hız (≥{hedef.tps} tok/s) hem ilk token (≤{hedef.ttftMs} ms) hedefinin
+              hâlâ tutulduğu en yüksek eşzamanlı istek sayısıdır; <b>Sohbet</b> ve <b>Ajan</b> sütunları
+              bunun ×{hedef.sohbetKat} ve ×{hedef.ajanKat} katıdır. Hedefleri yukarıdaki panelden
+              değiştirince bu üç sütun da yeniden hesaplanır.
+              <br />
               Satıra tıklayınca o kurulum yukarıdaki panele yüklenir. Ayrık kartlarda, kartları çalıştıracak
               <b> ana sistem</b> maliyeti ve gücü de eklenmiştir: {ANA_SISTEM.map((k) => `≤${k.maxKart} kart → ${k.ad} ${para(k.usd)}`).join(" · ")}.
               Hazır kutular (Mac Studio, Spark, mini PC) kendi başına bilgisayar olduğu için ek maliyet almaz.
@@ -954,7 +1039,12 @@ export default function Simulator() {
             KV cache × 0,55. Gerçekleşen bant genişliği kullanımı (MBU) cihaza göre %50-74.</div>
           <div><b style={{ color: C.ink }}>İlk token</b><br />
             Prefill hesap sınırlı kabul edilir, hesap verimi %42, girdi olarak <i>istem uzunluğu</i> alınır
-            (bağlam penceresi değil). Yoğun anda her ek kullanıcı için %62 kuyruk gecikmesi eklenir.</div>
+            (bağlam penceresi değil). Yoğun anda her ek kullanıcı için %62 kuyruk gecikmesi eklenir.
+            Önek önbelleği açıksa gerçek istem çok daha kısa olur — o kaydırağı ona göre ayarla.</div>
+          <div><b style={{ color: C.ink }}>Kapasite</b><br />
+            Maks. C, hem hız hem ilk token hedefinin tutulduğu en yüksek eşzamanlı istek sayısıdır
+            (ikili aramayla bulunur). Sohbet ve ajan kapasitesi bunun kullanım çarpanlarıyla çarpımıdır.
+            Çarpanlar davranış varsayımıdır, ölçüm değil — kendi kullanım desenini biliyorsan değiştir.</div>
           <div><b style={{ color: C.ink }}>Ara bağlantı</b><br />
             Tensör paralelliği verimi NVLink %86, aynı kasada PCIe %60, ağ/USB4 üzerinden %33.
             Spark ve Mac kümelerinin düşük çıkması bu yüzdendir.</div>

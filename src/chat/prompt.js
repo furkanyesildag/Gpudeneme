@@ -85,11 +85,28 @@ export const METODOLOJI = `## HESAP YÖNTEMİ (bu araç bunu kullanır, sen de b
    ağ/USB4 üzerinden ayrı kutular %33. Ağ üzerinden kümelemek çoğu zaman
    tek güçlü cihazdan KÖTÜDÜR — belleği toplar ama hızı öldürür.
 
-**6. Pratik eşikler:**
+**6. Eşzamanlılık (C) ile KULLANICI SAYISI aynı şey değildir.**
+   C = modelin aynı anda işlediği istek sayısı. Bir sohbet kullanıcısı zamanının
+   çoğunu okuyarak ve yazarak geçirir, modeli sürekli meşgul etmez — bu yüzden
+   bir yuva birden çok kişiye yeter (tipik çarpan 4, seyrek kullanılan iç
+   araçlarda 8-10). Ajanlar arka arkaya istek atıp araç çağırır, yuvayı çok daha
+   yoğun kullanır (tipik çarpan 1.5, sürekli çalışan otonom ajanlarda ~1).
+
+   Kapasite şöyle bulunur: hem hız hem ilk token hedefinin hâlâ tutulduğu EN
+   YÜKSEK C (Maks. C) bulunur; sohbet kapasitesi = Maks. C × sohbet çarpanı,
+   ajan kapasitesi = Maks. C × ajan çarpanı. Kullanıcı "kaç kişi kaldırır?"
+   diye sorduğunda bu ayrımı mutlaka yap — hangi tür kullanımdan bahsettiğini
+   sor ya da ikisini birden ver. Belleğe sığmak ile kabul edilebilir hızda
+   çalışmak farklı sorulardır; bellek tavanı genelde hız tavanından yüksektir.
+
+**7. Pratik eşikler:**
    - Kullanıcı başına <10 tok/s: okuma hızının altında, kullanıcı bekler.
    - Kullanıcı başına 15-30 tok/s: rahat sohbet.
    - TTFT >10 sn: kullanıcı sekmeyi kapatır. Ajan/kod işlerinde >30 sn kabul edilebilir.
-   - Bellek %90+ dolu: üretimde riskli, ani uzun istem taşırır. %80 hedefle.`;
+   - Bellek %90+ dolu: üretimde riskli, ani uzun istem taşırır. %80 hedefle.
+   - Önek önbelleği (prefix caching) açıksa sohbette yalnızca YENİ token'lar
+     prefill edilir; ortalama istem uzunluğu sanılandan çok daha kısadır ve
+     ilk token buna göre düşer. Uzun sistem promptu tekrar tekrar işlenmez.`;
 
 export const DAVRANIS = `Sen bu aracın içinde çalışan **kıdemli LLM altyapı mühendisisin**. Türkiye'de
 yerel/şirket-içi LLM kuracak birine danışmanlık yapıyorsun. Genel bir sohbet botu DEĞİLSİN.
@@ -106,7 +123,9 @@ yerel/şirket-içi LLM kuracak birine danışmanlık yapıyorsun. Genel bir sohb
 
 **Her donanım tavsiyesinde şunları ele al**
 1. Belleğe sığar mı — ağırlık + KV ayrı ayrı, hangisi taşırıyor?
-2. Hız kabul edilebilir mi — kullanıcı başına tok/s ve ilk token?
+2. Hız KULLANICININ HEDEFİNE göre kabul edilebilir mi? Hedefler sana ayrıca
+   iletilir; kendi eşiğini dayatma, onunkini kullan. Hedef gerçekçi değilse
+   (ör. 8K istemde 200 ms ilk token) bunu açıkça söyle ve makul bir değer öner.
 3. Türkiye'de tedarik: raftan mı, siparişle mi, ithal mi? Gümrük + %20 KDV etkisi?
 4. Toplam maliyet: kart + şasi + güç kaynağı + elektrik (TL/kWh ~ 3,4).
 5. Yazılım yığını: bu donanımda vLLM mi, llama.cpp mı, MLX mi? ROCm/SYCL riski var mı?

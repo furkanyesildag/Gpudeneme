@@ -211,6 +211,99 @@ export function hesapla({
   };
 }
 
+
+/* ------------------------------------------------------------------ */
+/*  PERFORMANS HEDEFLERİ VE KULLANICI KAPASİTESİ                       */
+/*                                                                     */
+/*  "Kaç kullanıcı kaldırır?" sorusunun tek bir doğru cevabı yok —     */
+/*  neyin KABUL EDİLEBİLİR sayıldığına bağlı. Bu yüzden hedefleri      */
+/*  kullanıcı belirler, biz de her kurulumu bu hedeflere göre yeniden  */
+/*  ölçeriz. Hedefler hiçbir satırı gizlemez; sayıların ANLAMINI       */
+/*  değiştirir.                                                        */
+/*                                                                     */
+/*  Eşzamanlılık (C) ≠ kullanıcı sayısı. Bir sohbet kullanıcısı        */
+/*  zamanının çoğunu okuyarak ve yazarak geçirir; modeli gerçekten     */
+/*  meşgul ettiği an azdır. Bu yüzden bir eşzamanlı yuva birden çok    */
+/*  gerçek kullanıcıya yeter. Ajanlar ise arka arkaya istek attığı     */
+/*  için yuvayı çok daha yoğun kullanır — çarpanı düşüktür.            */
+/* ------------------------------------------------------------------ */
+
+export const VARSAYILAN_HEDEF = {
+  ttftMs: 1000,   // kabul edilebilir en uzun ilk-token gecikmesi
+  tps: 20,        // kullanıcı başına kabul edilebilir en düşük token hızı
+  sohbetKat: 4,   // bir eşzamanlı yuva kaç sohbet kullanıcısına yeter
+  ajanKat: 1.5,   // bir eşzamanlı yuva kaç ajan kullanıcısına yeter
+};
+
+export const HEDEF_SINIR = {
+  ttftMs: { min: 100, max: 60000 },
+  tps: { min: 1, max: 200 },
+  sohbetKat: { min: 1, max: 20 },
+  ajanKat: { min: 0.5, max: 10 },
+};
+
+/** Bir kurulum verilen hedefleri karşılıyor mu? */
+export function hedefiKarsilar(r, hedef) {
+  return r.sigar && r.kullaniciTokS >= hedef.tps && r.ttftYogun * 1000 <= hedef.ttftMs;
+}
+
+/**
+ * Bu kurulumun hedefleri hâlâ karşıladığı EN YÜKSEK eşzamanlılık (Max C)
+ * ve bundan türeyen kullanıcı kapasiteleri.
+ *
+ * Hız eşzamanlılıkla düşer, ilk token yükselir — ikisi de tek yönlü.
+ * Bu yüzden ikili arama doğru sonucu verir.
+ *
+ * @param args   hesapla()'ya giden argümanlar (kullanici hariç, o taranır)
+ * @param hedef  { ttftMs, tps, sohbetKat, ajanKat }
+ * @param tavan  taranacak en yüksek eşzamanlılık
+ */
+export function kapasite(args, hedef, tavan = 256) {
+  const dene = (c) => hedefiKarsilar(hesapla({ ...args, kullanici: c }), hedef);
+
+  // C=1 bile karşılamıyorsa kapasite sıfırdır: bu kurulum bu hedeflere uygun değil.
+  if (!dene(1)) {
+    const r1 = hesapla({ ...args, kullanici: 1 });
+    return {
+      maxC: 0, sohbet: 0, ajan: 0, r1,
+      sebep: !r1.sigar
+        ? "bellek"
+        : r1.kullaniciTokS < hedef.tps
+        ? "hiz"
+        : "ttft",
+    };
+  }
+  if (dene(tavan)) {
+    const rT = hesapla({ ...args, kullanici: tavan });
+    return { maxC: tavan, sohbet: Math.floor(tavan * hedef.sohbetKat), ajan: Math.floor(tavan * hedef.ajanKat), r1: rT, tavanda: true };
+  }
+
+  let alt = 1, ust = tavan; // alt karşılıyor, üst karşılamıyor
+  while (ust - alt > 1) {
+    const orta = Math.floor((alt + ust) / 2);
+    if (dene(orta)) alt = orta; else ust = orta;
+  }
+  return {
+    maxC: alt,
+    sohbet: Math.floor(alt * hedef.sohbetKat),
+    ajan: Math.floor(alt * hedef.ajanKat),
+    r1: hesapla({ ...args, kullanici: alt }),
+  };
+}
+
+/** TPS/TTFT hücrelerini hedefe göre renklendirmek için ortak karar. */
+export function hedefDurumu(deger, hedef, buyukIyi) {
+  // "sınırda" bandı: hedefin %25 uzağına kadar sarı
+  if (buyukIyi) {
+    if (deger >= hedef) return "iyi";
+    if (deger >= hedef * 0.75) return "sinir";
+    return "kotu";
+  }
+  if (deger <= hedef) return "iyi";
+  if (deger <= hedef * 1.33) return "sinir";
+  return "kotu";
+}
+
 /* ------------------------------------------------------------------ */
 /*  YARDIMCI BİÇİMLEYİCİLER                                            */
 /* ------------------------------------------------------------------ */

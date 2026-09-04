@@ -24,9 +24,19 @@ Türkiye fiyatını ve elektrik maliyetini çıkarır.
   tutuyor, kaçı kayan pencereli, MLA mı GQA mı, hangi katmanlar lineer dikkat
   kullanıyor. Bu sayede Qwen3.5+, GLM-5.3-Flash, Nemotron-H gibi hibrit modellerin
   uzun bağlamdaki gerçek avantajı doğru görünür.
+- **Performans hedefleri ve kullanıcı kapasitesi** — "kaç kişi kaldırır?" sorusunun
+  tek doğru cevabı yoktur; neyin kabul edilebilir sayıldığına bağlıdır. Dört değeri
+  (en yüksek ilk token, en düşük token hızı, sohbet ve ajan kullanım çarpanları) sen
+  belirlersin; her satırın **Maks. C**, **sohbet kapasitesi** ve **ajan kapasitesi**
+  değeri buna göre yeniden hesaplanır. Bu hedefler hiçbir satırı gizlemez — sayıların
+  ne anlama geldiğini değiştirir.
+- **"Bu hız neye benziyor?"** — 18 tok/s'nin ne demek olduğunu kimse sezgisel bilmez.
+  Örnek metin gerçekten o hızda yazdırılır, böylece beklemenin nasıl hissettirdiğini
+  doğrudan görürsün. Hedef hızını kendi kurulumunun hızıyla yan yana karşılaştırabilirsin.
 - **LLM Altyapı Danışmanı** — DeepSeek destekli sohbet. Bir HuggingFace linki
   yapıştırdığında modeli **canlı çeker**, `config.json`'ından bellek ve hız hesabını
-  yapar ve senin seçtiğin donanımda çalışıp çalışmayacağını söyler.
+  yapar ve senin seçtiğin donanımda çalışıp çalışmayacağını söyler. Performans
+  hedeflerini de görür ve tavsiyelerini onlara göre verir.
 
 ## Yerelde çalıştırma
 
@@ -45,12 +55,13 @@ src/
   data/devices.js    44 donanım — bellek, bant genişliği, TL fiyat, TR tedarik
   data/quants.js     9 ağırlık + 3 KV kuantizasyon şeması
   data/concepts.js   kavram sözlüğü ve hazır senaryolar
-  engine.js          hesap motoru (bellek, hız, TTFT, maliyet, elektrik)
+  engine.js          hesap motoru (bellek, hız, TTFT, kapasite, maliyet, elektrik)
   hf.js              HuggingFace analizörü — link → config.json → model kaydı
   chat/prompt.js     danışmanın sistem promptu + bilgi tabanı
   chat/api.js        DeepSeek istemcisi (akışlı)
   chat/ChatBot.jsx   danışman arayüzü
-  components/        yeniden kullanılan arayüz parçaları + markdown gösterici
+  components/        arayüz parçaları, markdown gösterici, hedef paneli,
+                     "bu hız neye benziyor" yazma benzetimi
   App.jsx            ana ekran
 ```
 
@@ -122,6 +133,31 @@ dalına yapılan her push'ta projeyi derleyip GitHub Pages'e dağıtır. İş ak
 > İlk dağıtım için depo **Settings → Pages → Build and deployment → Source**
 > ayarının **GitHub Actions** olması gerekir. İş akışı bunu otomatik yapmayı dener;
 > izin nedeniyle yapamazsa bu ayarı bir kez elle seçmek yeterlidir.
+
+## Kapasite nasıl hesaplanır
+
+**Eşzamanlılık (C) kullanıcı sayısı değildir.** C, modelin aynı anda işlediği istek
+sayısıdır. Sohbet eden biri zamanının çoğunu okuyarak ve yazarak geçirir, modeli
+sürekli meşgul etmez — bu yüzden bir yuva birden çok kişiye yeter. Ajanlar arka
+arkaya istek atıp araç çağırdığı için yuvayı çok daha yoğun kullanır.
+
+```
+Maks. C          = hem hız (≥ hedef tok/s) hem ilk token (≤ hedef ms) hedefinin
+                   hâlâ tutulduğu en yüksek eşzamanlı istek sayısı
+Sohbet kapasitesi = Maks. C × sohbet çarpanı   (varsayılan ×4)
+Ajan kapasitesi   = Maks. C × ajan çarpanı     (varsayılan ×1,5)
+```
+
+Çarpanlar bir davranış varsayımıdır, ölçüm değil. Seyrek kullanılan iç araçlarda
+sohbet çarpanı 8-10'a çıkabilir; sürekli çalışan otonom ajanlarda ajan çarpanı 1'e
+yaklaşır. Kendi kullanım desenini biliyorsan değiştir — tüm tablo yeniden hesaplanır.
+
+Bir kurulum C=1'de bile hedefleri karşılamıyorsa kapasitesi sıfırdır ve arayüz
+sebebini söyler: belleğe sığmıyor mu, hız mı yetmiyor, yoksa ilk token mi uzun.
+
+> Hedef paneli ve kapasite sütunlarının biçimi
+> [OpenZeka LLM Benchmark Table](https://openzeka.com/)'dan esinlenmiştir;
+> buradaki sayılar OpenZeka'nın ölçümleri değil, bu aracın kendi modelidir.
 
 ## Teknoloji
 

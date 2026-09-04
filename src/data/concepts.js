@@ -17,6 +17,8 @@ export const KAVRAMLAR = [
   { ad: "Lineer / kayan dikkat", benzet: "Her şeyi değil, son sayfayı hatırlamak.", ozet: "Yeni modellerin çoğu katmanlarının bir kısmında bağlamın tamamını değil son N token'ı tutar. Uzun bağlamda KV cache'i dramatik düşürür — bu araç bunu hesaba katar." },
   { ad: "MLA (gizil dikkat)", benzet: "Not defterini stenoyla tutmak.", ozet: "DeepSeek, GLM ve Kimi'nin kullandığı sıkıştırılmış KV yöntemi. Aynı bağlamı 3-5 kat daha az bellekle tutar." },
   { ad: "Toplu işleme (batching)", benzet: "Servisi tek tek değil, tepsiyle taşımak.", ozet: "Birden çok kullanıcının isteğini aynı anda işlemek. Toplam verimi çok artırır, kişi başına hızı bir miktar düşürür." },
+  { ad: "Eşzamanlılık (C) ≠ kullanıcı", benzet: "Restoranda masa sayısı ile günlük müşteri sayısı.", ozet: "C, modelin aynı anda işlediği istek sayısıdır. Sohbet eden biri zamanının çoğunu okuyarak ve yazarak geçirdiği için bir 'masa' birden çok kişiye yeter; ajanlar ise masayı hiç boşaltmaz. Kapasite bu yüzden C'nin katıdır." },
+  { ad: "Önek önbelleği (prefix caching)", benzet: "Aynı kitabı her seferinde baştan okumamak.", ozet: "Sohbet geçmişinin ve sistem promptunun daha önce işlenmiş kısmı yeniden hesaplanmaz. İlk token gecikmesini dramatik düşürür — bu yüzden 'ortalama istem uzunluğu' sanılandan çok daha kısadır." },
 ];
 
 /* ------------------------------------------------------------------ */
