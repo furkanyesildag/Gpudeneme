@@ -9,19 +9,28 @@
 /* ------------------------------------------------------------------ */
 
 import { QUANT_HARITA, KVQUANT_HARITA } from "./data/quants.js";
-import { ANA_SISTEM, PCIE_BW, RAM_ISLETIM_PAYI } from "./data/devices.js";
+import { ANA_SISTEM, PCIE_BW, PCIE_VERIM, RAM_ISLETIM_PAYI, pcieHatti } from "./data/devices.js";
 
 /** Kartları çalıştıracak ana sistemin maliyeti ve gücü.
  *  Tek karta 8500$'lık sunucu şasisi yazmak gerçeği çarpıtıyordu:
  *  1-2 kart normal bir masaüstüne, 3-4 kart çok yuvalı bir iş
  *  istasyonuna, 5+ kart gerçek sunucu şasisine ihtiyaç duyar. */
-export function anaSistem(kartSayisi) {
-  if (kartSayisi <= 0) return { ad: "", usd: 0, w: 0, adet: 0 };
+/**
+ * @param kartSayisi  takılacak ayrık kart sayısı
+ * @param istenenRam  kullanıcının seçtiği sistem RAM'i (GB); 0 = önemsiz
+ *
+ * Platform sınıfını yalnızca kart sayısı belirlemez: 384 GB ECC RDIMM
+ * tüketici anakartına takılmaz, 8 kart masaüstü kasasına sığmaz. İkisinden
+ * hangisi daha büyük bir platform gerektiriyorsa o seçilir — ve maliyeti de
+ * ona göre yazılır, yoksa büyük RAM bedavaymış gibi görünürdü.
+ */
+export function anaSistem(kartSayisi, istenenRam = 0) {
+  if (kartSayisi <= 0) return { ad: "", usd: 0, w: 0, adet: 0, ram: 0, ramBW: 0, pcie: 5 };
   for (const k of ANA_SISTEM) {
-    if (kartSayisi <= k.maxKart) return { ...k, adet: 1 };
+    if (kartSayisi <= k.maxKart && istenenRam <= k.ram) return { ...k, adet: 1 };
   }
   const son = ANA_SISTEM[ANA_SISTEM.length - 1];
-  const adet = Math.ceil(kartSayisi / son.maxKart);
+  const adet = Math.max(1, Math.ceil(kartSayisi / son.maxKart));
   return { ...son, usd: son.usd * adet, w: son.w * adet, adet };
 }
 
@@ -157,7 +166,7 @@ export function kvTipi(kv) {
  */
 export function hesapla({
   model, quant, kvq, ctxK, girdiK, kullanici, cikti, cihaz, adet, kvOran = 1,
-  offloadGB = 0, mtp = false, mtpKabul = MTP_KABUL_VARSAYILAN, sistemRam = null,
+  offloadModu = "otomatik", mtp = false, mtpKabul = MTP_KABUL_VARSAYILAN, sistemRam = null,
 }) {
   // Bilinmeyen id'de çökmek yerine tam hassasiyete düşülür, ama sessizce
   // geçilmez: yanlış bir id sonuçları sessizce bozardı.
@@ -177,7 +186,9 @@ export function hesapla({
   const kartMi = cihaz.tur === "kart";
   // Hazır kutular (Mac Studio, Spark, mini PC) kendi başına bir bilgisayardır;
   // ayrık kartlar ise onları takacak bir ana sisteme ihtiyaç duyar.
-  const host = kartMi ? anaSistem(adet) : { ad: "", usd: 0, w: 0, adet: 0, ram: 0, pcie: 5 };
+  const host = kartMi
+    ? anaSistem(adet, sistemRam || 0)
+    : { ad: "", usd: 0, w: 0, adet: 0, ram: 0, ramBW: 0, pcie: 5 };
   const maliyet = cihaz.fiyat * adet + host.usd;
   const maliyetTL = cihaz.try * adet + host.usd * USD_TRY * ITHALAT;
   const guc = cihaz.w * adet + host.w;
@@ -203,17 +214,29 @@ export function hesapla({
      anlamlı — birleşik bellekli kutuda taşınacak ayrı bir yer yok.
      KV cache offload edilmez: her adımda tamamı taranır, PCIe üzerinden
      okumak kabul edilemez derecede yavaş olurdu. */
-  // RAM tavanı: kullanıcı belirtmediyse ana sistemin varsayılanı.
+  /* ---- Offload: manuel değil, GEREKTİĞİ KADAR ----
+     Offload edilen her bayt PCIe üzerinden okunacağı için yavaşlatır;
+     dolayısıyla en iyi miktar, "sığdırmaya yetecek EN AZ miktar"dır.
+     Kullanıcının bir GB sayısı seçmesine gerek yok — tek anlamlı tercih
+     offload'ın hiç kullanılıp kullanılmayacağıdır. */
   const ram = sistemRam ?? host.ram ?? 0;
   const ramTavani = Math.max(0, ram - RAM_ISLETIM_PAYI);
   const offloadMumkun = kartMi ? Math.min(agirlikGB, ramTavani) : 0;
-  const offload = Math.max(0, Math.min(offloadGB, offloadMumkun));
+
+  const vramIhtiyaci = agirlikGB + kvGB + ekGB;
+  // %96 hedefi: tam tepeye oturmak çalışma zamanında bellek taşmasına yol açar.
+  const acik = vramIhtiyaci - toplamBellek * 0.96;
+  const offloadGerekli = Math.max(0, Math.min(acik, offloadMumkun));
+  const offload = offloadModu === "kapali" ? 0 : offloadGerekli;
+  // Offload açık ama RAM yetmiyorsa açığın tamamı kapanamaz.
+  const offloadYetersiz = offloadModu !== "kapali" && acik > offloadMumkun + 0.01;
+
   const vramAgirlikGB = agirlikGB - offload;
   const offloadOrani = agirlikGB > 0 ? offload / agirlikGB : 0;
-  const ramYeterli = offload <= ramTavani;
+  const ramYeterli = !offloadYetersiz;
 
   const gerekliGB = vramAgirlikGB + kvGB + ekGB;
-  const sigar = gerekliGB <= toplamBellek && ramYeterli;
+  const sigar = gerekliGB <= toplamBellek;
   const doluluk = toplamBellek > 0 ? gerekliGB / toplamBellek : Infinity;
 
   /* ---- Decode hızı ----
@@ -222,8 +245,12 @@ export function hesapla({
      taranmaz (sayfalama, flash-attention); ~0,55 katsayısı bunu yansıtır. */
   const moeVerim = moeVerimi(model, cihaz);
   const vramBW = kumeBW * cihaz.mbu * moeVerim;
-  // Offload edilen ağırlıklar her adımda PCIe üzerinden çekilir.
-  const pcieBW = (PCIE_BW[host.pcie] || PCIE_BW[5]) * adet;
+  /* Offload edilen ağırlıklar her adımda önce host RAM'den okunur, sonra
+     PCIe'den geçer — hangisi darsa o sınırlar. Masaüstü anakartta ikinci
+     kart PCIe x8'e düştüğü için kart başına hat sayısı da hesaba katılır. */
+  const hat = kartMi ? pcieHatti(host.ad, adet) : 16;
+  const pcieToplam = (PCIE_BW[host.pcie] || PCIE_BW[5]) * (hat / 16) * PCIE_VERIM * adet;
+  const pcieBW = kartMi ? Math.min(pcieToplam, host.ramBW || pcieToplam) : pcieToplam;
 
   const vramBaytGB = aktifGB * (1 - offloadOrani) + kvGB * 0.55;
   const ramBaytGB = aktifGB * offloadOrani;
@@ -292,7 +319,7 @@ export function hesapla({
 
   return {
     agirlikGB, vramAgirlikGB, offload, offloadOrani, offloadMumkun, ramYeterli, pcieBW,
-    ram, ramTavani,
+    offloadGerekli, offloadYetersiz, hat, ram, ramTavani,
     mtpAktif, mtpHizlanma, quantHiz,
     aktifGB, kvGB, kvKullaniciGB, ekGB, gerekliGB, toplamBellek, sigar, doluluk,
     kullaniciTokS, toplamTokS, ttftTek, ttftYogun, ciktiSure, yanitSure,

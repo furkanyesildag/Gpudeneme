@@ -10,7 +10,8 @@ import { DEVICES, GRUP_SIRA, MIM_AD, YIGIN, TR_DURUM, TR_NOT, CIHAZ_HARITA } fro
 import { QUANTS, KVQUANTS, DUSUK_QUANT_ONER } from "../src/data/quants.js";
 import { SENARYOLAR } from "../src/data/concepts.js";
 import { IS_YUKLERI, eslesenProfil } from "../src/data/isYukleri.js";
-import { hesapla, kapasite, hedefDurumu, kvKBperToken, kvTipi, VARSAYILAN_HEDEF, HEDEF_SINIR } from "../src/engine.js";
+import { BANTLAR } from "../src/data/bantlar.js";
+import { hesapla, kapasite, hedefDurumu, kvKBperToken, kvTipi, anaSistem, VARSAYILAN_HEDEF, HEDEF_SINIR } from "../src/engine.js";
 
 const hatalar = [];
 const uyarilar = [];
@@ -179,8 +180,12 @@ for (const s of SENARYOLAR) {
   if (imkansiz.maxC !== 0 || imkansiz.sebep !== "hiz") hata("kapasite: ulaşılamaz hız hedefinde sebep 'hiz' değil");
   const imkansizT = kapasite(args, { ...h, ttftMs: HEDEF_SINIR.ttftMs.min });
   if (imkansizT.maxC !== 0 || imkansizT.sebep !== "ttft") hata("kapasite: ulaşılamaz ilk token hedefinde sebep 'ttft' değil");
-  const sigmaz = kapasite({ ...args, quant: "bf16" }, { ...h, tps: 1, ttftMs: 60000 });
+  // Offload kapalıyken bellek yolunu sına: açıkken motor zaten sığdırır.
+  const sigmaz = kapasite({ ...args, quant: "bf16", offloadModu: "kapali" }, { ...h, tps: 1, ttftMs: 60000 });
   if (sigmaz.maxC !== 0 || sigmaz.sebep !== "bellek") hata("kapasite: belleğe sığmayan kurulumda sebep 'bellek' değil");
+  // Offload açıkken aynı kurulum sığmalı — otomatik offload'ın asıl faydası bu.
+  const offloadIle = kapasite({ ...args, quant: "bf16", sistemRam: 128 }, { ...h, tps: 1, ttftMs: 60000 });
+  if (offloadIle.maxC === 0) hata("kapasite: offload açıkken de sığdıramadı");
 
   // Renklendirme kararları
   if (hedefDurumu(30, 20, true) !== "iyi") hata("hedefDurumu: hedefin üstündeki hız 'iyi' değil");
@@ -190,37 +195,89 @@ for (const s of SENARYOLAR) {
   if (hedefDurumu(5000, 1000, false) !== "kotu") hata("hedefDurumu: hedefin çok üstündeki gecikme 'kotu' değil");
 }
 
-/* ---------------- Offload ve speculative decoding ---------------- */
+/* ---------------- Satın alma bantları ---------------- */
+{
+  const noSet = new Set();
+  let oncekiFiyat = -1;
+  for (const b of BANTLAR) {
+    const et = `bant ${b.no} "${b.ad}"`;
+    if (noSet.has(b.no)) hata(`${et}: numara tekrar ediyor`);
+    noSet.add(b.no);
+    for (const alan of ["ad", "fiyat", "ozet", "ne", "tekKullanici", "ekip", "kime", "tikanma", "ayar"])
+      if (!b[alan]) hata(`${et}: "${alan}" eksik`);
+
+    const a = b.ayar;
+    const m = MODEL_HARITA[a.modelId], d = CIHAZ_HARITA[a.cihazId];
+    if (!m) { hata(`${et}: model "${a.modelId}" yok`); continue; }
+    if (!d) { hata(`${et}: cihaz "${a.cihazId}" yok`); continue; }
+    if (!QUANTS.some((q) => q.id === a.quant)) hata(`${et}: kuantizasyon "${a.quant}" yok`);
+    if (a.girdiK > a.ctxK) hata(`${et}: prompt bağlamdan uzun`);
+    if (a.ctxK > (m.ext || m.ctx)) hata(`${et}: bağlam modelin sınırını aşıyor`);
+    if (a.mtp && !m.mtp) hata(`${et}: MTP açık ama modelde head yok`);
+
+    // Bant, kendi ayarıyla çalışabilmeli — kullanıcıya bozuk bir kurulum sunmayalım
+    const r = hesapla({ ...a, model: m, cihaz: d, kvOran: 0.6 });
+    if (!r.sigar) hata(`${et}: belleğe sığmıyor (${r.gerekliGB.toFixed(0)}/${r.toplamBellek.toFixed(0)} GB)`);
+    if (r.kullaniciTokS < 3) hata(`${et}: kullanılamayacak kadar yavaş (${r.kullaniciTokS.toFixed(1)} tok/s)`);
+
+    // Bantlar ucuzdan pahalıya sıralı olmalı — kart bunu varsayarak okunuyor
+    if (r.maliyetTL < oncekiFiyat * 0.9)
+      hata(`${et}: fiyat sırası bozuk (${(r.maliyetTL / 1000).toFixed(0)}b ₺, önceki ${(oncekiFiyat / 1000).toFixed(0)}b ₺)`);
+    oncekiFiyat = Math.max(oncekiFiyat, r.maliyetTL);
+  }
+}
+
+/* ---------------- Offload (otomatik) ve speculative decoding ---------------- */
 {
   const m = MODEL_HARITA["qwen38_27b"], moe = MODEL_HARITA["gpt_oss_120b"];
   const kart = CIHAZ_HARITA["3090"], kutu = CIHAZ_HARITA["m3u"];
   const taban = { quant: "bf16", kvq: "fp8", ctxK: 32, girdiK: 2, kullanici: 1, cikti: 800, kvOran: 0.6, adet: 1 };
 
-  // Offload sığdırır ama yavaşlatır
-  const yok = hesapla({ ...taban, model: m, cihaz: kart });
-  const az = hesapla({ ...taban, model: m, cihaz: kart, offloadGB: 20, sistemRam: 64 });
-  const cok = hesapla({ ...taban, model: m, cihaz: kart, offloadGB: 40, sistemRam: 64 });
-  if (az.gerekliGB >= yok.gerekliGB) hata("offload: VRAM ihtiyacı azalmadı");
-  if (cok.gerekliGB >= az.gerekliGB) hata("offload: daha fazla offload VRAM'i daha çok düşürmedi");
-  if (az.kullaniciTokS >= yok.kullaniciTokS) hata("offload: hız düşmedi — PCIe cezası uygulanmıyor");
-  if (cok.kullaniciTokS >= az.kullaniciTokS) hata("offload: daha fazla offload daha yavaş olmalı");
-  if (!cok.sigar) hata("offload: yeterli offload'a rağmen sığmıyor");
+  // Zaten sığan bir kurulumda offload devreye GİRMEMELİ (her bayt yavaşlatır)
+  const bol = hesapla({ ...taban, model: m, quant: "q4km", cihaz: kart, sistemRam: 64 });
+  if (bol.offload > 0) hata("offload: VRAM'e sığan kurulumda gereksiz yere devreye girdi");
 
-  // MoE'de offload cezası dense'ten hafif olmalı (adım başına daha az bayt okunur)
-  const dOran = hesapla({ ...taban, model: m, cihaz: kart, offloadGB: 26, sistemRam: 64 }).kullaniciTokS / yok.kullaniciTokS;
-  const mYok = hesapla({ ...taban, model: moe, quant: "nvfp4", cihaz: kart });
-  const mOran = hesapla({ ...taban, model: moe, quant: "nvfp4", cihaz: kart, offloadGB: 34, sistemRam: 64 }).kullaniciTokS / mYok.kullaniciTokS;
+  // Sığmayan kurulumda otomatik devreye girmeli ve sığdırmalı
+  const dar = hesapla({ ...taban, model: m, cihaz: kart, sistemRam: 64 });
+  if (dar.offload <= 0) hata("offload: sığmayan kurulumda devreye girmedi");
+  if (!dar.sigar) hata("offload: yeterli RAM olmasına rağmen sığdıramadı");
+  if (dar.kullaniciTokS >= bol.kullaniciTokS) hata("offload: hız düşmedi — PCIe cezası uygulanmıyor");
+
+  // Taşınan miktar GEREKTİĞİ KADAR olmalı: bir tık azı sığdırmamalı
+  const azOffload = dar.offload - 1.5;
+  const azıyla = dar.vramAgirlikGB + 1.5 + dar.kvGB + dar.ekGB;
+  if (azOffload > 0 && azıyla <= dar.toplamBellek * 0.96)
+    hata(`offload: gereğinden fazla taşındı (${dar.offload.toFixed(1)} GB)`);
+
+  // Kapalı modda offload olmamalı ve sığmamalı
+  const kapali = hesapla({ ...taban, model: m, cihaz: kart, sistemRam: 64, offloadModu: "kapali" });
+  if (kapali.offload !== 0) hata("offload: kapalı modda yine de taşındı");
+  if (kapali.sigar) hata("offload: kapalı modda sığmaması gerekirdi");
+
+  // MoE'de offload cezası dense'ten hafif olmalı
+  const dOran = dar.kullaniciTokS / hesapla({ ...taban, model: m, cihaz: CIHAZ_HARITA.pro6000 }).kullaniciTokS;
+  const mVar = hesapla({ ...taban, model: moe, quant: "nvfp4", cihaz: kart, sistemRam: 64 });
+  const mOran = mVar.kullaniciTokS / hesapla({ ...taban, model: moe, quant: "nvfp4", cihaz: CIHAZ_HARITA.pro6000 }).kullaniciTokS;
   if (mOran <= dOran) hata(`offload: MoE cezası dense'ten hafif olmalı (MoE ${mOran.toFixed(2)} vs dense ${dOran.toFixed(2)})`);
 
   // Birleşik bellekli kutuda offload etkisiz
-  const kYok = hesapla({ ...taban, model: m, cihaz: kutu });
-  const kVar = hesapla({ ...taban, model: m, cihaz: kutu, offloadGB: 40, sistemRam: 128 });
-  if (kYok.kullaniciTokS !== kVar.kullaniciTokS || kVar.offload !== 0)
-    hata("offload: birleşik bellekli kutuda etkisiz olmalıydı");
+  const kVar = hesapla({ ...taban, model: m, cihaz: kutu, sistemRam: 128 });
+  if (kVar.offload !== 0) hata("offload: birleşik bellekli kutuda devreye girmemeliydi");
 
-  // RAM tavanı
-  const asiri = hesapla({ ...taban, model: m, cihaz: kart, offloadGB: 500, sistemRam: 32 });
-  if (asiri.offload > asiri.ramTavani) hata("offload: sistem RAM tavanı aşıldı");
+  // RAM yetmezse açıkça raporlanmalı
+  const azRam = hesapla({ ...taban, model: MODEL_HARITA["glm_53"], quant: "fp8", cihaz: kart, sistemRam: 32 });
+  if (!azRam.offloadYetersiz) hata("offload: RAM yetersizliği raporlanmadı");
+  if (azRam.sigar) hata("offload: RAM yetmezken sığar göründü");
+
+  // Platform sınıfı hem kart sayısına hem istenen RAM'e bağlı olmalı
+  if (anaSistem(2, 64).ad === anaSistem(2, 384).ad)
+    hata("anaSistem: 384 GB RAM istendiğinde daha büyük platform seçilmedi");
+  if (anaSistem(2, 384).usd <= anaSistem(2, 64).usd)
+    hata("anaSistem: büyük RAM platformu maliyetsiz göründü");
+  // Büyük platform daha geniş PCIe/RAM yolu → offload daha hızlı
+  const kucukP = hesapla({ ...taban, model: m, cihaz: kart, adet: 2, sistemRam: 64 });
+  const buyukP = hesapla({ ...taban, model: m, cihaz: kart, adet: 2, sistemRam: 384 });
+  if (buyukP.pcieBW <= kucukP.pcieBW) hata("platform: büyük platformda offload yolu genişlemedi");
 
   // MTP yalnızca head'i olan modelde çalışır
   const mtpsiz = MODELS.find((x) => !x.mtp);
@@ -233,7 +290,7 @@ for (const s of SENARYOLAR) {
   const c = hesapla({ ...taban, model: mtpli, cihaz: CIHAZ_HARITA.b200, adet: 8, mtp: false });
   const d = hesapla({ ...taban, model: mtpli, cihaz: CIHAZ_HARITA.b200, adet: 8, mtp: true });
   if (!(d.kullaniciTokS > c.kullaniciTokS)) hata("MTP: head'i olan modelde hız artmadı");
-  if (Math.abs(d.ttftYogun - c.ttftYogun) > 1e-9) hata("MTP: ilk token'ı da değiştirdi — yalnızca decode'u hızlandırmalı");
+  if (Math.abs(d.ttftYogun - c.ttftYogun) > 1e-9) hata("MTP: ilk token'ı da değiştirdi");
 
   // Kalibrasyon: DGX Spark + Qwen3.8-Flash-Next, ölçülen 16,8 → 24,6 tok/s
   const fn = MODEL_HARITA["qwen38_flash_next"], spark = CIHAZ_HARITA["spark"];
@@ -277,7 +334,7 @@ if (process.argv.includes("--canli")) {
 }
 
 /* ---------------- Rapor ---------------- */
-console.log(`\n${MODELS.length} model · ${DEVICES.length} cihaz · ${QUANTS.length} kuantizasyon · ${SENARYOLAR.length} senaryo · ${IS_YUKLERI.length} iş yükü profili kontrol edildi.`);
+console.log(`\n${MODELS.length} model · ${DEVICES.length} cihaz · ${QUANTS.length} kuantizasyon · ${SENARYOLAR.length} senaryo · ${IS_YUKLERI.length} iş yükü profili · ${BANTLAR.length} satın alma bandı kontrol edildi.`);
 if (uyarilar.length) {
   console.log(`\n${uyarilar.length} uyarı:`);
   uyarilar.forEach((u) => console.log("  ⚠ " + u));

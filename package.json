@@ -19,7 +19,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "dogrula": "node scripts/dogrula.mjs",
-    "model-tara": "node scripts/modelTara.mjs"
+    "model-tara": "node scripts/modelTara.mjs",
+    "smoke": "node scripts/smokeTest.mjs",
+    "test": "npm run dogrula && npm run smoke"
   },
   "dependencies": {
     "react": "^18.3.1",

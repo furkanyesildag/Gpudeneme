@@ -184,12 +184,12 @@ export const YIGIN = {
 /*  tek karta sunucu şasisi yazmak toplam maliyeti çarpıtır.           */
 /* ------------------------------------------------------------------ */
 export const ANA_SISTEM = [
-  { maxKart: 2, ad: "Masaüstü iş istasyonu", usd: 900, w: 150, ram: 64, pcie: 5,
-    not: "Standart anakart, 1000-1600 W güç kaynağı, 64 GB DDR5." },
-  { maxKart: 4, ad: "Çok yuvalı iş istasyonu", usd: 2600, w: 250, ram: 384, pcie: 5,
-    not: "Threadripper/Xeon sınıfı anakart, bol PCIe hattı, 384 GB ECC RDIMM, 1600-2000 W güç kaynağı." },
-  { maxKart: 8, ad: "Sunucu şasisi", usd: 8500, w: 400, ram: 768, pcie: 5,
-    not: "Rack sunucu, yedekli güç kaynağı, aktif soğutma. Gürültülü — ofis odasına konmaz." },
+  { maxKart: 2, ad: "Masaüstü iş istasyonu", usd: 900, w: 150, ram: 192, pcie: 5, ramBW: 70,
+    not: "Tüketici anakart (i9/Ryzen sınıfı): 4 DIMM ile 192 GB'a kadar ama hep ÇİFT kanal, yani kapasite artsa da bant genişliği artmaz. İşlemcinin PCIe hattı sınırlı — ikinci kart x8'e düşer." },
+  { maxKart: 4, ad: "Çok yuvalı iş istasyonu", usd: 2600, w: 250, ram: 384, pcie: 5, ramBW: 250,
+    not: "Threadripper/Xeon sınıfı anakart, her kart tam x16, 8 kanal 384 GB ECC RDIMM, 1600-2000 W güç kaynağı." },
+  { maxKart: 8, ad: "Sunucu şasisi", usd: 8500, w: 400, ram: 768, pcie: 5, ramBW: 430,
+    not: "Rack sunucu, 12 kanal bellek, yedekli güç kaynağı, aktif soğutma. Gürültülü — ofis odasına konmaz." },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -202,7 +202,26 @@ export const ANA_SISTEM = [
 /*  Birleşik bellekli kutularda (Mac, Spark, Strix Halo) anlamsızdır:  */
 /*  ağırlıklar zaten sistem RAM'indedir, taşınacak bir yer yok.        */
 /* ------------------------------------------------------------------ */
-export const PCIE_BW = { 3: 16, 4: 31, 5: 63 }; // GB/s, x16 tek yön
+/* PCIe x16 tek yön TEORİK bant genişliği (GB/s). */
+export const PCIE_BW = { 3: 16, 4: 31, 5: 63 };
+
+/* Gerçekleşen oran. Protokol yükü, kesik kesik erişim ve sabitlenmiş
+   (pinned) bellek kopyalarının maliyeti teorik değerin altına indirir;
+   ölçümlerde pratikte %70-80 arası görülür. */
+export const PCIE_VERIM = 0.75;
+
+/* Host RAM bant genişliği (GB/s, gerçekleşen). Offload edilen ağırlıklar
+   önce RAM'den okunur, sonra PCIe'den geçer — hangisi darsa o sınırlar.
+   Masaüstü çift kanal DDR5-5600 ≈ 90 teorik / ~70 gerçek;
+   Threadripper PRO 8 kanal ≈ 330 / ~250; sunucu 12 kanal ≈ 600 / ~430. */
+
+/* Kart başına düşen PCIe hattı. Masaüstü anakartta işlemcinin hattı sınırlı
+   olduğu için ikinci kart x8'e düşer; iş istasyonu/sunucu platformlarında
+   her kart tam x16 alır. Bu, çok kartlı offload'da gerçek bir fark yaratır. */
+export function pcieHatti(anaSistemAdi, kartSayisi) {
+  if (anaSistemAdi === "Masaüstü iş istasyonu") return kartSayisi > 1 ? 8 : 16;
+  return 16;
+}
 
 /* Seçilebilir sistem RAM kapasiteleri. Offload'ın tavanını bu belirler:
    ağırlıkların RAM'e taşınan kısmı buraya sığmak zorunda. İşletim sistemi

@@ -8,6 +8,7 @@ import {
 } from "./data/devices.js";
 import { QUANTS, QUANT_HARITA, QUANT_GRUP, KVQUANTS, KVQUANT_HARITA, DUSUK_QUANT_ONER } from "./data/quants.js";
 import { SENARYOLAR } from "./data/concepts.js";
+import { BANTLAR } from "./data/bantlar.js";
 import { IS_YUKLERI, IS_YUKU_HARITA, eslesenProfil } from "./data/isYukleri.js";
 import {
   hesapla, kapasite, hedefDurumu, kvTipi, ctxYazi, harfYazi,
@@ -68,7 +69,7 @@ const VARSAYILAN = {
 const HEDEF_RENK = { iyi: C.ok, sinir: C.warn, kotu: C.bad };
 
 const SEKMELER = [
-  { k: "bantlar", ad: "Satın alma bantları", rozet: 5 },
+  { k: "bantlar", ad: "Satın alma bantları", rozet: BANTLAR.length },
   { k: "donanim", ad: "Donanım karşılaştırması" },
   { k: "modeller", ad: "Model uyumu" },
   { k: "grafik", ad: "Duyarlılık grafiği" },
@@ -95,7 +96,7 @@ export default function Simulator() {
     ...VARSAYILAN_HEDEF, ...IS_YUKU_HARITA.sohbet_kisa.hedef, ...ilk.hedef,
   }));
 
-  const [offloadGB, setOffloadGB] = useState(ilk.offloadGB ?? 0);
+  const [offloadModu, setOffloadModu] = useState(ilk.offloadModu ?? "otomatik");
   const [sistemRam, setSistemRam] = useState(ilk.sistemRam ?? 0); // 0 = ana sisteme göre
   const [mtpAcik, setMtpAcik] = useState(ilk.mtpAcik ?? false);
   const [quantBilgi, setQuantBilgi] = useState(null);   // { durum, bilinmiyor, depolar }
@@ -132,18 +133,18 @@ export default function Simulator() {
   useEffect(() => { if (girdiK > ctxK) setGirdiK(Math.max(1, Math.round(ctxK / 2))); }, [ctxK, girdiK]);
 
   useEffect(() => {
-    durumuYaz({ modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi, hedef, offloadGB, sistemRam, mtpAcik });
-  }, [modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi, hedef, offloadGB, sistemRam, mtpAcik]);
+    durumuYaz({ modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi, hedef, offloadModu, sistemRam, mtpAcik });
+  }, [modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi, hedef, offloadModu, sistemRam, mtpAcik]);
 
   /* Sistem RAM'i seçilmediyse ana sistemin varsayılanı kullanılır. */
-  const etkinRam = sistemRam || anaSistem(cihaz.tur === "kart" ? adet : 0).ram || 0;
+  const etkinRam = sistemRam || anaSistem(cihaz.tur === "kart" ? adet : 0, 0).ram || 0;
 
   const ortak = useMemo(
     () => ({
       quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran: kvOran / 100,
-      offloadGB, mtp: mtpAcik, sistemRam: etkinRam,
+      offloadModu, mtp: mtpAcik, sistemRam: etkinRam,
     }),
-    [quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, offloadGB, mtpAcik, etkinRam]
+    [quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, offloadModu, mtpAcik, etkinRam]
   );
 
   const r = useMemo(() => hesapla({ ...ortak, model, cihaz, adet }), [ortak, model, cihaz, adet]);
@@ -200,10 +201,11 @@ export default function Simulator() {
         for (const [ad, ayarla] of [
           ["adet", setAdet], ["ctxK", setCtxK], ["girdiK", setGirdiK],
           ["kullanici", setKullanici], ["cikti", setCikti], ["kvOran", setKvOran],
-          ["offloadGB", setOffloadGB], ["sistemRam", setSistemRam],
+          ["sistemRam", setSistemRam],
         ]) if (typeof d[ad] === "number") ayarla(d[ad]);
         if (typeof d.indirGibi === "boolean") setIndirGibi(d.indirGibi);
         if (typeof d.mtpAcik === "boolean") setMtpAcik(d.mtpAcik);
+        if (d.offloadModu) setOffloadModu(d.offloadModu);
         if (d.hedef) setHedef((h) => ({ ...h, ...d.hedef }));
       }),
     []
@@ -215,7 +217,7 @@ export default function Simulator() {
     setModelId(a.modelId); setCihazId(a.cihazId); setAdet(a.adet);
     setQuant(a.quant); setKvq(a.kvq); setCtxK(a.ctxK); setGirdiK(a.girdiK);
     setKullanici(a.kullanici); setCikti(a.cikti);
-    setOffloadGB(a.offloadGB ?? 0);
+    setOffloadModu(a.offloadModu ?? "otomatik");
     if (a.sistemRam) setSistemRam(a.sistemRam);
     if (a.mtp !== undefined) setMtpAcik(!!a.mtp);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -268,19 +270,20 @@ export default function Simulator() {
     else if (kvq !== "fp16")
       out.push({ tip: "bilgi", baslik: `KV cache: ${kvAktif.ad}`, metin: kvAktif.not });
 
-    if (!r.ramYeterli)
+    if (r.offloadYetersiz)
       out.push({
-        tip: "tehlike", baslik: "Sistem RAM'i yetmiyor",
-        metin: `${gb(offloadGB)} GB offload istedin ama ${r.ram} GB RAM'in ${gb(r.ramTavani)} GB'ı kullanılabilir. RAM'i büyüt ya da offload'ı düşür.`,
+        tip: "tehlike", baslik: "Sistem RAM'i de yetmiyor",
+        metin: `Sığdırmak için ${gb(r.offloadGerekli + (r.gerekliGB - r.toplamBellek))} GB taşınması gerekiyor ama ${r.ram} GB RAM'in yalnızca ${gb(r.ramTavani)} GB'ı kullanılabilir. Sistem RAM'ini büyüt, kuantizasyonu düşür ya da cihaz ekle.`,
       });
 
     if (r.offload > 0 && r.sigar) {
       const yavaslama = r.offloadOrani > 0 ? (r.kumeBW * cihaz.mbu) / r.pcieBW : 1;
       out.push({
         tip: r.offloadOrani > 0.5 ? "uyari" : "bilgi",
-        baslik: `Offload: ağırlığın %${Math.round(r.offloadOrani * 100)}'i sistem RAM'inde`,
+        baslik: `Offload devrede: ağırlığın %${Math.round(r.offloadOrani * 100)}'i sistem RAM'inde`,
         metin:
-          `${gb(r.offload)} GB host RAM'de duruyor ve her adımda PCIe üzerinden (~${Math.round(r.pcieBW)} GB/s) okunuyor — VRAM'den ~${Math.round(yavaslama)}× yavaş. ` +
+          `Model VRAM'e sığmadığı için sığdırmaya yetecek EN AZ miktar (${gb(r.offload)} GB) otomatik olarak host RAM'e taşındı; ` +
+          `bu kısım her adımda ~${Math.round(r.pcieBW)} GB/s ile (PCIe ${r.hat} hat) okunuyor — VRAM'den ~${Math.round(yavaslama)}× yavaş. ` +
           (model.ap < model.tp
             ? `Neyse ki bu bir MoE: her adımda ${model.tp}B'nin yalnızca ${model.ap}B'si okunuyor, dolayısıyla offload cezası dense bir modele göre çok daha hafif kalıyor.`
             : `Dense modelde her adımda ağırlığın TAMAMI okunur, bu yüzden offload burada ağır bedel ödetiyor. Aynı belleğe sığan bir MoE çok daha iyi sonuç verir.`) +
@@ -360,7 +363,7 @@ export default function Simulator() {
       });
 
     return out;
-  }, [model, quant, kvq, cihaz, adet, r, qAktif, kvAktif, indirGibi, ctxK, girdiK, kullanici, hedef, kap, tpsDurum, ttftDurum, quantBilgi, mtpAcik, offloadGB]);
+  }, [model, quant, kvq, cihaz, adet, r, qAktif, kvAktif, indirGibi, ctxK, girdiK, kullanici, hedef, kap, tpsDurum, ttftDurum, quantBilgi, mtpAcik, offloadModu]);
 
   /* ---------------- Danışman bağlamı ---------------- */
   const sohbetBaglami =
@@ -655,18 +658,20 @@ export default function Simulator() {
                     {RAM_SECENEK.map((g) => <option key={g} value={g}>{g} GB</option>)}
                   </Secim>
 
-                  <Kaydirac
-                    etiket="Ağırlıkları sistem RAM'ine taşı (offload)"
-                    deger={Math.min(offloadGB, Math.floor(r.offloadMumkun))}
-                    onChange={setOffloadGB}
-                    min={0} max={Math.max(1, Math.floor(r.offloadMumkun))} step={1}
-                    goster={offloadGB > 0 ? `${gb(r.offload)} GB · %${Math.round(r.offloadOrani * 100)}` : "kapalı"}
+                  <Secim
+                    etiket="Offload (sistem RAM'ine taşıma)"
+                    deger={offloadModu} onChange={setOffloadModu}
                     alt={
-                      offloadGB > 0
-                        ? `Bu kısım her adımda PCIe ${anaSistem(adet).pcie}.0 üzerinden (~${Math.round(r.pcieBW)} GB/s) okunur — VRAM'den ${Math.round((r.kumeBW * cihaz.mbu) / r.pcieBW)}× yavaş.`
-                        : "VRAM'e sığmayan ağırlıkları host RAM'de tutar (llama.cpp -ngl, vLLM --cpu-offload-gb). Sığdırır ama yavaşlatır."
+                      offloadModu === "kapali"
+                        ? "Model VRAM'e sığmıyorsa “sığmıyor” denir. Gerçek kapasiteyi görmek için."
+                        : r.offload > 0
+                        ? `Sığdırmak için ${gb(r.offload)} GB taşındı (ağırlığın %${Math.round(r.offloadOrani * 100)}'i). Bu kısım her adımda ~${Math.round(r.pcieBW)} GB/s ile okunur — VRAM'den ${Math.round((r.kumeBW * cihaz.mbu) / r.pcieBW)}× yavaş.`
+                        : "Gerek yok — model zaten VRAM'e sığıyor. Sığmasaydı yetecek en az miktar otomatik taşınırdı."
                     }
-                  />
+                  >
+                    <option value="otomatik">Otomatik — gerektiği kadar taşı</option>
+                    <option value="kapali">Kapalı — yalnızca VRAM kullan</option>
+                  </Secim>
                 </>
               )}
               <div style={{ background: C.paper2, border: `1px solid ${C.line2}`, borderRadius: RADIUS.sm, padding: `${S.sm + 2}px ${S.md}px`, fontFamily: MONO, fontSize: 11, color: C.ink2, lineHeight: 1.8 }}>

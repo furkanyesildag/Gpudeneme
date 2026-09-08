@@ -31,11 +31,12 @@ Türkiye fiyatını ve elektrik maliyetini çıkarır.
 - **Var olmayan kuantizasyonu seçtirmez** — model seçilince HuggingFace'te o modelin
   GGUF depoları aranır, dosya adlarından hangi şemaların gerçekten yayımlandığı
   çıkarılır. Bulunmayanlar listeden gizlenir (bir onay kutusuyla geri getirilebilir).
-- **Offload (sistem RAM'i)** — VRAM'e sığmayan ağırlıkların bir kısmı host RAM'de
-  tutulabilir (llama.cpp `-ngl`, vLLM `--cpu-offload-gb`). Araç bunu modeller: taşınan
-  kısım her adımda PCIe üzerinden okunur, hız buna göre düşer. Dense modelde bedel ağır,
-  MoE'de yaşanabilir — 24 GB'lık bir RTX 3090, gpt-oss-120b'yi 50 GB offload'la
-  27 tok/s'de çalıştırır.
+- **Otomatik offload** — VRAM'e sığmayan ağırlıkların bir kısmı host RAM'de tutulabilir
+  (llama.cpp `-ngl`, vLLM `--cpu-offload-gb`). Kaç GB taşınacağını sen seçmezsin:
+  taşınan her bayt yavaşlattığı için doğru cevap **sığdırmaya yetecek en az miktardır**
+  ve araç bunu kendisi hesaplar. Tek anlamlı tercih offload'ın kullanılıp
+  kullanılmayacağıdır. Dense modelde bedel ağır, MoE'de yaşanabilir — 24 GB'lık bir
+  RTX 3090, gpt-oss-120b'yi otomatik offload'la 22 tok/s'de çalıştırır.
 - **Speculative decoding (MTP)** — modelin kendi MTP head'i açıldığında her adımda bir
   taslak token daha üretilir. Hangi modelde head olduğu `config.json`'dan okundu, tahmin
   edilmedi: 109 modelin 48'inde var.
@@ -59,7 +60,8 @@ Türkiye fiyatını ve elektrik maliyetini çıkarır.
   RTX 5090 + gpt-oss-20b'de "yüksek" seçilince 9,3 saniyelik yanıtın 8,8 saniyesi
   düşünmeye gidiyor; bu farkı hiçbir tablo sütunu göstermiyor.
 - **Satın alma bantları** — "bu para bandında ne alınır, nerede tıkanır" sorusunun
-  cevabı. Beş banda ayrılmış gerçek yapılandırmalar; her kartta simülatörün kendi
+  cevabı. 95 bin ₺'lik ikinci el tek karttan 3,3 milyonluk çift PRO 6000'e kadar
+  **dokuz banda** ayrılmış gerçek yapılandırmalar; her kartta simülatörün kendi
   hesabı ve simülatörün göremediği şeyler (stok, garanti, PCIe hattı, platform büyüme
   yolu) yan yana. Tek tıkla simülatöre yüklenir.
 - **LLM Altyapı Danışmanı** — DeepSeek destekli sohbet. Bir HuggingFace linki
@@ -75,8 +77,15 @@ npm run dev      # geliştirme sunucusu → http://localhost:5173
 npm run build    # üretim derlemesi (dist/)
 npm run preview  # derlemeyi önizle
 npm run dogrula  # veri bütünlüğü + motor akıl sağlığı testleri
+npm run smoke    # gerçek Chrome'da arayüz smoke testi (dev sunucusu açıkken)
+npm run test     # ikisi birden
 npm run model-tara  # HuggingFace'te trend olup veritabanında olmayan modeller
 ```
+
+`npm run smoke` uygulamayı headless Chrome'da açıp render oluyor mu, konsol temiz mi,
+her sekme çalışıyor mu, dar ekranda taşma veya içeriği kesen kap var mı diye bakar.
+Derleme bunları yakalayamıyor: tanımsız bir değişken Vite'ı geçer ama tarayıcıda
+patlar — bu testi yazmama sebep olan hata tam olarak buydu.
 
 ### Model veritabanını taze tutmak
 
@@ -211,23 +220,29 @@ yanlış yönlendirme ile yanlış engelleme arasındaki denge budur.
 
 ## Offload nasıl hesaplanır
 
-VRAM'e sığmayan ağırlıkların bir kısmı sistem RAM'inde tutulabilir. Adım süresi
-iki okumanın toplamıdır:
+VRAM'e sığmayan ağırlıkların bir kısmı sistem RAM'inde tutulabilir. **Miktar otomatik:**
+offload edilen her bayt PCIe üzerinden okunacağı için yavaşlatır, dolayısıyla en iyi
+miktar sığdırmaya yetecek en azdır (bellek %96'da tutulur — tam tepeye oturmak çalışma
+zamanında taşmaya yol açar). Adım süresi iki okumanın toplamıdır:
 
 ```
 süre = VRAM'den_okunan_bayt / (VRAM_bant_genişliği × MBU × MoE_verimi)
      + RAM'den_okunan_bayt  / PCIe_bant_genişliği
 ```
 
-PCIe 5.0 ×16 ≈ 63 GB/s; bir RTX 5090'ın VRAM'i 1792 GB/s. Aradaki ~28 kat fark,
-offload'ın neden yavaşlattığını açıklar. **Ama MoE'de bedel çok daha hafiftir:**
+PCIe 5.0 ×16 teorik 63 GB/s, gerçekleşen ~47 GB/s (protokol yükü ve kesik erişim);
+bir RTX 5090'ın VRAM'i 1792 GB/s. Aradaki ~38 kat fark, offload'ın neden yavaşlattığını
+açıklar. Host RAM bant genişliği de sınırlayıcı olabilir; hangisi darsa o belirler.
+Tüketici anakartta ikinci kart PCIe x8'e düştüğü için kart başına hat sayısı da hesaba
+katılır — platform sınıfı hem kart sayısından hem seçilen RAM kapasitesinden çıkarılır
+(384 GB ECC RDIMM tüketici anakartına takılmaz, maliyeti de ona göre yazılır). **Ama MoE'de bedel çok daha hafiftir:**
 her adımda toplam ağırlığın yalnızca aktif kısmı okunur, dolayısıyla PCIe üzerinden
 çekilen bayt da o oranda azdır.
 
 | Kurulum | Offload yok | 50 GB offload |
 | --- | --- | --- |
-| Qwen3.8-27B BF16 (dense) · RTX 3090 | sığmaz | 1,5 tok/s |
-| gpt-oss-120b NVFP4 (5,1B aktif) · RTX 3090 | sığmaz | **27,5 tok/s** |
+| Qwen3.8-27B BF16 (dense) · RTX 3090 | sığmaz | 1,6 tok/s |
+| gpt-oss-120b NVFP4 (5,1B aktif) · RTX 3090 | sığmaz | **22 tok/s** |
 
 KV cache offload edilmez: her adımda tamamı taranır, PCIe üzerinden okumak kabul
 edilemez derecede yavaş olurdu.

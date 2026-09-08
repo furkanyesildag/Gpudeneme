@@ -7,9 +7,9 @@
 const ALANLAR = {
   m: "modelId", c: "cihazId", n: "adet", q: "quant", k: "kvq",
   x: "ctxK", g: "girdiK", u: "kullanici", o: "cikti", d: "kvOran", i: "indirGibi",
-  f: "offloadGB", r: "sistemRam", p: "mtpAcik",
+  f: "offloadModu", r: "sistemRam", p: "mtpAcik",
 };
-const SAYI = new Set(["adet", "ctxK", "girdiK", "kullanici", "cikti", "kvOran", "offloadGB", "sistemRam"]);
+const SAYI = new Set(["adet", "ctxK", "girdiK", "kullanici", "cikti", "kvOran", "sistemRam"]);
 const BOOL = new Set(["indirGibi", "mtpAcik"]);
 
 /* Performans hedefleri ayrı bir grupta taşınır: ht=ttftMs, hp=tps,
