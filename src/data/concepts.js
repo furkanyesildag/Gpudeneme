@@ -18,6 +18,7 @@ export const KAVRAMLAR = [
   { ad: "MLA (latent attention)", benzet: "Not defterini stenoyla tutmak.", ozet: "DeepSeek, GLM ve Kimi'nin kullandığı sıkıştırılmış KV yöntemi. Aynı bağlamı 3-5 kat daha az bellekle tutar." },
   { ad: "Batching", benzet: "Servisi tek tek değil, tepsiyle taşımak.", ozet: "Birden çok kullanıcının isteğini aynı anda işlemek. Toplam verimi çok artırır, kişi başına hızı bir miktar düşürür." },
   { ad: "Eşzamanlılık (C) ≠ kullanıcı", benzet: "Restoranda masa sayısı ile günlük müşteri sayısı.", ozet: "C, modelin aynı anda işlediği istek sayısıdır. Sohbet eden biri zamanının çoğunu okuyarak ve yazarak geçirdiği için bir 'masa' birden çok kişiye yeter; ajanlar ise masayı hiç boşaltmaz. Kapasite bu yüzden C'nin katıdır." },
+  { ad: "Ağırlık vs KV kuantizasyonu", benzet: "Kitabı küçük puntoyla basmak ile kenar notlarını stenoyla tutmak.", ozet: "Ağırlık kuantizasyonu indirdiğin DOSYANIN içindedir — hangi dosyayı seçtiğinle belirlenir. KV cache kuantizasyonu ise dosyada yoktur: KV cache sen konuşmaya başlayınca oluşur, bu yüzden hassasiyeti sunucuyu başlatırken bayrakla verilir (vLLM'de --kv-cache-dtype, llama.cpp'de --cache-type-k/v). İkisi bağımsızdır: BF16 ağırlık + FP8 KV ya da Q4 ağırlık + FP16 KV tamamen geçerlidir." },
   { ad: "Prefix caching", benzet: "Aynı kitabı her seferinde baştan okumamak.", ozet: "Sohbet geçmişinin ve sistem promptunun daha önce işlenmiş kısmı yeniden hesaplanmaz. İlk token gecikmesini dramatik düşürür — bu yüzden 'ortalama prompt uzunluğu' sanılandan çok daha kısadır." },
 ];
 

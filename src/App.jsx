@@ -6,7 +6,7 @@ import {
   DEVICES, CIHAZ_HARITA, GRUP_SIRA, TR_DURUM, TR_NOT, MIM_AD,
   FP4_NATIVE, FP8_NATIVE, YIGIN, RAM_SECENEK, RAM_ISLETIM_PAYI, PCIE_BW, ANA_SISTEM,
 } from "./data/devices.js";
-import { QUANTS, QUANT_HARITA, QUANT_GRUP, KVQUANTS, KVQUANT_HARITA, DUSUK_QUANT_ONER } from "./data/quants.js";
+import { QUANTS, QUANT_HARITA, QUANT_GRUP, KVQUANTS, KVQUANT_HARITA, DUSUK_QUANT_ONER, kvBayragi } from "./data/quants.js";
 import { SENARYOLAR } from "./data/concepts.js";
 import { BANTLAR } from "./data/bantlar.js";
 import { IS_YUKLERI, IS_YUKU_HARITA, eslesenProfil } from "./data/isYukleri.js";
@@ -501,7 +501,7 @@ export default function Simulator() {
 
               <Onay
                 etiket="İndirdiğin gibi çalıştır"
-                aciklama="Tam hassasiyet (BF16 + FP16 KV), hiç kuantizasyon yok."
+                aciklama="Tam hassasiyet ağırlık (BF16) + KV cache'e dokunma (FP16). İkisi ayrı şeydir: ağırlık indirdiğin dosyada, KV ise çalışma zamanı ayarı."
                 isaretli={indirGibi} onChange={setIndirGibi}
               />
 
@@ -576,6 +576,38 @@ export default function Simulator() {
                   <Secim etiket="KV cache kuantizasyonu" deger={kvq} onChange={setKvq} alt={kvAktif.not}>
                     {KVQUANTS.map((q) => <option key={q.id} value={q.id}>{q.ad}</option>)}
                   </Secim>
+
+                  {/* En sık karışan nokta: KV kuantizasyonu indirilen dosyanın
+                      içinde GELMEZ, sunucuyu başlatırken bayrakla açılır.
+                      Bayrağı vermeyi unutan kişi bu sayfadaki bellek hesabını
+                      tutturamaz — o yüzden komutu doğrudan gösteriyoruz. */}
+                  {(() => {
+                    const gguf = /GGUF|IQ|^Q\d/.test(qAktif.ad);
+                    const b = kvBayragi(kvq, gguf ? "gguf" : "vllm");
+                    return (
+                      <div style={{ background: C.paper2, border: `1px solid ${C.line2}`, borderRadius: RADIUS.sm, padding: `${S.sm}px ${S.md}px`, marginTop: -S.sm, marginBottom: S.md }}>
+                        <div style={{ ...T.mini, color: C.ink2 }}>
+                          KV kuantizasyonu <b>indirdiğin dosyada gelmez ve otomatik açılmaz</b> —
+                          KV cache konuşma başlayınca oluşur, bu yüzden hassasiyeti sunucuyu
+                          başlatırken verilir. Her yığının varsayılanı tam hassasiyettir; bayrağı
+                          vermezsen aşağıdaki bellek hesabı tutmaz.
+                        </div>
+                        <div style={{ marginTop: S.sm }}>
+                          {b.durum === "bayrak" ? (
+                            <code style={{ fontFamily: MONO, fontSize: 11, color: C.steel, wordBreak: "break-all" }}>
+                              {gguf ? "llama-server … " : "vllm serve … "}{b.bayrak}
+                            </code>
+                          ) : (
+                            <span style={{ ...T.mini, color: C.ink3, fontStyle: "italic" }}>
+                              {b.durum === "varsayilan"
+                                ? "Varsayılan davranış — ek bayrak gerekmiyor."
+                                : `${gguf ? "llama.cpp" : "vLLM"} bu şemayı desteklemiyor; ${gguf ? "FP8/q8_0" : "FP8"} seç ya da diğer yığına geç.`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </Bolum>

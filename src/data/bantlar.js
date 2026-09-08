@@ -38,7 +38,7 @@ export const BANTLAR = [
     ad: "Tek RTX 5090",
     fiyat: "~211 bin ₺ (kart ~152 bin + sistem)",
     fiyatTemeli: "bileşen",
-    ozet: "Türkiye'den bugün alınabilecek en hızlı tek kart.",
+    ozet: "Perakendeden, bugün, kutusuyla alınabilecek en hızlı kart.",
     ne: "32 GB GDDR7, 1792 GB/s, 575 W, Blackwell. Raftan alınır.",
     ayar: {
       modelId: "qwen38_27b", cihazId: "5090", adet: 1,
@@ -48,9 +48,11 @@ export const BANTLAR = [
     tekKullanici:
       "27B sınıfını Q4'te ~90 tok/s ile çalıştırır ve ilk token 2 saniyenin altındadır. Blackwell olduğu için NVFP4 donanımda hızlanır.",
     ekip: "Küçük ekip için evet: 27B'de birkaç düzine sohbet kullanıcısı taşır. Bağlamı uzatınca 32 GB hızla dolar.",
-    kime: "“Tek kişi çalışacağım ama hız istiyorum, bugün alayım” diyen. Fiyat/performans olarak bu listenin en dengeli noktası.",
+    kime: "“Tek kişi çalışacağım ama hız istiyorum, bugün alayım” diyen. Yetkili satıcı, sipariş ve teslim süresi istemeyen; mağazadan çıkıp aynı gün kurabilen.",
     tikanma:
       "32 GB tavan. 100B sınıfı MoE'ler ancak offload'la girer ve o zaman PCIe'ye takılır. 575 W — güç kaynağı ve kasa havalandırması ciddi planlanmalı. Masaüstü anakartta ikinci kart x8'e düşer.",
+    ilginc:
+      "“En hızlı kart” değil, “raftan alınabilecek en hızlı kart”. RTX PRO 6000 aynı 1792 GB/s bant genişliğini 96 GB bellekle veriyor (5090'ın 3 katı) ve hesap gücü de daha yüksek — ama 5 kat pahalı ve yetkili satıcıdan siparişle geliyor. Veri merkezi tarafında B200 ve MI300X bant genişliğinde 3-4 kat üstünde. 5090'ın üstünlüğü mutlak hız değil, bugün mağazada olması.",
     renk: "ok",
   },
   {

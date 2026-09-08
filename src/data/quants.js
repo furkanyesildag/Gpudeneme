@@ -176,13 +176,70 @@ export const QUANT_GRUP = ["Tam hassasiyet", "8 bit", "6-5 bit", "4 bit", "3 bit
 
 /* ------------------------------------------------------------------ */
 /*  KV CACHE KUANTİZASYONU                                             */
+/*                                                                     */
+/*  ÖNEMLİ AYRIM: Bu, ağırlık kuantizasyonuyla AYNI ŞEY DEĞİLDİR ve    */
+/*  indirdiğin model dosyasının içinde GELMEZ.                         */
+/*                                                                     */
+/*  Ağırlık kuantizasyonu dosyaya işlenmiştir — hangi dosyayı          */
+/*  indirdiğinle seçersin. KV cache ise indirme anında var olmayan bir */
+/*  şeydir: sen konuşmaya başlayınca token'larından üretilir. Bu        */
+/*  yüzden hassasiyeti bir ÇALIŞMA ZAMANI bayrağıdır, sunucuyu         */
+/*  başlatırken verilir.                                               */
+/*                                                                     */
+/*  İkisi bağımsızdır: BF16 ağırlık + FP8 KV ya da Q4 ağırlık + FP16   */
+/*  KV tamamen geçerli birleşimlerdir.                                 */
+/*                                                                     */
+/*  OTOMATİK DEĞİLDİR. Her yığının varsayılanı TAM HASSASİYETTİR:      */
+/*    vLLM      --kv-cache-dtype auto  → modelin dtype'ı (BF16/FP16)   */
+/*    llama.cpp --cache-type-k f16                                     */
+/*    Ollama    OLLAMA_KV_CACHE_TYPE=f16                               */
+/*  Yani bayrağı vermezsen KV cache kuantize EDİLMEZ ve bu sayfadaki   */
+/*  bellek hesabı tutmaz.                                              */
+/*                                                                     */
+/*  Tek istisna: compressed-tensors biçimi, checkpoint'in kendi        */
+/*  quantization_config'inde bir `kv_cache_scheme` ilan etmesine izin  */
+/*  verir; öyle bir model yüklenirse vLLM bunu kendiliğinden uygular.  */
+/*  Ama pratikte neredeyse kimse yayımlamıyor — bu veritabanındaki     */
+/*  109 modelin config'ini taradım, alanı taşıyan 4 modelde de değer   */
+/*  null. Yani şu an tek bir modelde bile önceden ayarlanmış KV        */
+/*  şeması yok.                                                        */
+/*                                                                     */
+/*  vllm  : vLLM/SGLang'de --kv-cache-dtype değeri                     */
+/*  gguf  : llama.cpp'de --cache-type-k / --cache-type-v değeri        */
 /* ------------------------------------------------------------------ */
 export const KVQUANTS = [
-  { id: "fp16", ad: "FP16 (tam)", f: 1.0, not: "Tam hassasiyet KV cache. En güvenli, en çok yer kaplar." },
-  { id: "fp8", ad: "FP8 / q8_0", f: 0.5, not: "KV cache'i yarıya indirir; kalite etkisi çoğu işte ölçülemeyecek kadar küçük. Uzun bağlamda ilk yapılacak iyileştirme." },
-  { id: "q5", ad: "Q5_1", f: 0.35, not: "KV'yi üçte bire yakın indirir; FP8 ile Q4 arasındaki ara basamak." },
-  { id: "q4", ad: "Q4", f: 0.28, not: "KV cache'i yaklaşık dörtte bire indirir; çok uzun bağlamda hatırlama doğruluğu düşebilir. Ağırlık kuantizasyonundan ÖNCE buna bak." },
+  { id: "fp16", ad: "FP16 (tam)", f: 1.0, vllm: "auto", gguf: "f16",
+    not: "Tam hassasiyet KV cache — hiçbir bayrak vermezsen varsayılan budur. En güvenli, en çok yer kaplar." },
+  { id: "fp8", ad: "FP8 / q8_0", f: 0.5, vllm: "fp8", gguf: "q8_0",
+    not: "KV cache'i yarıya indirir; kalite etkisi çoğu işte ölçülemeyecek kadar küçük. Uzun bağlamda ilk yapılacak iyileştirme. Ada/Hopper/Blackwell'de donanımda hızlanır; eski kartlarda yer kazandırır ama hız kazandırmaz." },
+  { id: "q5", ad: "Q5_1", f: 0.35, vllm: null, gguf: "q5_1",
+    not: "KV'yi üçte bire yakın indirir; FP8 ile Q4 arasındaki ara basamak. Yalnızca llama.cpp tarafında var." },
+  { id: "q4", ad: "Q4_0", f: 0.28, vllm: null, gguf: "q4_0",
+    not: "KV cache'i yaklaşık dörtte bire indirir; çok uzun bağlamda hatırlama doğruluğu düşebilir. Ağırlık kuantizasyonundan ÖNCE buna bak. Yalnızca llama.cpp." },
 ];
+
+/** Seçilen KV kuantizasyonunu açan komut satırı bayrağı.
+ *  Kullanıcının en sık takıldığı yer burası: ayarı arayüzde seçiyor ama
+ *  sunucuyu başlatırken vermeyi unutuyor, sonra bellek hesabı tutmuyor.
+ *
+ *  @returns {{durum:"varsayilan"|"bayrak"|"yok", bayrak?:string}}
+ *    varsayilan → zaten öyle çalışır, bayrak gerekmez
+ *    bayrak     → bu bayrağı vermelisin
+ *    yok        → bu yığın bu şemayı desteklemiyor
+ */
+export function kvBayragi(kvqId, yigin = "vllm") {
+  const k = KVQUANTS.find((x) => x.id === kvqId);
+  if (!k) return { durum: "yok" };
+  if (yigin === "gguf") {
+    if (!k.gguf) return { durum: "yok" };
+    if (k.gguf === "f16") return { durum: "varsayilan" };
+    // llama.cpp'de V cache'i kuantize etmek flash attention gerektirir.
+    return { durum: "bayrak", bayrak: `-fa --cache-type-k ${k.gguf} --cache-type-v ${k.gguf}` };
+  }
+  if (!k.vllm) return { durum: "yok" };
+  if (k.vllm === "auto") return { durum: "varsayilan" };
+  return { durum: "bayrak", bayrak: `--kv-cache-dtype ${k.vllm}` };
+}
 
 export const KVQUANT_HARITA = Object.fromEntries(KVQUANTS.map((q) => [q.id, q]));
 

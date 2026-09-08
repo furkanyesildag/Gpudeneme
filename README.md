@@ -224,6 +224,35 @@ listeden gizlenir. Arama eksiksiz değildir (depo adı modele benzemiyorsa kaç�
 bu yüzden gizlenenler bir onay kutusuyla geri getirilebilir ve seçilirse uyarı çıkar —
 yanlış yönlendirme ile yanlış engelleme arasındaki denge budur.
 
+## Ağırlık vs KV cache kuantizasyonu — aynı şey değil
+
+En sık karışan nokta bu, o yüzden araç ikisini ayrı seçtiriyor:
+
+| | Ağırlık kuantizasyonu | KV cache kuantizasyonu |
+| --- | --- | --- |
+| Nerede? | **İndirdiğin dosyanın içinde** | Dosyada yok — **çalışma anında** |
+| Nasıl seçilir? | Hangi dosyayı indirdiğinle | Sunucuyu başlatırken bayrakla |
+| Neden? | Ağırlıklar dosyada durur | KV cache indirme anında var olmayan bir şeydir; sen konuşmaya başlayınca token'larından üretilir |
+
+```bash
+vllm serve <model> --kv-cache-dtype fp8
+llama-server -m model.gguf -fa --cache-type-k q8_0 --cache-type-v q8_0
+```
+
+**Otomatik açılmaz.** Her yığının varsayılanı tam hassasiyettir (vLLM `auto` =
+modelin dtype'ı, llama.cpp `f16`, Ollama `f16`). Bayrağı vermezsen KV kuantize
+edilmez ve buradaki bellek hesabı tutmaz — arayüz seçtiğin şemanın komutunu bu
+yüzden doğrudan gösteriyor.
+
+Tek istisna: `compressed-tensors` biçimi, checkpoint'in kendi
+`quantization_config`'inde bir `kv_cache_scheme` ilan etmesine izin verir ve öyle
+bir model yüklenirse vLLM bunu kendiliğinden uygular. Pratikte neredeyse kimse
+yayımlamıyor — bu veritabanındaki 109 modelin config'ini taradım, alanı taşıyan
+4 modelde de değer `null`.
+
+İkisi bağımsızdır: BF16 ağırlık + FP8 KV ya da Q4 ağırlık + FP16 KV tamamen
+geçerli birleşimlerdir.
+
 ## Offload nasıl hesaplanır
 
 VRAM'e sığmayan ağırlıkların bir kısmı sistem RAM'inde tutulabilir. **Miktar otomatik:**
