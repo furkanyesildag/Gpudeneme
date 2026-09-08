@@ -45,6 +45,27 @@ const YANIT =
 
 const KAR_TOK = 4; // token ≈ 4 karakter
 
+/* ------------------------------------------------------------------ */
+/*  DÜŞÜNME SEVİYELERİ                                                 */
+/*                                                                     */
+/*  Modern modeller düşünmeyi açık/kapalı bir anahtar olarak değil,    */
+/*  "reasoning effort" olarak sunar: düşük / orta / yüksek. Her seviye */
+/*  farklı bir düşünce bütçesine karşılık gelir ve cevabın ilk harfini */
+/*  o kadar öteler. Token sayıları tipik gözlemlerdir; asıl mesele     */
+/*  seviyeler arasındaki büyüklük farkıdır.                            */
+/* ------------------------------------------------------------------ */
+export const DUSUNME_SEVIYELERI = [
+  { id: "kapali", ad: "Kapalı", tok: 0,
+    not: "Model doğrudan cevap yazar. En hızlı ilk harf; karmaşık sorularda doğruluk düşer." },
+  { id: "dusuk", ad: "Düşük", tok: 256,
+    not: "Kısa bir plan kurar. Günlük sorularda doğruluğu belirgin artırır, gecikmeyi az uzatır." },
+  { id: "orta", ad: "Orta", tok: 1024,
+    not: "Tipik varsayılan. Çok adımlı sorularda gözle görülür fark yaratır." },
+  { id: "yuksek", ad: "Yüksek", tok: 4096,
+    not: "Zor akıl yürütme ve kod için. Cevabın ilk harfi dakikalara kadar ötelenebilir — ajan işlerinde sorun değil, sohbette dayanılmaz." },
+];
+const SEVIYE_HARITA = Object.fromEntries(DUSUNME_SEVIYELERI.map((s) => [s.id, s]));
+
 const EVRE = {
   bos: { ad: "hazır", renk: "ink3" },
   bekleme: { ad: "prefill · prompt işleniyor", renk: "warn" },
@@ -54,9 +75,11 @@ const EVRE = {
 };
 
 export default function SohbetOnizleme({
-  tps, ttftMs, modelAd, donanimAd, sigar,
-  dusunme, setDusunme, dusunmeTok, setDusunmeTok,
+  tps, ttftMs, modelAd, donanimAd, sigar, dusunmeSeviye, setDusunmeSeviye,
 }) {
+  const seviye = SEVIYE_HARITA[dusunmeSeviye] || SEVIYE_HARITA.kapali;
+  const dusunme = seviye.tok > 0;
+  const dusunmeTok = seviye.tok;
   const [calisiyor, setCalisiyor] = React.useState(false);
   const [gecen, setGecen] = React.useState(0); // ms
   const basRef = React.useRef(0);
@@ -78,7 +101,7 @@ export default function SohbetOnizleme({
   const t2 = t1 + yanitSuresi;             // yanıt biter
 
   /* Ayar değişince baştan başla — kıyas ancak baştan anlamlı. */
-  React.useEffect(() => { setCalisiyor(false); setGecen(0); }, [tps, ttftMs, dusunme, dusunmeTok]);
+  React.useEffect(() => { setCalisiyor(false); setGecen(0); }, [tps, ttftMs, dusunmeSeviye]);
 
   React.useEffect(() => {
     if (!calisiyor) return;
@@ -139,23 +162,28 @@ export default function SohbetOnizleme({
         </div>
 
         <div style={{ display: "flex", gap: S.sm, alignItems: "center", flexWrap: "wrap" }}>
-          {/* Düşünme açık / kapalı */}
-          <div style={{ display: "flex", border: `1px solid ${C.line}`, borderRadius: RADIUS.sm, overflow: "hidden" }}>
-            {[[false, "Düşünme kapalı"], [true, "Düşünme açık"]].map(([v, ad]) => (
-              <button
-                key={String(v)}
-                onClick={() => setDusunme(v)}
-                aria-pressed={dusunme === v}
-                style={{
-                  fontFamily: SANS, fontSize: 11, padding: "5px 10px", cursor: "pointer", border: "none",
-                  background: dusunme === v ? C.steel : C.paper,
-                  color: dusunme === v ? "#fff" : C.ink3,
-                  fontWeight: dusunme === v ? 600 : 400,
-                }}
-              >
-                {ad}
-              </button>
-            ))}
+          {/* Düşünme seviyesi */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ ...T.mini, color: C.ink3, whiteSpace: "nowrap" }}>Düşünme</span>
+            <div style={{ display: "flex", border: `1px solid ${C.line}`, borderRadius: RADIUS.sm, overflow: "hidden" }}>
+              {DUSUNME_SEVIYELERI.map((sv) => (
+                <button
+                  key={sv.id}
+                  onClick={() => setDusunmeSeviye(sv.id)}
+                  aria-pressed={dusunmeSeviye === sv.id}
+                  title={sv.not}
+                  style={{
+                    fontFamily: SANS, fontSize: 11, padding: "5px 9px", cursor: "pointer", border: "none",
+                    borderLeft: sv.id === "kapali" ? "none" : `1px solid ${C.line}`,
+                    background: dusunmeSeviye === sv.id ? C.steel : C.paper,
+                    color: dusunmeSeviye === sv.id ? "#fff" : C.ink3,
+                    fontWeight: dusunmeSeviye === sv.id ? 600 : 400,
+                  }}
+                >
+                  {sv.ad}
+                </button>
+              ))}
+            </div>
           </div>
           <button onClick={calisiyor ? durdur : baslat} disabled={!sigar} style={anaDugme(sigar)}>
             {calisiyor ? "⏸ Duraklat" : evre === "bitti" ? "↻ Tekrar" : "▶ Sohbeti başlat"}
@@ -174,21 +202,10 @@ export default function SohbetOnizleme({
             background: C.steelSoft, borderBottom: `1px solid ${C.line2}`, flexWrap: "wrap",
           }}
         >
-          <span style={{ ...T.mini, color: C.ink2, whiteSpace: "nowrap" }}>Düşünme uzunluğu</span>
-          <input
-            type="range" min={100} max={8000} step={100}
-            value={dusunmeTok}
-            onChange={(e) => setDusunmeTok(Number(e.target.value))}
-            aria-label="Düşünme token sayısı"
-            style={{ flex: "1 1 160px", accentColor: "var(--steel)", minWidth: 120 }}
-          />
           <span style={{ ...T.sayi, fontSize: 12, color: C.steel, whiteSpace: "nowrap" }}>
-            {dusunmeTok} token
+            {seviye.ad} · ~{dusunmeTok} token
           </span>
-          <span style={{ ...T.mini, color: C.ink3, flex: "1 1 100%" }}>
-            Akıl yürüten modeller cevaptan önce düşünce üretir. Kullanıcı bu süre boyunca asıl yanıtı
-            görmez — basit sorularda birkaç yüz, zor sorularda birkaç bin token sürer.
-          </span>
+          <span style={{ ...T.mini, color: C.ink2, flex: "1 1 220px" }}>{seviye.not}</span>
         </div>
       )}
 

@@ -94,7 +94,7 @@ for (const s of SENARYOLAR) {
 /* ---------------- Motor akıl sağlığı ---------------- */
 {
   const m = MODEL_HARITA["qwen38_27b"], d = CIHAZ_HARITA["5090"];
-  const taban = { model: m, quant: "q4", kvq: "fp8", ctxK: 32, girdiK: 8, kullanici: 4, cikti: 800, cihaz: d, adet: 1, kvOran: 0.6 };
+  const taban = { model: m, quant: "q4km", kvq: "fp8", ctxK: 32, girdiK: 8, kullanici: 4, cikti: 800, cihaz: d, adet: 1, kvOran: 0.6 };
   const r1 = hesapla(taban);
   const r2 = hesapla({ ...taban, kullanici: 8 });
   const r3 = hesapla({ ...taban, ctxK: 64 });
@@ -134,7 +134,7 @@ for (const s of SENARYOLAR) {
     // Profil en az bir modelle ulaşılabilir olmalı — yoksa hedef gerçek dışıdır
     const ulasilir = MODELS.some((m) =>
       DEVICES.some((d) => {
-        const a = { model: m, quant: "q4", kvq: "fp8", cihaz: d, adet: 1,
+        const a = { model: m, quant: "q4km", kvq: "fp8", cihaz: d, adet: 1,
           ctxK: i.ctxK, girdiK: i.girdiK, cikti: i.cikti, kvOran: i.kvOran / 100 };
         return kapasite(a, p.hedef, 64).maxC > 0;
       })
@@ -150,7 +150,7 @@ for (const s of SENARYOLAR) {
 /* ---------------- Kapasite modeli ---------------- */
 {
   const m = MODEL_HARITA["qwen38_27b"], d = CIHAZ_HARITA["5090"];
-  const args = { model: m, quant: "q4", kvq: "fp8", ctxK: 32, girdiK: 2, cikti: 800, cihaz: d, adet: 1, kvOran: 0.6 };
+  const args = { model: m, quant: "q4km", kvq: "fp8", ctxK: 32, girdiK: 2, cikti: 800, cihaz: d, adet: 1, kvOran: 0.6 };
   const h = { ...VARSAYILAN_HEDEF };
 
   const k = kapasite(args, h);

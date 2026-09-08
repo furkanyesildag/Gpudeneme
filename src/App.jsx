@@ -6,7 +6,7 @@ import {
   DEVICES, CIHAZ_HARITA, GRUP_SIRA, TR_DURUM, TR_NOT, MIM_AD,
   FP4_NATIVE, FP8_NATIVE, YIGIN, RAM_SECENEK, RAM_ISLETIM_PAYI, PCIE_BW, ANA_SISTEM,
 } from "./data/devices.js";
-import { QUANTS, QUANT_HARITA, KVQUANTS, KVQUANT_HARITA, DUSUK_QUANT_ONER } from "./data/quants.js";
+import { QUANTS, QUANT_HARITA, QUANT_GRUP, KVQUANTS, KVQUANT_HARITA, DUSUK_QUANT_ONER } from "./data/quants.js";
 import { SENARYOLAR } from "./data/concepts.js";
 import { IS_YUKLERI, IS_YUKU_HARITA, eslesenProfil } from "./data/isYukleri.js";
 import {
@@ -24,6 +24,7 @@ import { DonanimTablosu, ModelTablosu } from "./sections/Tablolar.jsx";
 import Bilgi from "./sections/Bilgi.jsx";
 import ChatBot from "./chat/ChatBot.jsx";
 import { durumuOku, durumuYaz, durumuDinle } from "./urlDurum.js";
+import { ggufEtiketleriniBul, quantDurumu } from "./quantBul.js";
 
 /* ------------------------------------------------------------------ */
 /*  Kuantizasyon ↔ donanım uyumu                                       */
@@ -50,7 +51,7 @@ function quantUyum(cihaz, quantId) {
       : { tip: "bilgi", mesaj: "AWQ/GPTQ, vLLM ve SGLang'de yüksek verimle çalışır. Çok kullanıcılı servis için GGUF'tan hızlıdır, ama CPU'ya taşınmaz." };
   if (quantId === "bf16")
     return { tip: "bilgi", mesaj: "Tam hassasiyet: her donanımda çalışır ama en çok belleği ve bant genişliğini kullanır. Sığıyorsa kalite açısından en güvenli seçim." };
-  if (quantId === "q3")
+  if (quantId === "q3km" || quantId === "q2k")
     return { tip: "tehlike", mesaj: "Agresif 3-bit: her yerde çalışır ama kalite gözle görülür düşer. Genelde bir küçük modelin Q6'sı, büyük modelin Q3'ünden iyidir." };
   if (quantId === "q4qat")
     return { tip: "olumlu", mesaj: "QAT sürümü varsa daima düz Q4 yerine bunu seç — aynı boyut, çok daha az kalite kaybı." };
@@ -60,7 +61,7 @@ function quantUyum(cihaz, quantId) {
 /* İş yükü kısmı "Kısa sohbet / soru-cevap" profiliyle birebir aynı;
    uygulama böylece adı ve gerekçesi olan tutarlı bir durumla açılıyor. */
 const VARSAYILAN = {
-  modelId: "qwen38_27b", cihazId: "5090", adet: 1, quant: "q4", kvq: "fp8",
+  modelId: "qwen38_27b", cihazId: "5090", adet: 1, quant: "q4km", kvq: "fp8",
   ctxK: 16, girdiK: 1, kullanici: 8, cikti: 400, kvOran: 40, indirGibi: false,
 };
 
@@ -97,8 +98,12 @@ export default function Simulator() {
   const [offloadGB, setOffloadGB] = useState(ilk.offloadGB ?? 0);
   const [sistemRam, setSistemRam] = useState(ilk.sistemRam ?? 0); // 0 = ana sisteme göre
   const [mtpAcik, setMtpAcik] = useState(ilk.mtpAcik ?? false);
-  const [dusunme, setDusunme] = useState(false);
-  const [dusunmeTok, setDusunmeTok] = useState(800);
+  const [quantBilgi, setQuantBilgi] = useState(null);   // { durum, bilinmiyor, depolar }
+  const [quantAraniyor, setQuantAraniyor] = useState(false);
+  const [tumQuantlar, setTumQuantlar] = useState(false); // bulunmayanları da göster
+  /* Düşünme seviyesi: modern modeller bunu "reasoning effort" olarak sunuyor
+     (kapalı / düşük / orta / yüksek), açık-kapalı bir anahtar olarak değil. */
+  const [dusunmeSeviye, setDusunmeSeviye] = useState("kapali");
   const [sekme, setSekme] = useState("bantlar");
   const [sohbetAcik, setSohbetAcik] = useState(false);
   const [tema, setTema] = useState(() => {
@@ -167,6 +172,20 @@ export default function Simulator() {
     setCikti(p.is.cikti); setKvOran(p.is.kvOran);
     setHedef((h) => ({ ...h, ...p.hedef }));
   }, []);
+
+  /* Seçili model için HuggingFace'te hangi GGUF kuantizasyonlarının gerçekten
+     yayımlandığını ara. Var olmayan bir şemayı seçtirip kullanıcıyı sonradan
+     "indirilecek dosya yok" ile karşılaştırmak kötü bir deneyim. */
+  useEffect(() => {
+    const kontrol = new AbortController();
+    setQuantBilgi(null);
+    setQuantAraniyor(true);
+    ggufEtiketleriniBul(model.hf, kontrol.signal)
+      .then((b) => setQuantBilgi({ ...quantDurumu(b), depolar: b.depolar }))
+      .catch(() => setQuantBilgi(null))
+      .finally(() => setQuantAraniyor(false));
+    return () => kontrol.abort();
+  }, [model.hf]);
 
   /* Adres çubuğuna dışarıdan başka bir kurulum linki yapıştırılırsa uygula.
      Aynı belgede hash değişimi sayfayı yeniden yüklemediği için, bu olmadan
@@ -269,6 +288,12 @@ export default function Simulator() {
       });
     }
 
+    if (quantBilgi?.durum?.[quant] === "yok")
+      out.push({
+        tip: "uyari", baslik: `${qAktif.ad} için hazır dosya bulunamadı`,
+        metin: `${model.ad} modelinin taranan ${quantBilgi.depolar.length} GGUF deposunda bu şema yok. Ya listeden bulunan bir şema seç, ya da modeli llama.cpp'nin quantize aracıyla kendin üret (imatrix'li IQ şemaları için kalibrasyon verisi de gerekir). Arama eksiksiz değildir — depo adı modele benzemiyorsa kaçırmış olabilirim.`,
+      });
+
     if (model.mtp && !mtpAcik)
       out.push({
         tip: "bilgi", baslik: "Kullanılmayan MTP head'i var",
@@ -335,7 +360,7 @@ export default function Simulator() {
       });
 
     return out;
-  }, [model, quant, kvq, cihaz, adet, r, qAktif, kvAktif, indirGibi, ctxK, girdiK, kullanici, hedef, kap, tpsDurum, ttftDurum]);
+  }, [model, quant, kvq, cihaz, adet, r, qAktif, kvAktif, indirGibi, ctxK, girdiK, kullanici, hedef, kap, tpsDurum, ttftDurum, quantBilgi, mtpAcik, offloadGB]);
 
   /* ---------------- Danışman bağlamı ---------------- */
   const sohbetBaglami =
@@ -496,11 +521,55 @@ export default function Simulator() {
 
               {!indirGibi && (
                 <div style={{ marginTop: S.md }}>
-                  <Secim etiket="Ağırlık kuantizasyonu" deger={quant} onChange={setQuant}>
-                    {QUANTS.map((q) => (
-                      <option key={q.id} value={q.id}>{q.ad} — {q.bit}, kalite ~{q.kalite}/100</option>
-                    ))}
+                  <Secim
+                    etiket="Ağırlık kuantizasyonu"
+                    deger={quant}
+                    onChange={setQuant}
+                    alt={
+                      quantAraniyor
+                        ? "HuggingFace'te hazır dosyalar aranıyor…"
+                        : quantBilgi && !quantBilgi.bilinmiyor
+                        ? `${quantBilgi.depolar.length} GGUF deposunda bulunanlar listeleniyor.`
+                        : "Hazır dosya araması sonuç vermedi — tüm şemalar gösteriliyor."
+                    }
+                  >
+                    {QUANT_GRUP.map((g) => {
+                      const secenekler = QUANTS.filter((q) => {
+                        if (q.grup !== g) return false;
+                        if (tumQuantlar || q.id === quant) return true;
+                        // "bilinmiyor" olanlar (FP8/NVFP4/AWQ gibi GGUF dışı
+                        // formatlar) bu aramayla ölçülemez, hep gösterilir.
+                        return quantBilgi?.durum?.[q.id] !== "yok";
+                      });
+                      if (!secenekler.length) return null;
+                      return (
+                        <optgroup key={g} label={g}>
+                          {secenekler.map((q) => {
+                            const d = quantBilgi?.durum?.[q.id];
+                            const isaret = d === "var" ? " ✓" : d === "yok" ? " · hazır dosya yok" : "";
+                            return (
+                              <option key={q.id} value={q.id}>
+                                {q.ad} — {q.bit}, kalite ~{q.kalite}{isaret}
+                              </option>
+                            );
+                          })}
+                        </optgroup>
+                      );
+                    })}
                   </Secim>
+
+                  {quantBilgi && !quantBilgi.bilinmiyor && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: -S.sm, marginBottom: S.md, cursor: "pointer" }}>
+                      <input
+                        type="checkbox" checked={tumQuantlar}
+                        onChange={(e) => setTumQuantlar(e.target.checked)}
+                        style={{ accentColor: "var(--steel)" }}
+                      />
+                      <span style={{ ...T.mini, color: C.ink3 }}>
+                        Hazır dosyası bulunmayanları da göster (kendin kuantize edersin)
+                      </span>
+                    </label>
+                  )}
                   <Secim etiket="KV cache kuantizasyonu" deger={kvq} onChange={setKvq} alt={kvAktif.not}>
                     {KVQUANTS.map((q) => <option key={q.id} value={q.id}>{q.ad}</option>)}
                   </Secim>
@@ -633,8 +702,7 @@ export default function Simulator() {
                 ttftMs={r.sigar ? r.ttftYogun * 1000 : 0}
                 sigar={r.sigar}
                 modelAd={model.ad} donanimAd={`${adet} × ${cihaz.ad}`}
-                dusunme={dusunme} setDusunme={setDusunme}
-                dusunmeTok={dusunmeTok} setDusunmeTok={setDusunmeTok}
+                dusunmeSeviye={dusunmeSeviye} setDusunmeSeviye={setDusunmeSeviye}
               />
             </div>
           </div>

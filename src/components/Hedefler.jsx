@@ -76,7 +76,7 @@ function Alan({ tanim, deger, onChange }) {
 
 export default function Hedefler({
   hedef, setHedef, tps, ttftMs, sigar, modelAd, donanimAd,
-  dusunme, setDusunme, dusunmeTok, setDusunmeTok, kap,
+  dusunmeSeviye, setDusunmeSeviye, kap,
 }) {
   const [gelismisAcik, setGelismisAcik] = React.useState(false);
   const varsayilanMi = ALANLAR.every((a) => hedef[a.k] === VARSAYILAN_HEDEF[a.k]);
@@ -86,8 +86,7 @@ export default function Hedefler({
       <SohbetOnizleme
         tps={tps} ttftMs={ttftMs} sigar={sigar}
         modelAd={modelAd} donanimAd={donanimAd}
-        dusunme={dusunme} setDusunme={setDusunme}
-        dusunmeTok={dusunmeTok} setDusunmeTok={setDusunmeTok}
+        dusunmeSeviye={dusunmeSeviye} setDusunmeSeviye={setDusunmeSeviye}
       />
 
       {/* ---- gelişmiş: hedefler ---- */}

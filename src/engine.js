@@ -26,6 +26,14 @@ export function anaSistem(kartSayisi) {
 }
 
 /* Tensor parallelism (TP) verimi: tek modeli N cihaza bölünce elde kalan oran. */
+/* Aynı uyarıyı her render'da tekrar tekrar basmamak için bir kez göster. */
+const gorulenUyari = new Set();
+function uyar(mesaj) {
+  if (gorulenUyari.has(mesaj)) return;
+  gorulenUyari.add(mesaj);
+  if (typeof console !== "undefined") console.warn(`[simülatör] ${mesaj}`);
+}
+
 export const TP_ETKI = { tek: 1.0, nvlink: 0.86, pcie: 0.6, net: 0.33 };
 export const TP_ETIKET = {
   tek: "Tek cihaz",
@@ -151,8 +159,10 @@ export function hesapla({
   model, quant, kvq, ctxK, girdiK, kullanici, cikti, cihaz, adet, kvOran = 1,
   offloadGB = 0, mtp = false, mtpKabul = MTP_KABUL_VARSAYILAN, sistemRam = null,
 }) {
-  const q = QUANT_HARITA[quant] || QUANT_HARITA.bf16;
-  const kvqe = KVQUANT_HARITA[kvq] || KVQUANT_HARITA.fp16;
+  // Bilinmeyen id'de çökmek yerine tam hassasiyete düşülür, ama sessizce
+  // geçilmez: yanlış bir id sonuçları sessizce bozardı.
+  const q = QUANT_HARITA[quant] || (uyar(`bilinmeyen kuantizasyon "${quant}"`), QUANT_HARITA.bf16);
+  const kvqe = KVQUANT_HARITA[kvq] || (uyar(`bilinmeyen KV kuantizasyonu "${kvq}"`), KVQUANT_HARITA.fp16);
   const bpp = q.bpp;
   const kvBayt = 2 * kvqe.f;
 
@@ -224,7 +234,10 @@ export function hesapla({
   const mtpAktif = !!(mtp && model.mtp);
   const mtpHizlanma = mtpAktif ? 1 + Math.max(0, Math.min(0.95, mtpKabul)) : 1;
 
-  const adimHiz = adimSure > 0 && isFinite(adimSure) ? mtpHizlanma / adimSure : 0;
+  /* IQ (importance-matrix) şemalarının dequant çekirdeği daha karmaşıktır ve
+     decode'u bir miktar yavaşlatır; K-quant ve donanım formatlarında çarpan 1. */
+  const quantHiz = q.hizCarpani ?? 1;
+  const adimHiz = adimSure > 0 && isFinite(adimSure) ? (mtpHizlanma * quantHiz) / adimSure : 0;
   const kullaniciTokS = adimHiz;
   const toplamTokS = adimHiz * kullanici;
 
@@ -280,7 +293,7 @@ export function hesapla({
   return {
     agirlikGB, vramAgirlikGB, offload, offloadOrani, offloadMumkun, ramYeterli, pcieBW,
     ram, ramTavani,
-    mtpAktif, mtpHizlanma,
+    mtpAktif, mtpHizlanma, quantHiz,
     aktifGB, kvGB, kvKullaniciGB, ekGB, gerekliGB, toplamBellek, sigar, doluluk,
     kullaniciTokS, toplamTokS, ttftTek, ttftYogun, ciktiSure, yanitSure,
     maxKullanici, maxCtxK, maxCtxBellek, maxCtxModelSinirli: maxCtxBellek > modelTavani,

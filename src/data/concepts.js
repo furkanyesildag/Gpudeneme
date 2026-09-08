@@ -29,7 +29,7 @@ export const SENARYOLAR = [
   {
     ad: "Tek kişilik geliştirme",
     aciklama: "Kendi makinende kod ve metin — tek kullanıcı, uzun bağlam.",
-    ayar: { modelId: "qwen38_27b", cihazId: "5090", adet: 1, quant: "q4", kvq: "fp8", ctxK: 64, girdiK: 16, kullanici: 1, cikti: 1200, indirGibi: false },
+    ayar: { modelId: "qwen38_27b", cihazId: "5090", adet: 1, quant: "q4km", kvq: "fp8", ctxK: 64, girdiK: 16, kullanici: 1, cikti: 1200, indirGibi: false },
   },
   {
     ad: "Küçük ekip (5-10 kişi)",

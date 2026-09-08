@@ -24,6 +24,13 @@ Türkiye fiyatını ve elektrik maliyetini çıkarır.
   tutuyor, kaçı sliding window kullanan, MLA mı GQA mı, hangi katmanlar linear attention
   kullanıyor. Bu sayede Qwen3.5+, GLM-5.3-Flash, Nemotron-H gibi hibrit modellerin
   uzun bağlamdaki gerçek avantajı doğru görünür.
+- **17 kuantizasyon şeması** — BF16'dan IQ1_M'e kadar tüm llama.cpp ailesi dahil
+  **IQ (importance-matrix)** şemaları. Kritik nokta: IQ'lar aynı boyutta klasik
+  K-quant'lardan daha iyidir — IQ4_XS hem Q4_K_M'den küçük hem daha iyi, IQ3_M hem
+  Q3_K_M'den küçük hem daha iyi. Bedeli dequant maliyeti; araç bunu da hesaba katar.
+- **Var olmayan kuantizasyonu seçtirmez** — model seçilince HuggingFace'te o modelin
+  GGUF depoları aranır, dosya adlarından hangi şemaların gerçekten yayımlandığı
+  çıkarılır. Bulunmayanlar listeden gizlenir (bir onay kutusuyla geri getirilebilir).
 - **Offload (sistem RAM'i)** — VRAM'e sığmayan ağırlıkların bir kısmı host RAM'de
   tutulabilir (llama.cpp `-ngl`, vLLM `--cpu-offload-gb`). Araç bunu modeller: taşınan
   kısım her adımda PCIe üzerinden okunur, hız buna göre düşer. Dense modelde bedel ağır,
@@ -47,8 +54,10 @@ Türkiye fiyatını ve elektrik maliyetini çıkarır.
 - **"İlk sohbetinde ne göreceksin"** — 18 tok/s'nin ne demek olduğunu kimse sezgisel
   bilmez. Seçtiğin model ve donanımla gerçek bir sohbet turu canlandırılır: istek gider,
   ilk token gecikmesi kadar beklersin, **düşünme modu açıksa** model önce düşünce üretir
-  (ve sen bu sürede asıl cevabı görmezsin), sonra yanıt akar. Düşünmenin cevabın ilk
-  harfini kaç saniye ötelediğini görmenin en hızlı yolu bu.
+  (ve sen bu sürede asıl cevabı görmezsin), sonra yanıt akar. Düşünme, modern
+  modellerdeki gibi **seviye** olarak ayarlanır — kapalı / düşük / orta / yüksek.
+  RTX 5090 + gpt-oss-20b'de "yüksek" seçilince 9,3 saniyelik yanıtın 8,8 saniyesi
+  düşünmeye gidiyor; bu farkı hiçbir tablo sütunu göstermiyor.
 - **Satın alma bantları** — "bu para bandında ne alınır, nerede tıkanır" sorusunun
   cevabı. Beş banda ayrılmış gerçek yapılandırmalar; her kartta simülatörün kendi
   hesabı ve simülatörün göremediği şeyler (stok, garanti, PCIe hattı, platform büyüme
@@ -94,7 +103,8 @@ sebebini yazıp geçer.
 src/
   data/models.js     102 model — parametre, bağlam, lisans, KV geometrisi
   data/devices.js    44 donanım — bellek, bant genişliği, TL fiyat, TR tedarik
-  data/quants.js     9 ağırlık + 3 KV kuantizasyon şeması
+  data/quants.js     17 ağırlık + 4 KV kuantizasyon şeması (IQ ailesi dahil)
+  quantBul.js        HF'te hangi kuantizasyonun gerçekten yayımlandığını arar
   data/concepts.js   kavram sözlüğü ve hazır senaryolar
   data/bantlar.js    satın alma bantları (fiyat, kime uygun, nerede tıkanır)
   data/isYukleri.js  iş yükü profilleri (kaydıraklar + performans hedefleri)
@@ -177,6 +187,27 @@ dalına yapılan her push'ta projeyi derleyip GitHub Pages'e dağıtır. İş ak
 > İlk dağıtım için depo **Settings → Pages → Build and deployment → Source**
 > ayarının **GitHub Actions** olması gerekir. İş akışı bunu otomatik yapmayı dener;
 > izin nedeniyle yapamazsa bu ayarı bir kez elle seçmek yeterlidir.
+
+## IQ şemaları neden önemli
+
+llama.cpp'nin IQ (importance-matrix) şemaları, hangi ağırlığın önemli olduğunu
+kalibrasyon verisinden ölçüp korur. Sonuç: **aynı boyutta daha iyi kalite.**
+
+| Şema | Bit/ağırlık | Kalite | Not |
+| --- | --- | --- | --- |
+| Q4_K_M | 4,8 | ~95,5 | Yaygın standart |
+| **IQ4_XS** | **4,25** | **~96** | Hem küçük hem daha iyi |
+| Q3_K_M | 3,9 | ~91 | |
+| **IQ3_M** | **3,7** | **~93** | Hem küçük hem daha iyi |
+
+Bedeli dequant maliyetidir: IQ çekirdekleri daha karmaşıktır ve özellikle CPU ile eski
+GPU'larda decode'u %5-12 yavaşlatır. Araç bunu `hizCarpani` ile hesaba katar.
+
+**Bulunurluk kontrolü:** model seçilince HuggingFace'te o modelin GGUF depoları
+aranır ve dosya adlarından hangi şemaların yayımlandığı çıkarılır. Bulunmayanlar
+listeden gizlenir. Arama eksiksiz değildir (depo adı modele benzemiyorsa kaçırabilir),
+bu yüzden gizlenenler bir onay kutusuyla geri getirilebilir ve seçilirse uyarı çıkar —
+yanlış yönlendirme ile yanlış engelleme arasındaki denge budur.
 
 ## Offload nasıl hesaplanır
 
