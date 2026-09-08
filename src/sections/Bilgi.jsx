@@ -1,6 +1,6 @@
 import React from "react";
 import { C, MONO, S, T, RADIUS } from "../theme.js";
-import { Bolum, Kart, Aciklama } from "../components/ui.jsx";
+import { Bolum, Aciklama } from "../components/ui.jsx";
 import { KAVRAMLAR } from "../data/concepts.js";
 import { MODELS } from "../data/models.js";
 import { DEVICES } from "../data/devices.js";

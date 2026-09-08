@@ -2,7 +2,7 @@ import React from "react";
 import { C, MONO, S, T, RADIUS, DURUM } from "../theme.js";
 import { Kart, Dugme, Rozet, Aciklama } from "../components/ui.jsx";
 import { BANTLAR, BANT_UYARISI } from "../data/bantlar.js";
-import { hesapla, kapasite, gb, sureYazi, paraTL } from "../engine.js";
+import { hesapla, kapasite, gb, sureYazi } from "../engine.js";
 import { MODEL_HARITA } from "../data/models.js";
 import { CIHAZ_HARITA } from "../data/devices.js";
 
