@@ -14,29 +14,9 @@
 export const BANTLAR = [
   {
     no: 1,
-    ad: "İkinci el RTX 3090, tek kart",
-    fiyat: "95-110 bin ₺",
-    ozet: "En ucuza ciddi bir başlangıç — öğrenmek ve prototip için.",
-    ne: "24 GB GDDR6X, 936 GB/s, 350 W. Üretimi bitti ama ikinci el piyasası derin; NVLink köprüsüyle ikili de çalışır.",
-    ayar: {
-      modelId: "gpt_oss_20b", cihazId: "3090", adet: 1,
-      quant: "q4km", kvq: "fp8", ctxK: 32, girdiK: 2,
-      kullanici: 2, cikti: 400, indirGibi: false, sistemRam: 64,
-    },
-    tekKullanici:
-      "gpt-oss-20b veya Qwen3.5-9B sınıfı modeller çok hızlı çalışır. 27B'yi IQ4_XS ile sığdırır ama ilk token 6 saniyeye çıkar — 3090'ın hesap gücü zayıf, bant genişliği değil.",
-    ekip: "Küçük modellerle şaşırtıcı derecede evet: gpt-oss-20b'de bir kart onlarca sohbet kullanıcısına yeter. Büyük modelde hayır.",
-    kime: "“Önce bir öğreneyim, işime yarayacak mı göreyim” diyen. Bu bandın parası, üst bantlarda tek bir kartın kablosuna gitmiyor.",
-    tikanma:
-      "FP8 ve FP4 donanım desteği yok — yeni formatların hız avantajından yararlanamaz, GGUF'a mahkûm. 24 GB, 30B üstünü offload'sız almaz. İkinci el olduğu için garanti yok.",
-    ilginc:
-      "TL başına en yüksek bellek bant genişliği hâlâ bu kartta. Yerel LLM'de belirleyici olan bant genişliği olduğu için 3090, kendinden yeni ve pahalı birçok karttan iyi iş çıkarır.",
-    renk: "steel",
-  },
-  {
-    no: 2,
     ad: "Mac Studio M3 Ultra",
     fiyat: "~210 bin ₺",
+    fiyatTemeli: "perakende",
     ozet: "Sessiz, 270 W, kurulum derdi yok — ama ilk token yavaş.",
     ne: "96 GB birleşik bellek, 819 GB/s, 270 W. Türkiye'de perakende satılıyor, kutudan çıkar çalışır.",
     ayar: {
@@ -54,9 +34,10 @@ export const BANTLAR = [
     renk: "steel",
   },
   {
-    no: 3,
+    no: 2,
     ad: "Tek RTX 5090",
     fiyat: "~211 bin ₺ (kart ~152 bin + sistem)",
+    fiyatTemeli: "bileşen",
     ozet: "Türkiye'den bugün alınabilecek en hızlı tek kart.",
     ne: "32 GB GDDR7, 1792 GB/s, 575 W, Blackwell. Raftan alınır.",
     ayar: {
@@ -73,9 +54,10 @@ export const BANTLAR = [
     renk: "ok",
   },
   {
-    no: 4,
+    no: 3,
     ad: "DGX Spark, tek node",
     fiyat: "290-400 bin ₺",
+    fiyatTemeli: "perakende",
     ozet: "En ucuza büyük bir MoE'yi eline alıp denemek.",
     ne: "GB10, 128 GB birleşik bellek, 273 GB/s, 1 PFLOP FP4, masaüstü boyutunda.",
     ayar: {
@@ -95,28 +77,10 @@ export const BANTLAR = [
     renk: "steel",
   },
   {
-    no: 5,
-    ad: "4× ikinci el RTX 3090",
-    fiyat: "320-380 bin ₺",
-    ozet: "96 GB VRAM'i en ucuza toplamanın yolu — karşılığında uğraş.",
-    ne: "4 kart × 24 GB = 96 GB VRAM, 1650 W çekiş. Çok yuvalı bir anakart, riser kabloları ve 2000 W+ güç kaynağı gerekir.",
-    ayar: {
-      modelId: "gpt_oss_120b", cihazId: "3090", adet: 4,
-      quant: "nvfp4", kvq: "fp8", ctxK: 64, girdiK: 4,
-      kullanici: 8, cikti: 800, indirGibi: false, sistemRam: 128,
-    },
-    tekKullanici:
-      "gpt-oss-120b sınıfı MoE'ler rahat çalışır; toplam bant genişliği 4 kartla toplandığı için hız yüksek kalır.",
-    ekip: "Evet, hem de iyi: 96 GB VRAM ve toplu bant genişliği çok sayıda eşzamanlı isteği taşır.",
-    kime: "Homelab kuran, ellerini kirletmeye razı olan. Aynı VRAM'i tek kartta almak 5-8 kat pahalı.",
-    tikanma:
-      "PCIe üzerinden tensör paralelliği verimi ~%60 — 4 kartın toplamını olduğu gibi alamazsın. 1650 W sürekli çekiş: Türkiye'de yıllık elektrik faturası kartların bir kısmı kadar tutar. Dört kartı soğutmak ve beslemek ayrı bir mühendislik işi, gürültü ofis odasına uygun değil. FP8/FP4 yok.",
-    renk: "warn",
-  },
-  {
-    no: 6,
+    no: 4,
     ad: "RTX PRO 5000 Blackwell 72 GB iş istasyonu",
     fiyat: "~870 bin ₺",
+    fiyatTemeli: "anahtar teslim",
     ozet: "Güçlü bir 27B'yi hem sana hem ekibe iyi çalıştır, 1 milyonun altında kal.",
     ne: "72 GB GDDR7, PRO 6000'in bir alt kardeşi. Hazır iş istasyonu olarak satılıyor.",
     ayar: {
@@ -133,9 +97,10 @@ export const BANTLAR = [
     renk: "steel",
   },
   {
-    no: 7,
+    no: 5,
     ad: "RTX PRO 6000 hazır iş istasyonu",
     fiyat: "1.445.598 ₺ · stokta",
+    fiyatTemeli: "anahtar teslim",
     ozet: "Bu hafta lazım, stokta olsun, tek kutu olsun.",
     ne: "1× RTX PRO 6000 96 GB, i9-14900KF, 192 GB DDR5, 1 TB NVMe + 2 TB SATA, 1500 W, 2 yıl garanti, Ubuntu + CUDA + Docker kurulu gelir.",
     ayar: {
@@ -152,9 +117,10 @@ export const BANTLAR = [
     renk: "warn",
   },
   {
-    no: 8,
+    no: 6,
     ad: "1× PRO 6000, büyüyebilen platform",
     fiyat: "1,8-2,1 milyon ₺",
+    fiyatTemeli: "anahtar teslim",
     ozet: "Bugün aynı performans, yarın ikinci kartı takabilme hakkı.",
     ne: "Aynı kart; ama Threadripper PRO 9000 WX / EPYC 9005 anakart, 2 adet PCIe 5.0 ×16 hazır, 384 GB DDR5 ECC RDIMM, 2× 4 TB NVMe Gen5, 2000 W+ güç kaynağı, 3 yıl garanti.",
     ayar: {
@@ -172,9 +138,10 @@ export const BANTLAR = [
     renk: "ok",
   },
   {
-    no: 9,
+    no: 7,
     ad: "2× PRO 6000, aynı platform",
     fiyat: "2,9-3,3 milyon ₺",
+    fiyatTemeli: "anahtar teslim",
     ozet: "Büyük MoE kesin, ekip kesin, 5 yıllık plan.",
     ne: "4. bant + ikinci kart. Toplam 192 GB VRAM, tensor parallelism TP=2.",
     ayar: {
@@ -193,15 +160,114 @@ export const BANTLAR = [
       "2× RTX PRO 6000, vLLM'in doğrulanmış donanım listesinde yok (GB300, H200, MI355X var). SM120'de çalıştığı raporlanıyor ama ilk kuranlardan olursun. 384 GB sistem RAM'ini 768'e çıkarmak ve 3-4. kart sonraki yılların işi.",
     renk: "ok",
   },
+  {
+    no: 8,
+    ad: "4× RTX PRO 5000 Blackwell 72 GB",
+    fiyat: "1,7-1,9 milyon ₺",
+    fiyatTemeli: "bileşen",
+    ozet: "Aynı paraya 2× PRO 6000'den %50 daha fazla VRAM.",
+    ne: "4 kart × 72 GB = 288 GB VRAM, 1450 W. Threadripper PRO / EPYC platform, her kart tam x16.",
+    ayar: {
+      modelId: "glm_53_flash", cihazId: "pro5000_72", adet: 4,
+      quant: "nvfp4", kvq: "fp8", ctxK: 128, girdiK: 4,
+      kullanici: 8, cikti: 800, indirGibi: false, sistemRam: 384, mtp: true,
+    },
+    tekKullanici:
+      "288 GB VRAM, 320B sınıfı MoE'leri offload'sız alır. Kart başına bant genişliği PRO 6000'in altında ama dört kart toplandığında fark kapanıyor.",
+    ekip: "Evet, rahat. Bu bandın asıl satış noktası bellek: uzun bağlamda çok sayıda kullanıcıyı KV cache'e sıkışmadan taşır.",
+    kime:
+      "“Bellek benim darboğazım, kart başına hız ikinci planda” diyen. 2× PRO 6000 ile neredeyse aynı paraya 96 GB fazla VRAM alıyorsun.",
+    tikanma:
+      "Dört kart demek dört PCIe yuvası, 1450 W ve ciddi soğutma demek — masaüstü kasasına sığmaz. Tensör paralelliği dört yönlü bölündüğü için verim iki karta göre biraz düşer. Büyümek için beşinci kart yok: platform dolu.",
+    ilginc:
+      "Aynı 288 GB'ı 3× PRO 6000 ile almak ~700 bin ₺ daha pahalı; karşılığında bir yuva boşta kalıyor ve kart başına bant genişliği yükseliyor. Hangisinin doğru olduğu, darboğazının bellek mi hız mı olduğuna bağlı.",
+    renk: "ok",
+  },
+  {
+    no: 9,
+    ad: "2× AMD Instinct MI300X",
+    fiyat: "1,7-2,0 milyon ₺",
+    fiyatTemeli: "bileşen",
+    ozet: "TL başına en çok VRAM ve bant genişliği — karşılığında ROCm.",
+    ne: "2 kart × 192 GB HBM3 = 384 GB, kart başına 5300 GB/s. 1750 W. Kurumsal kanaldan, çoğu zaman sunucuyla birlikte.",
+    ayar: {
+      modelId: "glm_53_flash", cihazId: "mi300x", adet: 2,
+      quant: "nvfp4", kvq: "fp8", ctxK: 256, girdiK: 4,
+      kullanici: 8, cikti: 800, indirGibi: false, sistemRam: 384, mtp: true,
+    },
+    tekKullanici:
+      "384 GB HBM ve 10 TB/s toplam bant genişliği: bu listedeki hiçbir NVIDIA yapılandırması bu parayla buna yaklaşmıyor. Sınır modelleri offload'sız, uzun bağlamla çalışır.",
+    ekip: "Fazlasıyla. Bellek de bant genişliği de bu bandın çok üstünde bir yükü kaldırır.",
+    kime:
+      "Sayılara bakıp ekosistem riskini göze alabilen. Kurumsal alım yapabiliyorsan ve ROCm ile çalışmaya razıysan bu bandın en iyi teklifidir.",
+    tikanma:
+      "Asıl risk donanımda değil yazılımda: vLLM ve SGLang ROCm'de çalışıyor ama yeni model desteği CUDA'dan haftalar sonra geliyor, bazı çekirdekler eksik kalıyor. llama.cpp tarafı da NVIDIA kadar oturmuş değil. Türkiye'de bireysel satışı yok, kurumsal kanal gerekir. Yeni bir modeli çıktığı gün çalıştırmak istiyorsan bu bant seni bekletir.",
+    renk: "warn",
+  },
+  {
+    no: 10,
+    ad: "3× RTX PRO 6000",
+    fiyat: "2,4-2,7 milyon ₺",
+    fiyatTemeli: "bileşen",
+    ozet: "9. banttan doğal büyüme: 288 GB, bir yuva hâlâ boş.",
+    ne: "3 kart × 96 GB = 288 GB VRAM, 2050 W. Threadripper PRO / EPYC platform.",
+    ayar: {
+      modelId: "glm_53_flash", cihazId: "pro6000", adet: 3,
+      quant: "nvfp4", kvq: "fp8", ctxK: 128, girdiK: 4,
+      kullanici: 8, cikti: 800, indirGibi: false, sistemRam: 384, mtp: true,
+    },
+    tekKullanici: "288 GB ve yüksek kart başına bant genişliği. 320B sınıfı MoE'ler rahat, ilk token bir saniyenin altında.",
+    ekip: "Evet — bu, gerçek bir iç servis kurmak için makul bir taban.",
+    kime: "9. bandı almış ve büyüyen; ya da baştan “bir kart payı bırakayım” diyen. Dördüncü yuva boş kaldığı için tek adımda daha büyüğe geçiş yolu açık kalıyor.",
+    tikanma:
+      "2050 W sürekli çekiş: Türkiye şartlarında yıllık elektrik faturası ciddi bir kalem. Üç kart tek kasada yoğun ısı üretir, sıcaklık sınırlaması (thermal throttling) riski gerçektir. Aynı VRAM'i 4× PRO 5000 ile ~700 bin ₺ ucuza almak mümkün.",
+    renk: "ok",
+  },
+  {
+    no: 11,
+    ad: "4× RTX PRO 6000",
+    fiyat: "3,2-3,5 milyon ₺",
+    fiyatTemeli: "bileşen",
+    ozet: "İş istasyonu platformunun sonuna kadar kullanılmış hâli.",
+    ne: "4 kart × 96 GB = 384 GB VRAM, 2650 W. Bu, sunucu şasisine geçmeden gidilebilecek en uç nokta.",
+    ayar: {
+      modelId: "glm_53_flash", cihazId: "pro6000", adet: 4,
+      quant: "nvfp4", kvq: "fp8", ctxK: 256, girdiK: 4,
+      kullanici: 8, cikti: 800, indirGibi: false, sistemRam: 384, mtp: true,
+    },
+    tekKullanici:
+      "384 GB VRAM: 700B sınıfı modeller bile 4 bitte offload'sız girer. Uzun bağlam ve büyük KV bütçesi aynı anda mümkün.",
+    ekip: "Onlarca eşzamanlı kullanıcı. Bu noktadan sonra darboğaz donanım değil, modelin kendisi olmaya başlar.",
+    kime: "“Bütçenin tavanı bu ve sunucu odam yok” diyen. Bir üst adım rack sunucu demek — gürültü, soğutma ve ayrı bir oda demek.",
+    tikanma:
+      "2650 W: tek fazlı bir prizden beslenemez, elektrik tesisatına bakmak gerekir. Dört kart tek kasada ciddi bir soğutma problemidir; iş istasyonu kasası yerine açık tezgâh ya da özel şasi gerekebilir. Platform dolu — beşinci kart sunucu şasisi demek. Ve 384 GB'ı 2× MI300X ile yarı fiyata almak mümkün, tek engel ROCm.",
+    renk: "warn",
+  },
 ];
 
 /* ------------------------------------------------------------------ */
 /*  Simülasyonun MODELLEYEMEDİĞİ şeyler — bantlarda anlatılıyor ama    */
 /*  hesaba girmiyor. Kullanıcıya açıkça söylenmeli.                    */
 /* ------------------------------------------------------------------ */
+/* Fiyat temelleri aynı şey değil ve karıştırılırsa liste yanıltıcı olur:
+   "anahtar teslim" bir entegratörün kurulu, garantili sistem fiyatıdır ve
+   montaj, test, destek ve kâr içerir; "bileşen" kart + platform bileşen
+   fiyatlarının toplamıdır; "perakende" raftan alınan hazır ürün fiyatıdır.
+   Aynı donanım için anahtar teslim fiyat, bileşen toplamının 1,5-2 katına
+   çıkabilir. Kartlardaki simülatör maliyeti her zaman bileşen temellidir. */
+export const FIYAT_TEMELI = {
+  "perakende": "raftan alınan hazır ürün",
+  "bileşen": "kart + platform bileşen fiyatı",
+  "anahtar teslim": "entegratörden kurulu, garantili sistem",
+};
+
 export const BANT_UYARISI =
   "Bantlardaki fiyat, stok, garanti, PCIe hattı ve platform büyüme bilgisi Türkiye'deki " +
-  "satıcı yapılandırmalarına dayanır; simülatör bunları hesaplamaz. Offload artık " +
+  "satıcı yapılandırmalarına dayanır; simülatör bunları hesaplamaz. İlan fiyatlarının " +
+  "TEMELİ farklıdır (perakende / bileşen / anahtar teslim) ve her kartta belirtilir — " +
+  "anahtar teslim bir sistem, aynı donanımın bileşen toplamının 1,5-2 katı olabilir. " +
+  "Kartlardaki simülatör maliyeti her zaman bileşen temellidir, bu yüzden anahtar " +
+  "teslim bantlarda ilan fiyatının altında kalır. Bantlar simülatör maliyetine göre sıralıdır. Offload artık " +
   "modelleniyor (5. bant onu kullanır), ama simülatör KÖR — katman bazlı — offload " +
   "varsayar: RAM'e taşınan ağırlıklar her adımda payları oranında okunur. Gerçekte " +
   "akıllı yerleştirme (sık kullanılan katmanları VRAM'de tutmak, seyrek erişilen " +

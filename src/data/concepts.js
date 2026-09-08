@@ -43,8 +43,8 @@ export const SENARYOLAR = [
   },
   {
     ad: "Dar bütçe / öğrenme",
-    aciklama: "İkinci el kartla en ucuz çalışan kurulum.",
-    ayar: { modelId: "gpt_oss_20b", cihazId: "3090", adet: 1, quant: "nvfp4", kvq: "fp8", ctxK: 32, girdiK: 8, kullanici: 2, cikti: 800, indirGibi: false },
+    aciklama: "Türkiye'den sıfır alınabilecek en ucuz çalışan kurulum.",
+    ayar: { modelId: "gpt_oss_20b", cihazId: "5060ti16", adet: 1, quant: "nvfp4", kvq: "fp8", ctxK: 32, girdiK: 8, kullanici: 2, cikti: 800, indirGibi: false },
   },
   {
     ad: "Sınır modeli, yerelde",

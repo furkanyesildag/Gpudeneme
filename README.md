@@ -14,11 +14,12 @@ Türkiye fiyatını ve elektrik maliyetini çıkarır.
 - **102 açık ağırlıklı model** — Qwen3.8, DeepSeek-V4, GLM-5.3, Kimi K3, Ornith-1.5,
   K2-Horizon, Ling-3.0, Hy4, MiniMax, Llama 4, Mistral Small 4, gpt-oss, Gemma 4,
   Nemotron 3, Granite 4.2, Phi-4, Olmo 3, ve Türkçe modeller (Kumru, Trendyol).
-- **44 donanım** — Türkiye'de raftan alınabilen tüketici kartlarından (RTX 5090/5080/
-  5070 Ti/5060 Ti, RX 9070 XT, RX 7900 XTX, Arc B580) iş istasyonu kartlarına
-  (RTX PRO Blackwell serisi, Arc Pro B60), hazır kutulara (Mac Studio, DGX Spark,
-  Strix Halo mini PC'ler) ve veri merkezi hızlandırıcılarına kadar. Her birinde
-  **Türkiye tedarik durumu ve TL fiyatı**.
+- **40 donanım, hepsi sıfır alınabilir** — Türkiye'de raftan alınan tüketici
+  kartlarından (RTX 5090/5080/5070 Ti/5060 Ti, RX 9070 XT, RX 7900 XTX, Arc B580)
+  iş istasyonu kartlarına (RTX PRO Blackwell serisi, Arc Pro B60), hazır kutulara
+  (Mac Studio, DGX Spark, Strix Halo mini PC) ve veri merkezi hızlandırıcılarına
+  kadar. Her birinde **Türkiye tedarik durumu ve TL fiyatı**. İkinci el piyasasına
+  bağlı kartlar listede yok: fiyatları ve bulunurlukları planlanamayacak kadar oynak.
 - **Gerçek KV cache hesabı** — model başına uydurma bir "KB/token" değil; her modelin
   HuggingFace `config.json` dosyasından okunan katman geometrisi. Kaç katman KV
   tutuyor, kaçı sliding window kullanan, MLA mı GQA mı, hangi katmanlar linear attention
@@ -59,11 +60,16 @@ Türkiye fiyatını ve elektrik maliyetini çıkarır.
   modellerdeki gibi **seviye** olarak ayarlanır — kapalı / düşük / orta / yüksek.
   RTX 5090 + gpt-oss-20b'de "yüksek" seçilince 9,3 saniyelik yanıtın 8,8 saniyesi
   düşünmeye gidiyor; bu farkı hiçbir tablo sütunu göstermiyor.
-- **Satın alma bantları** — "bu para bandında ne alınır, nerede tıkanır" sorusunun
-  cevabı. 95 bin ₺'lik ikinci el tek karttan 3,3 milyonluk çift PRO 6000'e kadar
-  **dokuz banda** ayrılmış gerçek yapılandırmalar; her kartta simülatörün kendi
-  hesabı ve simülatörün göremediği şeyler (stok, garanti, PCIe hattı, platform büyüme
-  yolu) yan yana. Tek tıkla simülatöre yüklenir.
+- **11 satın alma bandı** — "bu para bandında ne alınır, nerede tıkanır" sorusunun
+  cevabı. 210 bin ₺'lik Mac Studio'dan 3,3 milyonluk 4× RTX PRO 6000'e kadar gerçek
+  yapılandırmalar; her kartta simülatörün kendi hesabı ve simülatörün göremediği
+  şeyler (stok, garanti, PCIe hattı, platform büyüme yolu, yazılım ekosistemi
+  riski) yan yana. Tek tıkla simülatöre yüklenir.
+
+  Fiyatların **temeli etiketli**: *perakende* (raftan hazır ürün), *bileşen*
+  (kart + platform toplamı), *anahtar teslim* (entegratörden kurulu, garantili
+  sistem). Aynı donanım için anahtar teslim fiyat bileşen toplamının 1,5-2 katına
+  çıkabilir — bunları karıştırmak listeyi yanıltıcı yapardı.
 - **LLM Altyapı Danışmanı** — DeepSeek destekli sohbet. Bir HuggingFace linki
   yapıştırdığında modeli **canlı çeker**, `config.json`'ından bellek ve hız hesabını
   yapar ve senin seçtiğin donanımda çalışıp çalışmayacağını söyler. Performans

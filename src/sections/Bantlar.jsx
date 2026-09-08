@@ -1,7 +1,7 @@
 import React from "react";
 import { C, MONO, S, T, RADIUS, DURUM } from "../theme.js";
 import { Kart, Dugme, Rozet, Aciklama } from "../components/ui.jsx";
-import { BANTLAR, BANT_UYARISI } from "../data/bantlar.js";
+import { BANTLAR, BANT_UYARISI, FIYAT_TEMELI } from "../data/bantlar.js";
 import { hesapla, kapasite, gb, sureYazi } from "../engine.js";
 import { MODEL_HARITA } from "../data/models.js";
 import { CIHAZ_HARITA } from "../data/devices.js";
@@ -77,7 +77,17 @@ export default function Bantlar({ hedef, kvOran, yukle, aktifAyar }) {
                   {b.onerilen && <Rozet tip="olumlu">önerilen</Rozet>}
                   {seciliMi && <Rozet tip="bilgi">yüklü</Rozet>}
                 </div>
-                <div style={{ ...T.sayi, fontSize: 14, color: vRenk }}>{b.fiyat}</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+                  <span style={{ ...T.sayi, fontSize: 14, color: vRenk }}>{b.fiyat}</span>
+                  {b.fiyatTemeli && (
+                    <span
+                      title={FIYAT_TEMELI[b.fiyatTemeli]}
+                      style={{ ...T.mini, fontSize: 10, color: C.ink3, border: `1px solid ${C.line}`, borderRadius: RADIUS.sm, padding: "1px 5px", cursor: "help" }}
+                    >
+                      {b.fiyatTemeli}
+                    </span>
+                  )}
+                </div>
                 <div style={{ ...T.mini, color: C.ink2, marginTop: 3 }}>{b.ozet}</div>
               </div>
 

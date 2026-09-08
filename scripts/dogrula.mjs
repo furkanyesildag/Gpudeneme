@@ -10,7 +10,7 @@ import { DEVICES, GRUP_SIRA, MIM_AD, YIGIN, TR_DURUM, TR_NOT, CIHAZ_HARITA } fro
 import { QUANTS, KVQUANTS, DUSUK_QUANT_ONER } from "../src/data/quants.js";
 import { SENARYOLAR } from "../src/data/concepts.js";
 import { IS_YUKLERI, eslesenProfil } from "../src/data/isYukleri.js";
-import { BANTLAR } from "../src/data/bantlar.js";
+import { BANTLAR, FIYAT_TEMELI } from "../src/data/bantlar.js";
 import { hesapla, kapasite, hedefDurumu, kvKBperToken, kvTipi, anaSistem, VARSAYILAN_HEDEF, HEDEF_SINIR } from "../src/engine.js";
 
 const hatalar = [];
@@ -203,8 +203,10 @@ for (const s of SENARYOLAR) {
     const et = `bant ${b.no} "${b.ad}"`;
     if (noSet.has(b.no)) hata(`${et}: numara tekrar ediyor`);
     noSet.add(b.no);
-    for (const alan of ["ad", "fiyat", "ozet", "ne", "tekKullanici", "ekip", "kime", "tikanma", "ayar"])
+    for (const alan of ["ad", "fiyat", "fiyatTemeli", "ozet", "ne", "tekKullanici", "ekip", "kime", "tikanma", "ayar"])
       if (!b[alan]) hata(`${et}: "${alan}" eksik`);
+
+    if (b.fiyatTemeli && !FIYAT_TEMELI[b.fiyatTemeli]) hata(`${et}: bilinmeyen fiyat temeli "${b.fiyatTemeli}"`);
 
     const a = b.ayar;
     const m = MODEL_HARITA[a.modelId], d = CIHAZ_HARITA[a.cihazId];
@@ -230,7 +232,8 @@ for (const s of SENARYOLAR) {
 /* ---------------- Offload (otomatik) ve speculative decoding ---------------- */
 {
   const m = MODEL_HARITA["qwen38_27b"], moe = MODEL_HARITA["gpt_oss_120b"];
-  const kart = CIHAZ_HARITA["3090"], kutu = CIHAZ_HARITA["m3u"];
+  // 5090 (32 GB): 27B Q4 rahat sığar, BF16 sığmaz — offload'ın iki yolunu da sınar.
+  const kart = CIHAZ_HARITA["5090"], kutu = CIHAZ_HARITA["m3u"];
   const taban = { quant: "bf16", kvq: "fp8", ctxK: 32, girdiK: 2, kullanici: 1, cikti: 800, kvOran: 0.6, adet: 1 };
 
   // Zaten sığan bir kurulumda offload devreye GİRMEMELİ (her bayt yavaşlatır)
