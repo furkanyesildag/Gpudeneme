@@ -190,6 +190,62 @@ for (const s of SENARYOLAR) {
   if (hedefDurumu(5000, 1000, false) !== "kotu") hata("hedefDurumu: hedefin çok üstündeki gecikme 'kotu' değil");
 }
 
+/* ---------------- Offload ve speculative decoding ---------------- */
+{
+  const m = MODEL_HARITA["qwen38_27b"], moe = MODEL_HARITA["gpt_oss_120b"];
+  const kart = CIHAZ_HARITA["3090"], kutu = CIHAZ_HARITA["m3u"];
+  const taban = { quant: "bf16", kvq: "fp8", ctxK: 32, girdiK: 2, kullanici: 1, cikti: 800, kvOran: 0.6, adet: 1 };
+
+  // Offload sığdırır ama yavaşlatır
+  const yok = hesapla({ ...taban, model: m, cihaz: kart });
+  const az = hesapla({ ...taban, model: m, cihaz: kart, offloadGB: 20, sistemRam: 64 });
+  const cok = hesapla({ ...taban, model: m, cihaz: kart, offloadGB: 40, sistemRam: 64 });
+  if (az.gerekliGB >= yok.gerekliGB) hata("offload: VRAM ihtiyacı azalmadı");
+  if (cok.gerekliGB >= az.gerekliGB) hata("offload: daha fazla offload VRAM'i daha çok düşürmedi");
+  if (az.kullaniciTokS >= yok.kullaniciTokS) hata("offload: hız düşmedi — PCIe cezası uygulanmıyor");
+  if (cok.kullaniciTokS >= az.kullaniciTokS) hata("offload: daha fazla offload daha yavaş olmalı");
+  if (!cok.sigar) hata("offload: yeterli offload'a rağmen sığmıyor");
+
+  // MoE'de offload cezası dense'ten hafif olmalı (adım başına daha az bayt okunur)
+  const dOran = hesapla({ ...taban, model: m, cihaz: kart, offloadGB: 26, sistemRam: 64 }).kullaniciTokS / yok.kullaniciTokS;
+  const mYok = hesapla({ ...taban, model: moe, quant: "nvfp4", cihaz: kart });
+  const mOran = hesapla({ ...taban, model: moe, quant: "nvfp4", cihaz: kart, offloadGB: 34, sistemRam: 64 }).kullaniciTokS / mYok.kullaniciTokS;
+  if (mOran <= dOran) hata(`offload: MoE cezası dense'ten hafif olmalı (MoE ${mOran.toFixed(2)} vs dense ${dOran.toFixed(2)})`);
+
+  // Birleşik bellekli kutuda offload etkisiz
+  const kYok = hesapla({ ...taban, model: m, cihaz: kutu });
+  const kVar = hesapla({ ...taban, model: m, cihaz: kutu, offloadGB: 40, sistemRam: 128 });
+  if (kYok.kullaniciTokS !== kVar.kullaniciTokS || kVar.offload !== 0)
+    hata("offload: birleşik bellekli kutuda etkisiz olmalıydı");
+
+  // RAM tavanı
+  const asiri = hesapla({ ...taban, model: m, cihaz: kart, offloadGB: 500, sistemRam: 32 });
+  if (asiri.offload > asiri.ramTavani) hata("offload: sistem RAM tavanı aşıldı");
+
+  // MTP yalnızca head'i olan modelde çalışır
+  const mtpsiz = MODELS.find((x) => !x.mtp);
+  const a = hesapla({ ...taban, model: mtpsiz, cihaz: CIHAZ_HARITA.b200, adet: 8, mtp: false });
+  const b = hesapla({ ...taban, model: mtpsiz, cihaz: CIHAZ_HARITA.b200, adet: 8, mtp: true });
+  if (a.kullaniciTokS !== b.kullaniciTokS) hata("MTP: head'i olmayan modelde hız değişti");
+  if (b.mtpAktif) hata("MTP: head'i olmayan modelde aktif göründü");
+
+  const mtpli = MODELS.find((x) => x.mtp);
+  const c = hesapla({ ...taban, model: mtpli, cihaz: CIHAZ_HARITA.b200, adet: 8, mtp: false });
+  const d = hesapla({ ...taban, model: mtpli, cihaz: CIHAZ_HARITA.b200, adet: 8, mtp: true });
+  if (!(d.kullaniciTokS > c.kullaniciTokS)) hata("MTP: head'i olan modelde hız artmadı");
+  if (Math.abs(d.ttftYogun - c.ttftYogun) > 1e-9) hata("MTP: ilk token'ı da değiştirdi — yalnızca decode'u hızlandırmalı");
+
+  // Kalibrasyon: DGX Spark + Qwen3.8-Flash-Next, ölçülen 16,8 → 24,6 tok/s
+  const fn = MODEL_HARITA["qwen38_flash_next"], spark = CIHAZ_HARITA["spark"];
+  const ok = { ...taban, quant: "nvfp4", model: fn, cihaz: spark };
+  const olcumsuz = hesapla({ ...ok, mtp: false }).kullaniciTokS;
+  const olcumlu = hesapla({ ...ok, mtp: true }).kullaniciTokS;
+  if (Math.abs(olcumsuz - 16.8) / 16.8 > 0.1)
+    hata(`kalibrasyon: Spark + Flash-Next MTP'siz ${olcumsuz.toFixed(1)} tok/s, ölçüm 16,8`);
+  if (Math.abs(olcumlu - 24.6) / 24.6 > 0.1)
+    hata(`kalibrasyon: Spark + Flash-Next MTP'li ${olcumlu.toFixed(1)} tok/s, ölçüm 24,6`);
+}
+
 /* ---------------- Canlı HuggingFace doğrulaması (isteğe bağlı) ---------------- */
 if (process.argv.includes("--canli")) {
   console.log(`\nCanlı doğrulama: ${MODELS.length} depo kontrol ediliyor…`);

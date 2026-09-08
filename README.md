@@ -24,6 +24,14 @@ Türkiye fiyatını ve elektrik maliyetini çıkarır.
   tutuyor, kaçı sliding window kullanan, MLA mı GQA mı, hangi katmanlar linear attention
   kullanıyor. Bu sayede Qwen3.5+, GLM-5.3-Flash, Nemotron-H gibi hibrit modellerin
   uzun bağlamdaki gerçek avantajı doğru görünür.
+- **Offload (sistem RAM'i)** — VRAM'e sığmayan ağırlıkların bir kısmı host RAM'de
+  tutulabilir (llama.cpp `-ngl`, vLLM `--cpu-offload-gb`). Araç bunu modeller: taşınan
+  kısım her adımda PCIe üzerinden okunur, hız buna göre düşer. Dense modelde bedel ağır,
+  MoE'de yaşanabilir — 24 GB'lık bir RTX 3090, gpt-oss-120b'yi 50 GB offload'la
+  27 tok/s'de çalıştırır.
+- **Speculative decoding (MTP)** — modelin kendi MTP head'i açıldığında her adımda bir
+  taslak token daha üretilir. Hangi modelde head olduğu `config.json`'dan okundu, tahmin
+  edilmedi: 109 modelin 48'inde var.
 - **İş yükü profilleri** — "ortalama istemim kaç K token?" sorusunu kimse
   cevaplayamaz, ama herkes ne inşa ettiğini bilir. Dokuz profil (kısa sohbet, uzun
   sohbet, RAG, doküman analizi, kod ajanı, IDE kod tamamlama, toplu işleme, çeviri,
@@ -57,7 +65,28 @@ npm install
 npm run dev      # geliştirme sunucusu → http://localhost:5173
 npm run build    # üretim derlemesi (dist/)
 npm run preview  # derlemeyi önizle
+npm run dogrula  # veri bütünlüğü + motor akıl sağlığı testleri
+npm run model-tara  # HuggingFace'te trend olup veritabanında olmayan modeller
 ```
+
+### Model veritabanını taze tutmak
+
+Model listesi elle bakılmazsa haftalar içinde eskiyor. `npm run model-tara`
+HuggingFace'te trend olan metin üretimi modellerini çeker ve hangilerinin
+veritabanında olmadığını listeler:
+
+```bash
+npm run model-tara                    # eksikleri listele
+npm run model-tara -- --limit 100     # daha geniş tara
+npm run model-tara -- --uret Qwen/X   # o depo için hazır kayıt üret
+npm run model-tara -- --uret-hepsi    # listedekilerin hepsi için
+```
+
+Üretilen kayıt parametre sayısını, KV geometrisini, bağlamı, lisansı ve MTP
+head'ini `config.json` ile safetensors üstverisinden çıkarır. `ad`, `aile` ve
+`not` alanları elle gözden geçirilmelidir — bunlar editoryal karardır ve
+otomatikleştirilmemelidir. Veri çıkarılamayan depolarda betik uydurmak yerine
+sebebini yazıp geçer.
 
 ## Proje yapısı
 
@@ -148,6 +177,51 @@ dalına yapılan her push'ta projeyi derleyip GitHub Pages'e dağıtır. İş ak
 > İlk dağıtım için depo **Settings → Pages → Build and deployment → Source**
 > ayarının **GitHub Actions** olması gerekir. İş akışı bunu otomatik yapmayı dener;
 > izin nedeniyle yapamazsa bu ayarı bir kez elle seçmek yeterlidir.
+
+## Offload nasıl hesaplanır
+
+VRAM'e sığmayan ağırlıkların bir kısmı sistem RAM'inde tutulabilir. Adım süresi
+iki okumanın toplamıdır:
+
+```
+süre = VRAM'den_okunan_bayt / (VRAM_bant_genişliği × MBU × MoE_verimi)
+     + RAM'den_okunan_bayt  / PCIe_bant_genişliği
+```
+
+PCIe 5.0 ×16 ≈ 63 GB/s; bir RTX 5090'ın VRAM'i 1792 GB/s. Aradaki ~28 kat fark,
+offload'ın neden yavaşlattığını açıklar. **Ama MoE'de bedel çok daha hafiftir:**
+her adımda toplam ağırlığın yalnızca aktif kısmı okunur, dolayısıyla PCIe üzerinden
+çekilen bayt da o oranda azdır.
+
+| Kurulum | Offload yok | 50 GB offload |
+| --- | --- | --- |
+| Qwen3.8-27B BF16 (dense) · RTX 3090 | sığmaz | 1,5 tok/s |
+| gpt-oss-120b NVFP4 (5,1B aktif) · RTX 3090 | sığmaz | **27,5 tok/s** |
+
+KV cache offload edilmez: her adımda tamamı taranır, PCIe üzerinden okumak kabul
+edilemez derecede yavaş olurdu.
+
+> Simülatör **kör** (katman bazlı) offload varsayar: RAM'e taşınan ağırlıklar her
+> adımda payları oranında okunur. Gerçekte akıllı yerleştirme — sık kullanılan
+> katmanları VRAM'de tutmak, seyrek erişilen embedding tablosunu RAM'e atmak —
+> daha iyi sonuç verir. Bu yüzden buradaki hız bir **alt sınırdır**.
+
+## Speculative decoding (MTP)
+
+MTP head'i olan modeller her adımda bir taslak token daha üretir; doğrulama aynı
+ağırlık okumasıyla yapıldığı için kabul edilen taslak neredeyse bedavaya gelir.
+
+```
+hızlanma = 1 + kabul_oranı        (varsayılan kabul 0,5 → 1,5×)
+```
+
+Yalnızca decode'u hızlandırır; ilk token (prefill) süresi değişmez, kalite
+etkilenmez (taslak doğrulanır, yanlışsa atılır). Hangi modelde head olduğu
+`config.json`'daki `num_nextn_predict_layers` ve eşdeğeri alanlardan okundu —
+109 modelin 48'inde var.
+
+Kalibrasyon: DGX Spark + Qwen3.8-Flash-Next için yayımlanmış ölçüm 16,8 → 24,6 tok/s
+(1,46×). Simülatör MTP'siz 16,8, MTP'li 25,2 veriyor — ikisi de ölçümün %3 içinde.
 
 ## Seyrek MoE cezası
 

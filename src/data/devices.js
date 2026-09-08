@@ -184,10 +184,28 @@ export const YIGIN = {
 /*  tek karta sunucu şasisi yazmak toplam maliyeti çarpıtır.           */
 /* ------------------------------------------------------------------ */
 export const ANA_SISTEM = [
-  { maxKart: 2, ad: "Masaüstü iş istasyonu", usd: 900, w: 150,
-    not: "Standart anakart, 1000-1600 W güç kaynağı, 64 GB RAM." },
-  { maxKart: 4, ad: "Çok yuvalı iş istasyonu", usd: 2600, w: 250,
-    not: "Threadripper/Xeon sınıfı anakart, bol PCIe hattı, 1600-2000 W güç kaynağı, riser kabloları." },
-  { maxKart: 8, ad: "Sunucu şasisi", usd: 8500, w: 400,
+  { maxKart: 2, ad: "Masaüstü iş istasyonu", usd: 900, w: 150, ram: 64, pcie: 5,
+    not: "Standart anakart, 1000-1600 W güç kaynağı, 64 GB DDR5." },
+  { maxKart: 4, ad: "Çok yuvalı iş istasyonu", usd: 2600, w: 250, ram: 384, pcie: 5,
+    not: "Threadripper/Xeon sınıfı anakart, bol PCIe hattı, 384 GB ECC RDIMM, 1600-2000 W güç kaynağı." },
+  { maxKart: 8, ad: "Sunucu şasisi", usd: 8500, w: 400, ram: 768, pcie: 5,
     not: "Rack sunucu, yedekli güç kaynağı, aktif soğutma. Gürültülü — ofis odasına konmaz." },
 ];
+
+/* ------------------------------------------------------------------ */
+/*  OFFLOAD (ağırlıkları sistem RAM'inde tutma)                        */
+/*                                                                     */
+/*  VRAM'e sığmayan ağırlıkların bir kısmı host RAM'de tutulabilir     */
+/*  (llama.cpp -ngl, vLLM --cpu-offload-gb). Her adımda o kısım PCIe   */
+/*  üzerinden okunur, dolayısıyla hız PCIe bant genişliğine takılır.   */
+/*                                                                     */
+/*  Birleşik bellekli kutularda (Mac, Spark, Strix Halo) anlamsızdır:  */
+/*  ağırlıklar zaten sistem RAM'indedir, taşınacak bir yer yok.        */
+/* ------------------------------------------------------------------ */
+export const PCIE_BW = { 3: 16, 4: 31, 5: 63 }; // GB/s, x16 tek yön
+
+/* Seçilebilir sistem RAM kapasiteleri. Offload'ın tavanını bu belirler:
+   ağırlıkların RAM'e taşınan kısmı buraya sığmak zorunda. İşletim sistemi
+   ve çalışma zamanı için birkaç GB pay bırakılır. */
+export const RAM_SECENEK = [32, 64, 128, 192, 256, 384, 512, 768, 1024];
+export const RAM_ISLETIM_PAYI = 8; // GB

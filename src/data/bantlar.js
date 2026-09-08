@@ -98,8 +98,11 @@ export const BANTLAR = [
     ne: "4. bant + ikinci kart. Toplam 192 GB VRAM, tensor parallelism TP=2.",
     ayar: {
       modelId: "qwen38_flash_next", cihazId: "pro6000", adet: 2,
-      quant: "nvfp4", kvq: "fp8", ctxK: 262, girdiK: 4,
+      quant: "fp8", kvq: "fp8", ctxK: 262, girdiK: 4,
       kullanici: 8, cikti: 800, indirGibi: false,
+      // Anlatının dayandığı kurulum: n-gram embedding katmanı host RAM'de,
+      // 384 GB sistem RAM'i ve modelin kendi MTP head'i açık.
+      offloadGB: 60, sistemRam: 384, mtp: true,
     },
     tekKullanici:
       "Flash-Next resmi FP8 checkpoint, n-gram embedding katmanı host RAM'de, GPU'da ~125 GiB, ~50 GB KV alanı. Modelin KV'si token başına ~12 KB olduğu için bu alan devasa. Ayrıca 27B'yi ikinci karta koyup iki modeli aynı anda servis edebilirsin.",
@@ -117,8 +120,9 @@ export const BANTLAR = [
 /* ------------------------------------------------------------------ */
 export const BANT_UYARISI =
   "Bantlardaki fiyat, stok, garanti, PCIe hattı ve platform büyüme bilgisi Türkiye'deki " +
-  "satıcı yapılandırmalarına dayanır; simülatör bunları hesaplamaz. Simülatör ayrıca " +
-  "ağırlıkların bir kısmını sistem RAM'ine taşımayı (offload) modellemez — 5. bandın " +
-  "resmi FP8 checkpoint anlatısı buna dayanır, bu yüzden simülatör o kurulumu " +
-  "“sığmıyor” gösterebilir. Bandı yükleyince göreceğin sayılar, offload OLMADAN " +
-  "sadece VRAM'e sığdırma senaryosudur.";
+  "satıcı yapılandırmalarına dayanır; simülatör bunları hesaplamaz. Offload artık " +
+  "modelleniyor (5. bant onu kullanır), ama simülatör KÖR — katman bazlı — offload " +
+  "varsayar: RAM'e taşınan ağırlıklar her adımda payları oranında okunur. Gerçekte " +
+  "akıllı yerleştirme (sık kullanılan katmanları VRAM'de tutmak, seyrek erişilen " +
+  "embedding tablosunu RAM'e atmak) daha iyi sonuç verir. Bu yüzden offload'lı " +
+  "kurulumlarda gördüğün hız bir ALT SINIRDIR; gerçek kurulum daha hızlı olabilir.";

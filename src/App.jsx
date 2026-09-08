@@ -4,14 +4,14 @@ import { C, MONO, SANS, S, T, RADIUS, GOLGE } from "./theme.js";
 import { MODELS, MODEL_HARITA, AILE_SIRA } from "./data/models.js";
 import {
   DEVICES, CIHAZ_HARITA, GRUP_SIRA, TR_DURUM, TR_NOT, MIM_AD,
-  FP4_NATIVE, FP8_NATIVE, YIGIN,
+  FP4_NATIVE, FP8_NATIVE, YIGIN, RAM_SECENEK, RAM_ISLETIM_PAYI, PCIE_BW, ANA_SISTEM,
 } from "./data/devices.js";
 import { QUANTS, QUANT_HARITA, KVQUANTS, KVQUANT_HARITA, DUSUK_QUANT_ONER } from "./data/quants.js";
 import { SENARYOLAR } from "./data/concepts.js";
 import { IS_YUKLERI, IS_YUKU_HARITA, eslesenProfil } from "./data/isYukleri.js";
 import {
   hesapla, kapasite, hedefDurumu, kvTipi, ctxYazi, harfYazi,
-  para, paraTL, gb, sureYazi, TP_ETIKET, VARSAYILAN_HEDEF,
+  para, paraTL, gb, sureYazi, TP_ETIKET, VARSAYILAN_HEDEF, anaSistem, MTP_KABUL_VARSAYILAN,
 } from "./engine.js";
 import {
   Kart, Bolum, Etiket, Secim, Kaydirac, Onay, Rozet, Dugme, Sekmeler, Aciklama,
@@ -23,7 +23,7 @@ import Grafik from "./sections/Grafik.jsx";
 import { DonanimTablosu, ModelTablosu } from "./sections/Tablolar.jsx";
 import Bilgi from "./sections/Bilgi.jsx";
 import ChatBot from "./chat/ChatBot.jsx";
-import { durumuOku, durumuYaz } from "./urlDurum.js";
+import { durumuOku, durumuYaz, durumuDinle } from "./urlDurum.js";
 
 /* ------------------------------------------------------------------ */
 /*  Kuantizasyon ↔ donanım uyumu                                       */
@@ -94,6 +94,9 @@ export default function Simulator() {
     ...VARSAYILAN_HEDEF, ...IS_YUKU_HARITA.sohbet_kisa.hedef, ...ilk.hedef,
   }));
 
+  const [offloadGB, setOffloadGB] = useState(ilk.offloadGB ?? 0);
+  const [sistemRam, setSistemRam] = useState(ilk.sistemRam ?? 0); // 0 = ana sisteme göre
+  const [mtpAcik, setMtpAcik] = useState(ilk.mtpAcik ?? false);
   const [dusunme, setDusunme] = useState(false);
   const [dusunmeTok, setDusunmeTok] = useState(800);
   const [sekme, setSekme] = useState("bantlar");
@@ -124,12 +127,18 @@ export default function Simulator() {
   useEffect(() => { if (girdiK > ctxK) setGirdiK(Math.max(1, Math.round(ctxK / 2))); }, [ctxK, girdiK]);
 
   useEffect(() => {
-    durumuYaz({ modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi, hedef });
-  }, [modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi, hedef]);
+    durumuYaz({ modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi, hedef, offloadGB, sistemRam, mtpAcik });
+  }, [modelId, cihazId, adet, quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, indirGibi, hedef, offloadGB, sistemRam, mtpAcik]);
+
+  /* Sistem RAM'i seçilmediyse ana sistemin varsayılanı kullanılır. */
+  const etkinRam = sistemRam || anaSistem(cihaz.tur === "kart" ? adet : 0).ram || 0;
 
   const ortak = useMemo(
-    () => ({ quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran: kvOran / 100 }),
-    [quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran]
+    () => ({
+      quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran: kvOran / 100,
+      offloadGB, mtp: mtpAcik, sistemRam: etkinRam,
+    }),
+    [quant, kvq, ctxK, girdiK, kullanici, cikti, kvOran, offloadGB, mtpAcik, etkinRam]
   );
 
   const r = useMemo(() => hesapla({ ...ortak, model, cihaz, adet }), [ortak, model, cihaz, adet]);
@@ -159,12 +168,37 @@ export default function Simulator() {
     setHedef((h) => ({ ...h, ...p.hedef }));
   }, []);
 
+  /* Adres çubuğuna dışarıdan başka bir kurulum linki yapıştırılırsa uygula.
+     Aynı belgede hash değişimi sayfayı yeniden yüklemediği için, bu olmadan
+     paylaşılan link açık sekmede hiçbir şey yapmıyordu. */
+  useEffect(
+    () =>
+      durumuDinle((d) => {
+        if (d.modelId) setModelId(d.modelId);
+        if (d.cihazId) setCihazId(d.cihazId);
+        if (d.quant) setQuant(d.quant);
+        if (d.kvq) setKvq(d.kvq);
+        for (const [ad, ayarla] of [
+          ["adet", setAdet], ["ctxK", setCtxK], ["girdiK", setGirdiK],
+          ["kullanici", setKullanici], ["cikti", setCikti], ["kvOran", setKvOran],
+          ["offloadGB", setOffloadGB], ["sistemRam", setSistemRam],
+        ]) if (typeof d[ad] === "number") ayarla(d[ad]);
+        if (typeof d.indirGibi === "boolean") setIndirGibi(d.indirGibi);
+        if (typeof d.mtpAcik === "boolean") setMtpAcik(d.mtpAcik);
+        if (d.hedef) setHedef((h) => ({ ...h, ...d.hedef }));
+      }),
+    []
+  );
+
   /* Bir hazır ayarı (senaryo veya bant) yükle. */
   const ayarYukle = useCallback((a) => {
     setIndirGibi(!!a.indirGibi);
     setModelId(a.modelId); setCihazId(a.cihazId); setAdet(a.adet);
     setQuant(a.quant); setKvq(a.kvq); setCtxK(a.ctxK); setGirdiK(a.girdiK);
     setKullanici(a.kullanici); setCikti(a.cikti);
+    setOffloadGB(a.offloadGB ?? 0);
+    if (a.sistemRam) setSistemRam(a.sistemRam);
+    if (a.mtp !== undefined) setMtpAcik(!!a.mtp);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -175,13 +209,19 @@ export default function Simulator() {
     out.push({ tip: uyum.tip, baslik: `${qAktif.ad} · ${cihaz.ad}`, metin: uyum.mesaj });
 
     if (!r.sigar) {
+      // Offload gerçek bir çıkış yolu — "sığmıyor" deyip bırakmak yanlış tavsiye.
+      const kalanAgirlik = Math.max(0, r.vramAgirlikGB + r.kvGB + r.ekGB - r.toplamBellek);
+      const offloadYeter = cihaz.tur === "kart" && kalanAgirlik > 0 && kalanAgirlik <= r.offloadMumkun - r.offload;
       out.push({
         tip: "tehlike", baslik: "Belleğe sığmıyor",
         metin:
           `${adet} × ${cihaz.ad} (${gb(r.toplamBellek)} GB) bu ayarlara yetmiyor: ${gb(r.gerekliGB)} GB gerekiyor. ` +
           (r.agirlikGB > r.toplamBellek
             ? `Ağırlıklar tek başına ${gb(r.agirlikGB)} GB — ${DUSUK_QUANT_ONER[quant]} veya en az ${r.minAdet ? `${r.minAdet} adet` : "çok daha fazla"} cihaz gerekir.`
-            : `Taşıran şey KV cache (${gb(r.kvGB)} GB). Kullanıcıyı ${r.maxKullanici}'e ya da bağlamı ${ctxYazi(Math.floor(r.maxCtxK))}'e düşür, ya da KV'yi ${kvq === "fp16" ? "FP8" : "Q4"} yap.`),
+            : `Taşıran şey KV cache (${gb(r.kvGB)} GB). Kullanıcıyı ${r.maxKullanici}'e ya da bağlamı ${ctxYazi(Math.floor(r.maxCtxK))}'e düşür, ya da KV'yi ${kvq === "fp16" ? "FP8" : "Q4"} yap.`) +
+          (offloadYeter
+            ? ` Alternatif: ${Math.ceil(kalanAgirlik + 1)} GB ağırlığı sistem RAM'ine taşırsan (offload) çalışır — ama PCIe üzerinden okunacağı için yavaşlar.`
+            : ""),
       });
     } else if (r.doluluk > 0.9) {
       out.push({
@@ -208,6 +248,37 @@ export default function Simulator() {
       });
     else if (kvq !== "fp16")
       out.push({ tip: "bilgi", baslik: `KV cache: ${kvAktif.ad}`, metin: kvAktif.not });
+
+    if (!r.ramYeterli)
+      out.push({
+        tip: "tehlike", baslik: "Sistem RAM'i yetmiyor",
+        metin: `${gb(offloadGB)} GB offload istedin ama ${r.ram} GB RAM'in ${gb(r.ramTavani)} GB'ı kullanılabilir. RAM'i büyüt ya da offload'ı düşür.`,
+      });
+
+    if (r.offload > 0 && r.sigar) {
+      const yavaslama = r.offloadOrani > 0 ? (r.kumeBW * cihaz.mbu) / r.pcieBW : 1;
+      out.push({
+        tip: r.offloadOrani > 0.5 ? "uyari" : "bilgi",
+        baslik: `Offload: ağırlığın %${Math.round(r.offloadOrani * 100)}'i sistem RAM'inde`,
+        metin:
+          `${gb(r.offload)} GB host RAM'de duruyor ve her adımda PCIe üzerinden (~${Math.round(r.pcieBW)} GB/s) okunuyor — VRAM'den ~${Math.round(yavaslama)}× yavaş. ` +
+          (model.ap < model.tp
+            ? `Neyse ki bu bir MoE: her adımda ${model.tp}B'nin yalnızca ${model.ap}B'si okunuyor, dolayısıyla offload cezası dense bir modele göre çok daha hafif kalıyor.`
+            : `Dense modelde her adımda ağırlığın TAMAMI okunur, bu yüzden offload burada ağır bedel ödetiyor. Aynı belleğe sığan bir MoE çok daha iyi sonuç verir.`) +
+          ` Simülatör kör (katman bazlı) offload modeller; uzman-farkında yerleştirme gibi akıllı stratejiler daha iyi sonuç verir — bu sayı alt sınırdır.`,
+      });
+    }
+
+    if (model.mtp && !mtpAcik)
+      out.push({
+        tip: "bilgi", baslik: "Kullanılmayan MTP head'i var",
+        metin: `${model.ad} ${model.mtp} MTP head'iyle geliyor ama speculative decoding kapalı. Açarsan decode hızı ~${1 + MTP_KABUL_VARSAYILAN}× artar; vLLM ve SGLang'de tek satırlık ayar, kalite kaybı yok (taslak doğrulanır, yanlışsa atılır).`,
+      });
+    else if (r.mtpAktif)
+      out.push({
+        tip: "olumlu", baslik: `Speculative decoding açık · ${r.mtpHizlanma}× decode`,
+        metin: "Kabul edilen taslak token aynı ağırlık okumasıyla geldiği için neredeyse bedava. Yalnızca decode'u hızlandırır — ilk token (prefill) süresi değişmez. Kalite etkilenmez.",
+      });
 
     if (r.moeVerim < 0.6)
       out.push({
@@ -406,6 +477,23 @@ export default function Simulator() {
                 isaretli={indirGibi} onChange={setIndirGibi}
               />
 
+              {/* MTP yalnızca modelin head'i varsa gösterilir — config.json'dan
+                  okundu, tahmin değil. Olmayan modelde seçenek sunmak yanıltıcı olur. */}
+              {model.mtp ? (
+                <div style={{ marginTop: S.sm }}>
+                  <Onay
+                    etiket={`Speculative decoding (MTP) — ${r.mtpAktif ? `${r.mtpHizlanma}× hızlanma` : "kapalı"}`}
+                    aciklama={`Bu modelde ${model.mtp} MTP head'i var. Açıldığında her adımda bir taslak token daha üretilir; kabul edilen taslak neredeyse bedava gelir. vLLM/SGLang'de tek satırlık ayar.`}
+                    isaretli={mtpAcik} onChange={setMtpAcik}
+                  />
+                </div>
+              ) : (
+                <div style={{ ...T.mini, color: C.ink3, marginTop: S.sm }}>
+                  Bu modelin yayımlanmış ağırlıklarında MTP head'i yok — speculative
+                  decoding için ayrı bir taslak model gerekir.
+                </div>
+              )}
+
               {!indirGibi && (
                 <div style={{ marginTop: S.md }}>
                   <Secim etiket="Ağırlık kuantizasyonu" deger={quant} onChange={setQuant}>
@@ -485,6 +573,33 @@ export default function Simulator() {
                 ))}
               </Secim>
               <Kaydirac etiket="Adet" deger={adet} onChange={setAdet} min={1} max={16} step={1} goster={`${adet} adet`} />
+
+              {/* Offload yalnızca ayrık kartlarda anlamlı: birleşik bellekli
+                  kutuda ağırlıklar zaten sistem RAM'inde, taşınacak yer yok. */}
+              {cihaz.tur === "kart" && (
+                <>
+                  <Secim
+                    etiket="Sistem RAM'i" deger={String(sistemRam)} onChange={(v) => setSistemRam(Number(v))}
+                    alt={`Offload tavanını bu belirler (işletim sistemi için ${RAM_ISLETIM_PAYI} GB pay bırakılır).`}
+                  >
+                    <option value="0">Ana sisteme göre — {anaSistem(adet).ram} GB</option>
+                    {RAM_SECENEK.map((g) => <option key={g} value={g}>{g} GB</option>)}
+                  </Secim>
+
+                  <Kaydirac
+                    etiket="Ağırlıkları sistem RAM'ine taşı (offload)"
+                    deger={Math.min(offloadGB, Math.floor(r.offloadMumkun))}
+                    onChange={setOffloadGB}
+                    min={0} max={Math.max(1, Math.floor(r.offloadMumkun))} step={1}
+                    goster={offloadGB > 0 ? `${gb(r.offload)} GB · %${Math.round(r.offloadOrani * 100)}` : "kapalı"}
+                    alt={
+                      offloadGB > 0
+                        ? `Bu kısım her adımda PCIe ${anaSistem(adet).pcie}.0 üzerinden (~${Math.round(r.pcieBW)} GB/s) okunur — VRAM'den ${Math.round((r.kumeBW * cihaz.mbu) / r.pcieBW)}× yavaş.`
+                        : "VRAM'e sığmayan ağırlıkları host RAM'de tutar (llama.cpp -ngl, vLLM --cpu-offload-gb). Sığdırır ama yavaşlatır."
+                    }
+                  />
+                </>
+              )}
               <div style={{ background: C.paper2, border: `1px solid ${C.line2}`, borderRadius: RADIUS.sm, padding: `${S.sm + 2}px ${S.md}px`, fontFamily: MONO, fontSize: 11, color: C.ink2, lineHeight: 1.8 }}>
                 {cihaz.mem} GB {cihaz.bellekTipi.toUpperCase()} · {cihaz.bw} GB/s · {cihaz.w} W
                 <br />{MIM_AD[cihaz.mim]}

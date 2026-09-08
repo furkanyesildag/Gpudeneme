@@ -9,7 +9,7 @@
 /* ------------------------------------------------------------------ */
 
 import { QUANT_HARITA, KVQUANT_HARITA } from "./data/quants.js";
-import { ANA_SISTEM } from "./data/devices.js";
+import { ANA_SISTEM, PCIE_BW, RAM_ISLETIM_PAYI } from "./data/devices.js";
 
 /** Kartları çalıştıracak ana sistemin maliyeti ve gücü.
  *  Tek karta 8500$'lık sunucu şasisi yazmak gerçeği çarpıtıyordu:
@@ -67,6 +67,23 @@ export function moeVerimi(model, cihaz) {
   const ceza = cihaz.mim === "apple" ? APPLE_CEZA : MOE_CEZA[cihaz.bellekTipi] ?? 0.35;
   return 1 - ceza * (1 - tamCeza);
 }
+
+/* ------------------------------------------------------------------ */
+/*  SPECULATIVE DECODING (MTP)                                         */
+/*                                                                     */
+/*  MTP head'i olan model her adımda 1 taslak token daha üretir;       */
+/*  doğrulama aynı ağırlık okumasıyla yapıldığı için kabul edilen      */
+/*  taslak neredeyse bedavaya gelir. Kazanç kabul oranına bağlıdır.    */
+/*                                                                     */
+/*  Hızlanma = 1 + kabul_orani                                         */
+/*                                                                     */
+/*  Yayımlanmış kabul oranları %60-85 aralığında, ama uçtan uca        */
+/*  ölçülen hızlanma doğrulama maliyeti yüzünden daha düşük kalıyor.   */
+/*  Elimdeki ölçüm (DGX Spark + Qwen3.8-Flash-Next): 16,8 → 24,6 tok/s */
+/*  yani 1,46x; bu da etkin kabul oranı ~0,46 demek. Varsayılanı 0,5   */
+/*  aldım — biraz iyimser ama yuvarlak ve o ölçümün %3 içinde.         */
+/* ------------------------------------------------------------------ */
+export const MTP_KABUL_VARSAYILAN = 0.5;
 
 /* Elektrik: Türkiye mesken + ticarethane ortalaması (2026, TL/kWh, dağıtım dahil) */
 export const ELEKTRIK_TL_KWH = 3.4;
@@ -132,6 +149,7 @@ export function kvTipi(kv) {
  */
 export function hesapla({
   model, quant, kvq, ctxK, girdiK, kullanici, cikti, cihaz, adet, kvOran = 1,
+  offloadGB = 0, mtp = false, mtpKabul = MTP_KABUL_VARSAYILAN, sistemRam = null,
 }) {
   const q = QUANT_HARITA[quant] || QUANT_HARITA.bf16;
   const kvqe = KVQUANT_HARITA[kvq] || KVQUANT_HARITA.fp16;
@@ -149,7 +167,7 @@ export function hesapla({
   const kartMi = cihaz.tur === "kart";
   // Hazır kutular (Mac Studio, Spark, mini PC) kendi başına bir bilgisayardır;
   // ayrık kartlar ise onları takacak bir ana sisteme ihtiyaç duyar.
-  const host = kartMi ? anaSistem(adet) : { ad: "", usd: 0, w: 0, adet: 0 };
+  const host = kartMi ? anaSistem(adet) : { ad: "", usd: 0, w: 0, adet: 0, ram: 0, pcie: 5 };
   const maliyet = cihaz.fiyat * adet + host.usd;
   const maliyetTL = cihaz.try * adet + host.usd * USD_TRY * ITHALAT;
   const guc = cihaz.w * adet + host.w;
@@ -170,17 +188,43 @@ export function hesapla({
   const kvGB = kullanici * kvKullaniciGB;
   // Çalışma zamanı: CUDA bağlamı, aktivasyonlar, parçalanma payı.
   const ekGB = 1.2 + 0.05 * agirlikGB + 0.35 * adet;
-  const gerekliGB = agirlikGB + kvGB + ekGB;
-  const sigar = gerekliGB <= toplamBellek;
+
+  /* Offload: ağırlıkların bir kısmı host RAM'de. Yalnızca ayrık kartlarda
+     anlamlı — birleşik bellekli kutuda taşınacak ayrı bir yer yok.
+     KV cache offload edilmez: her adımda tamamı taranır, PCIe üzerinden
+     okumak kabul edilemez derecede yavaş olurdu. */
+  // RAM tavanı: kullanıcı belirtmediyse ana sistemin varsayılanı.
+  const ram = sistemRam ?? host.ram ?? 0;
+  const ramTavani = Math.max(0, ram - RAM_ISLETIM_PAYI);
+  const offloadMumkun = kartMi ? Math.min(agirlikGB, ramTavani) : 0;
+  const offload = Math.max(0, Math.min(offloadGB, offloadMumkun));
+  const vramAgirlikGB = agirlikGB - offload;
+  const offloadOrani = agirlikGB > 0 ? offload / agirlikGB : 0;
+  const ramYeterli = offload <= ramTavani;
+
+  const gerekliGB = vramAgirlikGB + kvGB + ekGB;
+  const sigar = gerekliGB <= toplamBellek && ramYeterli;
   const doluluk = toplamBellek > 0 ? gerekliGB / toplamBellek : Infinity;
 
   /* ---- Decode hızı ----
      Bellek bant genişliği sınırlı. Her adımda okunan bayt = aktif ağırlıklar
      + batch'teki KV cache. KV okuması attention kernel'inde tam olarak
      taranmaz (sayfalama, flash-attention); ~0,55 katsayısı bunu yansıtır. */
-  const adimBaytGB = aktifGB + kvGB * 0.55;
   const moeVerim = moeVerimi(model, cihaz);
-  const adimHiz = adimBaytGB > 0 ? (kumeBW * cihaz.mbu * moeVerim) / adimBaytGB : 0;
+  const vramBW = kumeBW * cihaz.mbu * moeVerim;
+  // Offload edilen ağırlıklar her adımda PCIe üzerinden çekilir.
+  const pcieBW = (PCIE_BW[host.pcie] || PCIE_BW[5]) * adet;
+
+  const vramBaytGB = aktifGB * (1 - offloadOrani) + kvGB * 0.55;
+  const ramBaytGB = aktifGB * offloadOrani;
+  const adimSure = (vramBW > 0 ? vramBaytGB / vramBW : Infinity) + (ramBaytGB > 0 ? ramBaytGB / pcieBW : 0);
+
+  /* MTP yalnızca modelin head'i varsa ve kullanıcı açtıysa uygulanır.
+     Sadece decode'u hızlandırır; ilk token (prefill) etkilenmez. */
+  const mtpAktif = !!(mtp && model.mtp);
+  const mtpHizlanma = mtpAktif ? 1 + Math.max(0, Math.min(0.95, mtpKabul)) : 1;
+
+  const adimHiz = adimSure > 0 && isFinite(adimSure) ? mtpHizlanma / adimSure : 0;
   const kullaniciTokS = adimHiz;
   const toplamTokS = adimHiz * kullanici;
 
@@ -194,7 +238,7 @@ export function hesapla({
   const ttftYogun = ttftTek * (1 + (kullanici - 1) * 0.62);
 
   /* ---- Kapasite sınırları ---- */
-  const kalanGB = toplamBellek - agirlikGB - ekGB;
+  const kalanGB = toplamBellek - vramAgirlikGB - ekGB;
   const maxKullanici = kvKullaniciGB > 0 ? Math.max(0, Math.floor(kalanGB / kvKullaniciGB)) : 0;
 
   // Bu kullanıcı sayısıyla sığan en uzun bağlam — KV geometrisi doğrusal
@@ -220,7 +264,7 @@ export function hesapla({
   for (let n = 1; n <= 128; n++) {
     const bellek = cihazKullanilabilir * n;
     const ek = 1.2 + 0.05 * agirlikGB + 0.35 * n;
-    if (agirlikGB + kvGB + ek <= bellek) { minAdet = n; break; }
+    if (vramAgirlikGB + kvGB + ek <= bellek) { minAdet = n; break; }
   }
 
   const ciktiSure = cikti / Math.max(kullaniciTokS, 0.01);
@@ -234,7 +278,10 @@ export function hesapla({
   const milyonTokenTL = yillikToken > 0 ? (yillikElektrikTL / yillikToken) * 1e6 : 0;
 
   return {
-    agirlikGB, aktifGB, kvGB, kvKullaniciGB, ekGB, gerekliGB, toplamBellek, sigar, doluluk,
+    agirlikGB, vramAgirlikGB, offload, offloadOrani, offloadMumkun, ramYeterli, pcieBW,
+    ram, ramTavani,
+    mtpAktif, mtpHizlanma,
+    aktifGB, kvGB, kvKullaniciGB, ekGB, gerekliGB, toplamBellek, sigar, doluluk,
     kullaniciTokS, toplamTokS, ttftTek, ttftYogun, ciktiSure, yanitSure,
     maxKullanici, maxCtxK, maxCtxBellek, maxCtxModelSinirli: maxCtxBellek > modelTavani,
     minAdet, maliyet, maliyetTL, guc, host,

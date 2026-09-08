@@ -17,6 +17,8 @@ const VARSAYIMLAR = [
   ["Interconnect", "Tensor parallelism (TP) verimi NVLink %86, aynı kasada PCIe %60, ağ/USB4 üzerinden %33. Spark ve Mac kümelerinin düşük çıkması bu yüzdendir."],
   ["Bellek payı", "Birleşik bellekli kutularda %12, ayrık kartlarda %6 sistem payı düşülür. Çalışma zamanı için ayrıca 1,2 GB + ağırlığın %5'i + cihaz başına 0,35 GB ayrılır."],
   ["Ana sistem", "Ayrık kartlara, onları çalıştıracak bilgisayarın maliyeti ve gücü eklenir; kart sayısına göre basamaklıdır (masaüstü → çok yuvalı iş istasyonu → sunucu şasisi)."],
+  ["Offload", "VRAM'e sığmayan ağırlıkların host RAM'de tutulan kısmı her adımda PCIe üzerinden okunur; süre, VRAM'den okunan bayt ile RAM'den okunan baytın ayrı ayrı sürelerinin toplamıdır. Model KÖR offload varsayar (taşınan ağırlıklar payları oranında okunur) — akıllı yerleştirme daha iyi sonuç verir, dolayısıyla bu bir alt sınırdır. KV cache offload edilmez: her adımda tamamı taranır."],
+  ["Speculative decoding (MTP)", "MTP head'i olan modellerde her adımda bir taslak token daha üretilir ve aynı ağırlık okumasıyla doğrulanır; hızlanma = 1 + kabul_oranı, varsayılan kabul 0,5. Yalnızca decode'u etkiler, ilk token'ı değil. Hangi modelde head olduğu config.json'dan okundu, tahmin edilmedi."],
 ];
 
 const GUVEN = [
