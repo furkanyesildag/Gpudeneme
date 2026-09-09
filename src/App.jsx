@@ -23,6 +23,7 @@ import Bantlar from "./sections/Bantlar.jsx";
 import Grafik from "./sections/Grafik.jsx";
 import { DonanimTablosu, ModelTablosu } from "./sections/Tablolar.jsx";
 import Bilgi from "./sections/Bilgi.jsx";
+import YoneticiOzeti from "./sections/YoneticiOzeti.jsx";
 import ChatBot from "./chat/ChatBot.jsx";
 import { durumuOku, durumuYaz, durumuDinle } from "./urlDurum.js";
 import Kalibrasyon from "./components/Kalibrasyon.jsx";
@@ -109,6 +110,16 @@ export default function Simulator() {
      (kapalı / düşük / orta / yüksek), açık-kapalı bir anahtar olarak değil. */
   const [dusunmeSeviye, setDusunmeSeviye] = useState("kapali");
   const [sekme, setSekme] = useState("bantlar");
+  /* İki izleyici, iki ekran. Karar verici "alalım mı" sorusunun cevabını
+     ister; mühendis ara hesapları görmek ister. Aynı ekranda ikisini
+     birden vermek ikisini de bozuyordu — bu yüzden ayrıldılar.
+     Varsayılan yönetici özeti: siteyi ilk açan çoğunlukla karar verici. */
+  const [mod, setMod] = useState(() => {
+    try {
+      return new URLSearchParams((location.hash || "").replace(/^#/, "")).has("detay")
+        ? "detay" : "yonetici";
+    } catch { return "yonetici"; }
+  });
   const [sohbetAcik, setSohbetAcik] = useState(false);
   const [tema, setTema] = useState(() => {
     try { return localStorage.getItem("tema") || "sistem"; } catch { return "sistem"; }
@@ -417,17 +428,47 @@ export default function Simulator() {
             <div style={{ ...T.etiket, color: C.steel, marginBottom: 6 }}>
               Yerel LLM altyapısı · kapasite simülasyonu
             </div>
-            <h1 style={{ ...T.dev, margin: 0, color: C.ink }}>
-              Hangi donanım, kaç adet, ne kadar token
-            </h1>
-            <p style={{ ...T.govde, color: C.ink2, margin: `${S.sm}px 0 0`, maxWidth: 720 }}>
-              {MODELS.length} açık ağırlıklı model, {DEVICES.length} donanım, Türkiye fiyatlarıyla.
-              KV cache hesabı her modelin gerçek{" "}
-              <code style={{ fontFamily: MONO, fontSize: 12.5 }}>config.json</code> katman
-              geometrisinden yapılır.
-            </p>
+            {mod === "yonetici" ? (
+              <>
+                <h1 style={{ ...T.dev, margin: 0, color: C.ink }}>
+                  Kendi yapay zekâ sunucumuzu kuralım mı?
+                </h1>
+                <p style={{ ...T.govde, color: C.ink2, margin: `${S.sm}px 0 0`, maxWidth: 720 }}>
+                  Ekibinizin büyüklüğünü seçin; ne almanız gerektiğini, ne kadara mal
+                  olacağını ve aynı işi buluttan satın almakla kıyasını gösterelim.
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 style={{ ...T.dev, margin: 0, color: C.ink }}>
+                  Hangi donanım, kaç adet, ne kadar token
+                </h1>
+                <p style={{ ...T.govde, color: C.ink2, margin: `${S.sm}px 0 0`, maxWidth: 720 }}>
+                  {MODELS.length} açık ağırlıklı model, {DEVICES.length} donanım, Türkiye fiyatlarıyla.
+                  KV cache hesabı her modelin gerçek{" "}
+                  <code style={{ fontFamily: MONO, fontSize: 12.5 }}>config.json</code> katman
+                  geometrisinden yapılır.
+                </p>
+              </>
+            )}
           </div>
           <div style={{ display: "flex", gap: S.sm, alignItems: "center", flexWrap: "wrap" }}>
+            {/* Mod seçici: iki farklı izleyici, iki farklı ekran. */}
+            <div style={{ display: "flex", border: `1px solid ${C.line}`, borderRadius: RADIUS.sm, overflow: "hidden" }}>
+              {[["yonetici", "Yönetici özeti"], ["detay", "Detaylı analiz"]].map(([k, ad]) => (
+                <button
+                  key={k} onClick={() => setMod(k)}
+                  style={{
+                    fontFamily: SANS, fontSize: 12.5, fontWeight: mod === k ? 600 : 500,
+                    padding: "8px 13px", cursor: "pointer", border: "none",
+                    background: mod === k ? C.steel : C.paper,
+                    color: mod === k ? "#fff" : C.ink2,
+                  }}
+                >
+                  {ad}
+                </button>
+              ))}
+            </div>
             <Dugme tur="birincil" boy="buyuk" onClick={() => setSohbetAcik(true)}>💬 Danışmana sor</Dugme>
             <select
               value={tema} onChange={(e) => setTema(e.target.value)} aria-label="Tema"
@@ -442,6 +483,10 @@ export default function Simulator() {
       </header>
 
       <main style={{ maxWidth: 1560, margin: "0 auto", padding: `${S.lg}px ${S.lg}px 110px` }}>
+        {mod === "yonetici" ? (
+          <YoneticiOzeti hedef={hedef} kvOran={kvOran / 100} detaya={() => setMod("detay")} />
+        ) : (
+        <>
         {/* ---------------- Hazır senaryolar ---------------- */}
         <div style={{ display: "flex", alignItems: "center", gap: S.md, flexWrap: "wrap", marginBottom: S.md }}>
           <Etiket>Hazır senaryo</Etiket>
@@ -789,6 +834,8 @@ export default function Simulator() {
           <Grafik ortak={ortak} model={model} cihaz={cihaz} adet={adet} girdiK={girdiK} hedef={hedef} />
         )}
         {sekme === "bilgi" && <Bilgi />}
+        </>
+        )}
 
         <footer style={{ marginTop: S.xl, ...T.mini, color: C.ink3, textAlign: "center" }}>
           Seçimlerin adres çubuğunda saklanır — bu sayfanın linkini paylaşırsan karşı taraf aynı

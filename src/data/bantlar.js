@@ -11,11 +11,18 @@
 /*  yolu, PCIe hattı, yazılım olgunluğu, garanti.                      */
 /* ------------------------------------------------------------------ */
 
+/* fiyat  : gösterilecek metin (aralık, "stokta" gibi notlar taşıyabilir)
+   fiyatTL: aynı fiyatın hesap yapılabilir hâli — aralıkların ortası, tek
+            teklif varsa teklifin kendisi. Motorun bileşen toplamı bundan
+            DÜŞÜK çıkar (entegratör marjını ve hazır sistem primini
+            bilmez); yöneticiye gösterilen para bu alandır, çünkü kasadan
+            çıkacak olan bu. */
 export const BANTLAR = [
   {
     no: 1,
     ad: "Mac Studio M3 Ultra",
     fiyat: "~210 bin ₺",
+    fiyatTL: 210000,
     fiyatTemeli: "perakende",
     ozet: "Sessiz, 270 W, kurulum derdi yok — ama ilk token yavaş.",
     ne: "96 GB birleşik bellek, 819 GB/s, 270 W. Türkiye'de perakende satılıyor, kutudan çıkar çalışır.",
@@ -37,6 +44,7 @@ export const BANTLAR = [
     no: 2,
     ad: "Tek RTX 5090",
     fiyat: "~211 bin ₺ (kart ~152 bin + sistem)",
+    fiyatTL: 211000,
     fiyatTemeli: "bileşen",
     ozet: "Perakendeden, bugün, kutusuyla alınabilecek en hızlı kart.",
     ne: "32 GB GDDR7, 1792 GB/s, 575 W, Blackwell. Raftan alınır.",
@@ -59,6 +67,7 @@ export const BANTLAR = [
     no: 3,
     ad: "DGX Spark, tek node",
     fiyat: "290-400 bin ₺",
+    fiyatTL: 345000,
     fiyatTemeli: "perakende",
     ozet: "En ucuza büyük bir MoE'yi eline alıp denemek.",
     ne: "GB10, 128 GB birleşik bellek, 273 GB/s, 1 PFLOP FP4, masaüstü boyutunda.",
@@ -82,6 +91,7 @@ export const BANTLAR = [
     no: 4,
     ad: "RTX PRO 5000 Blackwell 72 GB iş istasyonu",
     fiyat: "~870 bin ₺",
+    fiyatTL: 870000,
     fiyatTemeli: "anahtar teslim",
     ozet: "Güçlü bir 27B'yi hem sana hem ekibe iyi çalıştır, 1 milyonun altında kal.",
     ne: "72 GB GDDR7, PRO 6000'in bir alt kardeşi. Hazır iş istasyonu olarak satılıyor.",
@@ -102,6 +112,7 @@ export const BANTLAR = [
     no: 5,
     ad: "RTX PRO 6000 hazır iş istasyonu",
     fiyat: "1.445.598 ₺ · stokta",
+    fiyatTL: 1445598,
     fiyatTemeli: "anahtar teslim",
     ozet: "Bu hafta lazım, stokta olsun, tek kutu olsun.",
     ne: "1× RTX PRO 6000 96 GB, i9-14900KF, 192 GB DDR5, 1 TB NVMe + 2 TB SATA, 1500 W, 2 yıl garanti, Ubuntu + CUDA + Docker kurulu gelir.",
@@ -122,6 +133,7 @@ export const BANTLAR = [
     no: 6,
     ad: "1× PRO 6000, büyüyebilen platform",
     fiyat: "1,8-2,1 milyon ₺",
+    fiyatTL: 1950000,
     fiyatTemeli: "anahtar teslim",
     ozet: "Bugün aynı performans, yarın ikinci kartı takabilme hakkı.",
     ne: "Aynı kart; ama Threadripper PRO 9000 WX / EPYC 9005 anakart, 2 adet PCIe 5.0 ×16 hazır, 384 GB DDR5 ECC RDIMM, 2× 4 TB NVMe Gen5, 2000 W+ güç kaynağı, 3 yıl garanti.",
@@ -143,6 +155,7 @@ export const BANTLAR = [
     no: 7,
     ad: "2× PRO 6000, aynı platform",
     fiyat: "2,9-3,3 milyon ₺",
+    fiyatTL: 3100000,
     fiyatTemeli: "anahtar teslim",
     ozet: "Büyük MoE kesin, ekip kesin, 5 yıllık plan.",
     ne: "4. bant + ikinci kart. Toplam 192 GB VRAM, tensor parallelism TP=2.",
@@ -166,6 +179,7 @@ export const BANTLAR = [
     no: 8,
     ad: "4× RTX PRO 5000 Blackwell 72 GB",
     fiyat: "1,7-1,9 milyon ₺",
+    fiyatTL: 1800000,
     fiyatTemeli: "bileşen",
     ozet: "Aynı paraya 2× PRO 6000'den %50 daha fazla VRAM.",
     ne: "4 kart × 72 GB = 288 GB VRAM, 1450 W. Threadripper PRO / EPYC platform, her kart tam x16.",
@@ -189,6 +203,7 @@ export const BANTLAR = [
     no: 9,
     ad: "2× AMD Instinct MI300X",
     fiyat: "1,7-2,0 milyon ₺",
+    fiyatTL: 1850000,
     fiyatTemeli: "bileşen",
     ozet: "TL başına en çok VRAM ve bant genişliği — karşılığında ROCm.",
     ne: "2 kart × 192 GB HBM3 = 384 GB, kart başına 5300 GB/s. 1750 W. Kurumsal kanaldan, çoğu zaman sunucuyla birlikte.",
@@ -210,6 +225,7 @@ export const BANTLAR = [
     no: 10,
     ad: "3× RTX PRO 6000",
     fiyat: "2,4-2,7 milyon ₺",
+    fiyatTL: 2550000,
     fiyatTemeli: "bileşen",
     ozet: "9. banttan doğal büyüme: 288 GB, bir yuva hâlâ boş.",
     ne: "3 kart × 96 GB = 288 GB VRAM, 2050 W. Threadripper PRO / EPYC platform.",
@@ -229,6 +245,7 @@ export const BANTLAR = [
     no: 11,
     ad: "4× RTX PRO 6000",
     fiyat: "3,2-3,5 milyon ₺",
+    fiyatTL: 3350000,
     fiyatTemeli: "bileşen",
     ozet: "İş istasyonu platformunun sonuna kadar kullanılmış hâli.",
     ne: "4 kart × 96 GB = 384 GB VRAM, 2650 W. Bu, sunucu şasisine geçmeden gidilebilecek en uç nokta.",

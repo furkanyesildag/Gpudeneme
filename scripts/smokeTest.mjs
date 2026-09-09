@@ -103,6 +103,37 @@ try {
   if (await s.js(`!!document.querySelector('h1')`)) gecti("başlık var");
   else hata("h1 başlığı yok");
 
+  /* Varsayılan açılış YÖNETİCİ ÖZETİ — karar verici için sade ekran.
+     Önce onu sına, sonra detaylı analize geçip mühendis ekranını sına. */
+  console.log("\nYönetici özeti (varsayılan açılış):");
+  for (const [ad, ifade] of [
+    ["ekip büyüklüğü seçimi", `[...document.querySelectorAll('button')].some(b=>/^\\d+ kişi$/.test(b.textContent.trim()))`],
+    ["kullanım profili seçimi", `[...document.querySelectorAll('button')].some(b=>/Kod yazma ve ajanlar/.test(b.textContent))`],
+    /* Etiket CSS ile büyük harfe çevriliyor ve Türkçe "İ" (U+0130) JS'te
+       "i"ye küçülmüyor — /i bayrağı burada işe yaramaz. Bu yüzden büyük
+       harfe çevrilmeyen başlık cümlesine bakıyoruz. */
+    ["karar cümlesi", `/kendini ödüyor|başabaş|bulut daha ucuz|yeterli değil/.test(document.body.innerText)`],
+    ["bulut karşılaştırması", `/Bulut API — her ay/.test(document.body.innerText)`],
+    ["riskler görünür", `/Karar verirken bilinmesi gerekenler|tek kutu yeterli değil/.test(document.body.innerText)`],
+    ["kaydırak YOK", `document.querySelectorAll('input[type=range]').length === 0`],
+  ]) {
+    if (await s.js(ifade)) gecti(ad); else hata(`yönetici özeti: ${ad} başarısız`);
+  }
+
+  // Ekip büyüklüğünü değiştirmek kararı gerçekten yeniden hesaplamalı
+  const oncekiKarar = await s.js("document.body.innerText");
+  await s.js(`[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='100 kişi')?.click()`);
+  await bekle(800);
+  if ((await s.js("document.body.innerText")) === oncekiKarar)
+    hata("yönetici özeti: ekip büyüklüğü değişince sonuç değişmedi");
+  else gecti("ekip büyüklüğü sonucu değiştiriyor");
+
+  console.log("\nDetaylı analize geçiş:");
+  await s.js(`[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Detaylı analiz')?.click()`);
+  await bekle(1200);
+  if (await s.js(`document.querySelectorAll('input[type=range]').length >= 5`)) gecti("detaylı analiz açıldı");
+  else hata("detaylı analize geçilemedi");
+
   console.log("\nTemel kontroller:");
   for (const [ad, ifade] of [
     ["model seçici", `[...document.querySelectorAll('select')].some(x=>x.options.length>50)`],
