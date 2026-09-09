@@ -112,8 +112,8 @@ try {
     /* Etiket CSS ile büyük harfe çevriliyor ve Türkçe "İ" (U+0130) JS'te
        "i"ye küçülmüyor — /i bayrağı burada işe yaramaz. Bu yüzden büyük
        harfe çevrilmeyen başlık cümlesine bakıyoruz. */
-    ["karar cümlesi", `/kendini ödüyor|başabaş|bulut daha ucuz|yeterli değil/.test(document.body.innerText)`],
-    ["bulut karşılaştırması", `/Bulut API — her ay/.test(document.body.innerText)`],
+    ["karar cümlesi", `/ucuz — üstelik|ödenebilir bir fark|pahalıya geliyor|yeterli değil/.test(document.body.innerText)`],
+    ["bulut karşılaştırması", `/Buluttan alsak — yılda|Aynı işi buluttan/.test(document.body.innerText)`],
     ["riskler görünür", `/Karar verirken bilinmesi gerekenler|tek kutu yeterli değil/.test(document.body.innerText)`],
     ["kaydırak YOK", `document.querySelectorAll('input[type=range]').length === 0`],
   ]) {

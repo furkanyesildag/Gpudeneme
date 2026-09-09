@@ -21,15 +21,19 @@ export const BULUT_CIKIS_USD = 10;  // 1M token
 export const BULUT_MODEL = "Claude Sonnet 5";
 export const BULUT_TARIH = "Eylül 2026";
 
-/* Prompt caching indirimi: tekrar eden sistem promptu ve doküman
-   bağlamı önbellekten okunduğunda giriş token'ı çok daha ucuza gelir.
-   Gerçek kurulumlarda girişin kabaca yarısı önbellekten gelir; bunu
-   hesaba katmamak bulut maliyetini ŞİŞİRİRDİ. */
-export const ONBELLEK_ORANI = 0.5;
-export const ONBELLEK_INDIRIMI = 0.9; // önbellekten okunan token %90 ucuz
+/* Prompt caching indirimi: tekrar eden sistem promptu ve doküman bağlamı
+   önbellekten okunduğunda giriş token'ı %90 ucuza gelir. Oran işe göre
+   değişiyor — dağınık sohbetlerde önbellek az tutar, aynı kod tabanında
+   dönen ajanlarda çok. Profile bağlı (KULLANIM.onbellek). */
+export const ONBELLEK_INDIRIMI = 0.9;
 
 /* Kullanım profilleri: kişi başına GÜNLÜK yük.
-   Bu sayılar bir ekibin ortalamasıdır, yoğun kullanıcının değil. */
+   Bu sayılar bir ekibin ortalamasıdır, yoğun kullanıcının değil.
+
+   ÖNEMLİ: buradaki giriş/çıkış token'ları HEM bulut faturasını HEM de
+   donanımın kaç kişiye yeteceğini belirliyor. İkisini ayrı varsaymak
+   (faturayı 2K promptla, donanımı 4K promptla hesaplamak gibi)
+   karşılaştırmayı sessizce bozar. */
 export const KULLANIM = [
   {
     id: "sohbet",
@@ -38,6 +42,8 @@ export const KULLANIM = [
     istekGun: 40,
     girisTok: 2000,
     cikisTok: 700,
+    ctxK: 16,          // 2K prompt + büyüyen sohbet geçmişi
+    onbellek: 0.2,     // her soru farklı; önbellek az tutar
     /* Hedef çarpanı: sohbette insanlar düşünürken sistem boşta kalır,
        aynı donanım eşzamanlı kapasitesinden fazla kişiye yeter. */
     kat: "sohbet",
@@ -49,9 +55,16 @@ export const KULLANIM = [
     istekGun: 200,
     girisTok: 8000,
     cikisTok: 1500,
+    ctxK: 32,          // 8K prompt büyüyerek ilerler; oturum ortalaması
+    onbellek: 0.6,     // aynı kod tabanı ve sistem promptu tekrar tekrar
     kat: "ajan",
   },
 ];
+
+/* Donanımın muhasebe ömrü. Yıllık maliyet kıyası bu süreye bölünerek
+   yapılıyor — "bir defalık 1,8 milyon" ile "aylık fatura"yı yan yana
+   koymanın tek dürüst yolu bu. */
+export const OMUR_YIL = 4;
 
 export const IS_GUNU = 22;          // ayda
 export const CALISMA_SAATI = 10;    // günde, elektrik hesabı için
@@ -62,12 +75,22 @@ export const KWH_TL = 3.5;
 
 /* Donanımın üstüne binen, simülatörün hesaplamadığı gerçek maliyetler.
    Bunları saymamak amorti süresini olduğundan kısa gösterirdi. */
-export const YILLIK_ISLETME_ORANI = 0.08; // donanım bedelinin yıllık %'si:
-// yedek parça, garanti dışı arıza, kesintisiz güç kaynağı, soğutma, yer.
+export const YILLIK_ISLETME_ORANI = 0.05; // donanım bedelinin yıllık %'si:
+// yedek parça, kesintisiz güç kaynağı, soğutma, yer. Kurumsal kartlar
+// garantili geldiği için arıza payı düşük tutuldu.
 
-/* Kurulum ve bakım için ayrılan insan zamanı — bir sistem yöneticisinin
-   ayda ~2 günü. Aylık maliyet olarak. */
-export const BAKIM_TL_AY = 25000;
+/* Kurulum ve bakım için ayrılan insan zamanı.
+
+   DİKKAT — bu sayı ilk halinde 25.000 ₺/ay idi (bir sistem yöneticisinin
+   ayda 2 günü) ve tek başına bütün karşılaştırmayı belirliyordu: her
+   senaryoda bulutu kazandıran şey buydu. Taraflıydı, çünkü bulut yoluna
+   da entegrasyon, izleme ve prompt bakımı emeği düşer — onu saymayıp
+   hepsini donanıma yıkmak adil değil.
+
+   Burada sayılan şey İKİSİ ARASINDAKİ FARK: kurulu bir sunucunun aylık
+   güncelleme, izleme ve arıza takibi — mevcut BT ekibinden ayda birkaç
+   saat. */
+export const BAKIM_TL_AY = 8000;
 
 /**
  * Bir ekibin aylık bulut API faturası (₺).
@@ -81,12 +104,23 @@ export function bulutAylikTL(kisi, profil, usdTry) {
   const cikisM = (istek * profil.cikisTok) / 1e6;
 
   // Girişin bir kısmı önbellekten, ucuz.
+  const onbellek = profil.onbellek ?? 0;
   const girisUcret =
-    girisM * (1 - ONBELLEK_ORANI) * BULUT_GIRIS_USD +
-    girisM * ONBELLEK_ORANI * BULUT_GIRIS_USD * (1 - ONBELLEK_INDIRIMI);
+    girisM * (1 - onbellek) * BULUT_GIRIS_USD +
+    girisM * onbellek * BULUT_GIRIS_USD * (1 - ONBELLEK_INDIRIMI);
 
   const usd = girisUcret + cikisM * BULUT_CIKIS_USD;
   return { usd, tl: usd * usdTry, istek, girisM, cikisM };
+}
+
+/**
+ * İki yolun YILLIK maliyeti — tek karşılaştırılabilir sayı.
+ * Donanım bir defalık ödendiği için ömrüne bölünür.
+ */
+export function yillikKarsilastirma(fiyatTL, isletmeAylik, bulutAylik) {
+  const donanimYillik = fiyatTL / OMUR_YIL + isletmeAylik * 12;
+  const bulutYillik = bulutAylik * 12;
+  return { donanimYillik, bulutYillik, fark: donanimYillik - bulutYillik };
 }
 
 /**

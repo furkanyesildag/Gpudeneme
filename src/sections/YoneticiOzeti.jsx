@@ -8,6 +8,7 @@ import { CIHAZ_HARITA } from "../data/devices.js";
 import {
   KULLANIM, bulutAylikTL, donanimAylikTL, BULUT_MODEL, BULUT_TARIH,
   BULUT_GIRIS_USD, BULUT_CIKIS_USD, IS_GUNU, CALISMA_SAATI, KWH_TL, BAKIM_TL_AY,
+  OMUR_YIL, yillikKarsilastirma,
 } from "../data/bulut.js";
 
 /* ------------------------------------------------------------------ */
@@ -32,8 +33,16 @@ const KISI_SECENEK = [5, 15, 40, 100];
    alınır"ı anlatmak için var. Kapasiteleri yan yana koyacaksak yük ortak
    olmalı, yoksa "A, B'den fazla kişiye yetiyor" cümlesi donanımı değil
    ayarı ölçer. Model ve kuantizasyon banda özel kalıyor: onlar sistemin
-   ne çalıştırabildiğinin parçası. */
-const ORTAK_YUK = { ctxK: 32, girdiK: 4, cikti: 800 };
+   ne çalıştırabildiğinin parçası.
+
+   Yük, kullanıcının seçtiği profilden geliyor — bulut faturasını
+   hesaplayan token sayılarının AYNISINDAN. İkisi ayrışırsa donanımı bir
+   yükle boyutlayıp faturayı başka bir yükle çıkarmış oluruz. */
+const yukCikar = (profil) => ({
+  ctxK: profil.ctxK,
+  girdiK: Math.max(1, Math.round(profil.girisTok / 1024)),
+  cikti: profil.cikisTok,
+});
 
 /* Okuma hızı kıyası: ortalama bir yetişkin dakikada ~250 kelime okur,
    yani saniyede ~4. Token ≈ 0,75 kelime (Türkçede daha düşük ama
@@ -45,9 +54,12 @@ const TOKEN_KELIME = 0.75;
 function hizCumlesi(tokS) {
   const kelimeSn = tokS * TOKEN_KELIME;
   const kat = kelimeSn / OKUMA_KELIME_SN;
-  if (kat >= 2) return `saniyede ~${Math.round(kelimeSn)} kelime — bir insanın okuma hızının ${kat.toFixed(kat < 10 ? 1 : 0)} katı`;
-  if (kat >= 1) return `saniyede ~${Math.round(kelimeSn)} kelime — okuma hızıyla başabaş`;
-  return `saniyede ~${Math.round(kelimeSn)} kelime — okuma hızının altında, beklemeli`;
+  // 10 katın ötesinde "48 kat" demek bir şey anlatmıyor — o noktada
+  // kullanıcının yaşadığı şey artık "bekleme yok".
+  if (kat >= 10) return "cevap anında dolmaya başlıyor, beklemek yok";
+  if (kat >= 2) return `okuduğunuzdan ${kat.toFixed(kat < 5 ? 1 : 0)} kat hızlı yazıyor`;
+  if (kat >= 1) return "okuma hızınızla başabaş yazıyor";
+  return "okuma hızınızın altında — cevabı beklemeniz gerekir";
 }
 
 function Sayi({ deger, etiket, alt, renk }) {
@@ -86,7 +98,7 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
       const cihaz = CIHAZ_HARITA[b.ayar.cihazId];
       if (!model || !cihaz) return null;
       const { kullanici: _y, ...taban } = b.ayar;
-      const arg = { ...taban, ...ORTAK_YUK, model, cihaz, kvOran };
+      const arg = { ...taban, ...yukCikar(profil), model, cihaz, kvOran };
       const k = kapasite(arg, h);
       const yeter = profil.kat === "ajan" ? k.ajan : k.sohbet;
       const r = hesapla({ ...arg, kullanici: Math.max(1, Math.min(k.maxC || 1, kisi)) });
@@ -111,6 +123,14 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
   const aylikTasarruf = isletme ? bulut.tl - isletme.toplam : 0;
   const amortiAy = oneri && aylikTasarruf > 0 ? oneri.maliyetTL / aylikTasarruf : null;
 
+  /* Asıl kıyas: iki yolun YILLIK maliyeti. "Bir defalık 1,8 milyon" ile
+     "aylık fatura"yı yan yana koymanın tek dürüst yolu donanımı ömrüne
+     bölmek. Amorti süresi, donanım pahalı kaldığında 2000 ay gibi
+     anlamsız sayılar üretiyor ve yöneticiye hiçbir şey söylemiyor. */
+  const yillik = oneri && isletme
+    ? yillikKarsilastirma(oneri.maliyetTL, isletme.toplam, bulut.tl)
+    : null;
+
   /* Tek kutu yetmiyorsa da soruyu cevapsız bırakma: N kutuluk kümenin
      maliyeti ne, buluta göre ne zaman başa baş geliyor. */
   const kume = useMemo(() => {
@@ -129,19 +149,19 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
         renk: C.warn, etiket: "Tek sunucu yetmez",
         baslik: `${kisi} kişi için tek kutu yeterli değil`,
       }
-    : amortiAy && amortiAy <= 24
+    : yillik.fark < 0
     ? {
         renk: C.ok, etiket: "Evet, alınmalı",
-        baslik: `Donanım ${Math.ceil(amortiAy)} ayda kendini ödüyor`,
+        baslik: `Buluttan yılda ${paraTL(-yillik.fark)} ucuz — üstelik veri içeride kalıyor`,
       }
-    : amortiAy
+    : yillik.fark < yillik.bulutYillik * 0.5
     ? {
-        renk: C.warn, etiket: "Sınırda",
-        baslik: "Parasal olarak başabaş — kararı veri gizliliği vermeli",
+        renk: C.ok, etiket: "Alınabilir",
+        baslik: `Buluttan yılda ${paraTL(yillik.fark)} pahalı — veri içeride kalsın diye ödenebilir bir fark`,
       }
     : {
-        renk: C.warn, etiket: "Tasarruf için değil",
-        baslik: "Bu ölçekte bulut daha ucuz — donanım ancak gizlilik için",
+        renk: C.warn, etiket: "Bu ölçekte pahalı",
+        baslik: `Buluttan yılda ${paraTL(yillik.fark)} pahalıya geliyor`,
       };
 
   return (
@@ -201,10 +221,19 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
             <div style={{ display: "flex", flexWrap: "wrap", gap: S.lg, alignItems: "baseline" }}>
               <div style={{ flex: "1 1 300px" }}>
                 <div style={{ ...T.etiket, color: C.ink3, marginBottom: 4 }}>
-                  {karar.renk === C.ok ? "Alınacak sistem" : "Alınırsa bu alınmalı"}
+                  {karar.renk === C.ok ? "Kurulacak sistem" : "Kurulursa bu kurulmalı"}
                 </div>
-                <div style={{ ...T.dev, color: C.ink }}>{oneri.b.ad}</div>
-                <div style={{ ...T.govde, color: C.ink2, marginTop: S.xs }}>{oneri.b.ozet}</div>
+                {/* Buraya donanım modeli YAZILMAZ. Karar verici "4× RTX PRO
+                    5000 Blackwell 72 GB" cümlesinden hiçbir şey anlamaz ve
+                    ekranın geri kalanına da güvenmez. Ne işe yaradığı yazar;
+                    teknik karşılığı kartın altında tek satır dipnot. */}
+                <div style={{ ...T.dev, color: C.ink }}>
+                  {oneri.kapasiteKisi} kişilik şirket içi yapay zekâ sunucusu
+                </div>
+                <div style={{ ...T.govde, color: C.ink2, marginTop: S.xs }}>
+                  Şirketin kendi binasında duran, dışarıya hiçbir şey göndermeyen
+                  bir ChatGPT benzeri sistem.
+                </div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ ...T.sayi, fontSize: 34, color: C.ink }}>{paraTL(oneri.maliyetTL)}</div>
@@ -225,21 +254,44 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
                   {oneri.kapasiteKisi > kisi * 1.5 && " Büyümeye yeriniz var."}
                 </Madde>
                 <Madde isaret="✓" renk={C.ok}>
-                  Cevap hızı: <b>{hizCumlesi(oneri.r.kullaniciTokS)}</b>. İlk kelime{" "}
+                  <b>{hizCumlesi(oneri.r.kullaniciTokS)}</b> — ilk kelime{" "}
                   {oneri.r.ttftYogun < 1
                     ? `yarım saniyeden kısa sürede`
                     : `~${oneri.r.ttftYogun.toFixed(1)} saniyede`}{" "}
                   gelir.
                 </Madde>
                 <Madde isaret="✓" renk={C.ok}>
-                  Çalıştıracağı model: <b>{oneri.model.ad}</b>. Şirket verisi bu kutunun dışına
-                  hiç çıkmaz — internet bağlantısı olmadan da çalışır.
+                  <b>Şirket verisi binadan çıkmaz.</b> Sözleşmeler, müşteri bilgisi,
+                  kod — hiçbiri dışarıdaki bir şirkete gönderilmez. İnternet kesilse
+                  bile çalışmaya devam eder.
                 </Madde>
                 <Madde isaret="✓" renk={C.ok}>
                   Kullandıkça artan bir fatura yok. Bir kere alınır, elektrik dışında
                   kullanım başına ücret ödenmez.
                 </Madde>
               </ul>
+
+              {/* Odada teknik biri varsa "peki ne alıyoruz" sorusunun cevabı
+                  burada dursun — ama başrolde değil. */}
+              <div
+                style={{
+                  ...T.mini, color: C.ink3, marginTop: S.md, paddingTop: S.md,
+                  borderTop: `1px solid ${C.line}`,
+                }}
+              >
+                Teknik karşılığı: {oneri.b.ad} · {oneri.model.ad} ·{" "}
+                {Math.round(oneri.guc)} W.{" "}
+                <button
+                  onClick={detaya}
+                  style={{
+                    background: "none", border: "none", padding: 0, cursor: "pointer",
+                    color: C.steel, textDecoration: "underline", fontFamily: "inherit",
+                    fontSize: "inherit",
+                  }}
+                >
+                  Ayrıntılı hesap
+                </button>
+              </div>
             </div>
           </div>
         </Kart>
@@ -247,9 +299,9 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
         <Kart vurgu={C.warn} style={{ padding: S.lg, marginBottom: S.lg }}>
           <div style={{ ...T.baslik, color: C.warn }}>Bu ekip için tek kutuluk bir öneri yok</div>
           <div style={{ ...T.govde, color: C.ink2, marginTop: S.sm }}>
-            {kisi} kişinin {profil.ad.toLowerCase()} yükünü, listedeki en büyük sistem
-            ({enBuyuk?.b.ad}, {enBuyuk ? paraTL(enBuyuk.maliyetTL) : "—"}) bile tek başına
-            karşılamıyor — o {enBuyuk?.kapasiteKisi} kişiye yetiyor.
+            {kisi} kişinin {profil.ad.toLowerCase()} yükünü tek bir sunucu kaldırmıyor.
+            Alınabilecek en güçlü sistem ({enBuyuk ? paraTL(enBuyuk.maliyetTL) : "—"})
+            {" "}{enBuyuk?.kapasiteKisi} kişiye yetiyor.
             {kume && (
               <> Bu ekip için <b>{gerekenAdet} adet</b> gerekir — kabaca{" "}
               <b>{paraTL(kume.tl)}</b>. Aynı işi buluttan almak ayda{" "}
@@ -284,42 +336,37 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
             }}
           >
             <Sayi
-              deger={paraTL(bulut.tl)} renk={C.bad}
-              etiket="Bulut API — her ay"
+              deger={paraTL(yillik.bulutYillik)}
+              etiket="Buluttan alsak — yılda"
               alt={`${kisi} kişi, ${BULUT_MODEL} fiyatıyla`}
             />
             <Sayi
-              deger={paraTL(isletme.toplam)} renk={C.ok}
-              etiket="Kendi sistemimiz — her ay"
-              alt="elektrik, bakım ve işletme"
+              deger={paraTL(yillik.donanimYillik)}
+              etiket="Kendi sistemimiz — yılda"
+              alt={`donanım ${OMUR_YIL} yıla bölündü + elektrik ve bakım`}
             />
             <Sayi
-              deger={amortiAy ? `${Math.ceil(amortiAy)} ay` : "—"}
-              renk={amortiAy && amortiAy <= 24 ? C.ok : C.warn}
-              etiket="Kendini amorti etme süresi"
-              alt={amortiAy ? `bundan sonrası ayda ${paraTL(aylikTasarruf)} kâr` : "bu ölçekte bulut daha ucuz"}
+              deger={`${yillik.fark < 0 ? "−" : "+"}${paraTL(Math.abs(yillik.fark))}`}
+              renk={yillik.fark < 0 ? C.ok : C.warn}
+              etiket={yillik.fark < 0 ? "Yıllık tasarruf" : "Veri içeride kalsın diye yıllık fark"}
+              alt={yillik.fark < 0 ? "donanım hem ucuz hem güvenli" : "gizliliğin yıllık bedeli"}
             />
           </div>
 
           <div style={{ ...T.govde, color: C.ink2, marginTop: S.lg, paddingTop: S.md, borderTop: `1px solid ${C.line}` }}>
-            {amortiAy && amortiAy <= 24 ? (
+            {yillik.fark < 0 ? (
               <>
-                {kisi} kişilik bu kullanımda donanım <b>{Math.ceil(amortiAy)} ayda</b> kendini
-                ödüyor. Donanımın ömrü 4-5 yıl olduğuna göre kalan sürede aynı işi
-                yapmanın maliyeti buluta kıyasla belirgin şekilde düşük.
-              </>
-            ) : amortiAy ? (
-              <>
-                Amorti süresi <b>{Math.ceil(amortiAy)} ay</b> — donanım ömrüne yakın.
-                Bu ölçekte karar parayla değil, <b>veri gizliliğiyle</b> verilmeli:
-                şirket verisi dışarı çıkmasın isteniyorsa donanım yine de doğru tercih.
+                Bu kullanımda donanım buluttan <b>hem ucuz hem güvenli</b>. {OMUR_YIL} yıllık
+                toplamda <b>{paraTL(-yillik.fark * OMUR_YIL)}</b> fark ediyor ve şirket
+                verisi hiç dışarı çıkmıyor.
               </>
             ) : (
               <>
-                Bu kullanım hacminde bulut API'si daha ucuz. Donanımı yine de tercih
-                etmenin geçerli sebebi olabilir — veri gizliliği, internetsiz çalışma,
-                fiyat artışına karşı bağımsızlık — ama <b>tasarruf gerekçesiyle
-                savunulamaz</b>.
+                Donanım buluttan pahalı — çünkü {kisi} kişilik bu kullanım, bir defalık{" "}
+                {paraTL(oneri.maliyetTL)}'lik yatırımı doldurmuyor. Karar burada
+                <b> parayla değil, veriyle</b> verilir: yılda {paraTL(yillik.fark)}, şirket
+                verisinin binadan çıkmaması için ödenen bedeldir. Bu bedele değip
+                değmeyeceği hukuk ve risk tarafının sorusu.
               </>
             )}
           </div>
@@ -378,14 +425,16 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
             <p style={{ margin: `0 0 ${S.sm}px` }}>
               <b>Bulut fiyatı:</b> {BULUT_MODEL}, {BULUT_TARIH} liste fiyatı — 1 milyon
               token başına ${BULUT_GIRIS_USD} giriş / ${BULUT_CIKIS_USD} çıkış. Girişin
-              yarısının prompt cache'ten geldiği (dolayısıyla %90 ucuz olduğu) varsayıldı;
-              bu varsayım bulut maliyetini <i>düşürür</i>, yani karşılaştırma buluta
-              cömert davranıyor.
+              %{Math.round(profil.onbellek * 100)}'inin prompt cache'ten geldiği
+              (dolayısıyla %90 ucuz olduğu) varsayıldı — bu varsayım bulut maliyetini
+              <i>düşürür</i>, yani karşılaştırma buluta cömert davranıyor.
             </p>
             <p style={{ margin: `0 0 ${S.sm}px` }}>
               <b>Kapasite kıyası:</b> bütün sistemler aynı yükle ölçüldü —{" "}
-              {ORTAK_YUK.ctxK}K bağlam, {ORTAK_YUK.girdiK}K prompt, {ORTAK_YUK.cikti} token
-              cevap. Model ve kuantizasyon her sistemin kendi tasarım noktası.
+              {profil.ctxK}K bağlam, {(profil.girisTok / 1024).toFixed(0)}K prompt,{" "}
+              {profil.cikisTok} token cevap. Bunlar yukarıdaki bulut faturasını
+              hesaplayan sayıların aynısı. Model ve kuantizasyon her sistemin
+              kendi tasarım noktası.
             </p>
             <p style={{ margin: `0 0 ${S.sm}px` }}>
               <b>İşletme:</b> günde {CALISMA_SAATI} saat çalışma, {KWH_TL} ₺/kWh elektrik,
