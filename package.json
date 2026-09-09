@@ -21,7 +21,8 @@
     "dogrula": "node scripts/dogrula.mjs",
     "model-tara": "node scripts/modelTara.mjs",
     "smoke": "node scripts/smokeTest.mjs",
-    "test": "npm run dogrula && npm run smoke"
+    "test": "npm run dogrula && npm run kalibrasyon && npm run smoke",
+    "kalibrasyon": "node scripts/kalibrasyonKontrol.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

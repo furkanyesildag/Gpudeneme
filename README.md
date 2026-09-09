@@ -306,11 +306,25 @@ Kalibrasyon: DGX Spark + Qwen3.8-Flash-Next için yayımlanmış ölçüm 16,8 �
 
 ## Token hızına ne kadar güvenmeli — ve kendi ölçümünle kalibre etmek
 
-Bu modelin en zayıf halkası **MBU** (gerçekleşen bant genişliği kullanımı). Token
-hızını doğrudan bu belirliyor ve elimde yalnızca **iki ölçüm noktası** var, ikisi de
-tek cihazdan (DGX Spark). Diğer 39 cihazın değeri mühendislik tahmini.
+Hız modeli, yayımlanmış **16 gerçek ölçüme** karşı kalibre edildi — üç ayrı
+kaynaktan, üç ayrı cihazdan ve üçü de farklı bellek tipinden:
 
-Gerçek dağılım geniş: aynı kartta llama.cpp ile vLLM, farklı sürücü sürümü ve derleme
+| kaynak | cihaz | bellek | ölçüm |
+|---|---|---|---|
+| [hardware-corner.net](https://www.hardware-corner.net/guides/rtx-5090-llm-benchmarks/) | RTX 5090 | GDDR7 | 4 nokta, llama-bench TG@4K |
+| [dev.to/rosgluk](https://dev.to/rosgluk/16-gb-vram-llm-benchmarks-with-llamacpp-speed-and-context-3hgg) | RTX 4080 16 GB | GDDR6X | 10 nokta, 19K ve 64K bağlam, 6'sı offload'lı |
+| OpenZeka | DGX Spark | LPDDR5X | 2 nokta, NVFP4 |
+
+Buradan çıkan üç sabit — tavan MBU **%80**, token başına sabit ek yük **1,5 ms**,
+MoE okuma büyütmesi **seyreklik^-0,36** — `npm run kalibrasyon` ile her değişiklikte
+yeniden sınanıyor. Betik formülü yeniden yazmaz, doğrudan `hesapla()`yı çağırır;
+yani motor bozulursa kalibrasyon da kırmızıya döner. Şu anki durum: **ortalama
+mutlak sapma %7,3**, 16 noktanın 14'ü %15 içinde. Sapmalar iki yönlü — sistematik
+bir eğilim kalmadı.
+
+Yine de en zayıf halka hâlâ **MBU**: kalibre edilen üç cihaz dışındaki 37 cihazın
+değeri, bu üçünden yığın ve bellek tipine göre ölçeklenmiş bir tahmindir. Gerçek
+dağılım da geniş: aynı kartta llama.cpp ile vLLM, farklı sürücü sürümü ve derleme
 bayrakları belirgin fark yaratıyor. Yayımlanmış llama.cpp ölçümleri bazı kartlarda
 buradaki tahminden **düşük**, iyi ayarlanmış vLLM kurulumları **yüksek** çıkabiliyor.
 Tek bir sayı bu yelpazeyi taşıyamaz.
@@ -336,10 +350,11 @@ her token **farklı** uzmanları uyandırır; erişim dağınık olur ve gerçek
 genişliği teorik değerin altına düşer. Etkinin şiddeti bellek tipine bağlıdır:
 LPDDR birleşik bellekte ağır, HBM'de hafiftir.
 
-Katsayı, DGX Spark üzerinde yayımlanmış iki ölçümden kalibre edildi — biri dense
-(Qwen3.6-27B NVFP4, 12,63 tok/s) biri çok seyrek (Qwen3.8-Flash-Next NVFP4, %3 aktif,
-16,8 tok/s). Dense ölçüm cihazın bant genişliği kullanımını, seyrek ölçüm de cezayı
-belirledi; simülatör şu an iki noktayı da %1 içinde tutturuyor.
+Büyütme katsayısı `seyreklik^-0,36`, üç cihazdaki 9 offload'sız ölçüme birlikte fit
+edildi. İlginç sonuç: **bellek tipi fark etmiyor.** Aynı üs hem RTX 5090'ın GDDR7'sine
+hem DGX Spark'ın LPDDR5X'ine oturuyor — yani ceza bellek teknolojisinden değil,
+seyrek erişim deseninin kendisinden geliyor. (Önceki sürümde bunu bellek tipine
+bağlamıştım; ölçümler bunu desteklemedi.)
 
 Pratik sonucu şu: aynı kutuda 180B'lik seyrek bir model, 27B'lik dense bir modelden
 hızlı koşabilir (aktif parametresi çok daha az), ama teorik bant genişliğinin ancak

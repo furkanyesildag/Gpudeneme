@@ -59,30 +59,41 @@ export const TP_ETIKET = {
 /*  MoE'de ise her token FARKLI uzmanları uyandırır; erişim dağınık    */
 /*  olur ve gerçekleşen bant genişliği teorik değerin altına düşer.    */
 /*                                                                     */
-/*  Bu etkinin şiddeti bellek tipine bağlıdır: LPDDR tabanlı birleşik  */
-/*  bellekte (DGX Spark, Strix Halo, Jetson) ağırdır; HBM'de yüksek    */
-/*  paralellik sayesinde hafiftir.                                     */
-/*                                                                     */
-/*  Kalibrasyon — OpenZeka'nın yayımladığı tek-Spark ölçümleri:        */
-/*    Qwen3.6-27B NVFP4 (dense)     : 12,63 tok/s                      */
-/*    Qwen3.8-Flash-Next NVFP4 (%3) : 16,8 tok/s (MTP'siz)             */
-/*  Dense ölçüm cihazın MBU'sunu, seyrek ölçüm de bu cezayı belirledi. */
+/*  Kalibrasyon: üç cihazdaki 9 offload'sız ölçüme birlikte fit edildi  */
+/*  (RTX 5090 / GDDR7, RTX 4080 / GDDR6X, DGX Spark / LPDDR5X).         */
+/*  Beklenenin aksine bellek tipi fark etmiyor — aynı üs üçüne de       */
+/*  oturuyor. Yani ceza bellek teknolojisinden değil, seyrek erişim     */
+/*  deseninin kendisinden geliyor.  Ayrıntı: scripts/kalibrasyonKontrol */
 /* ------------------------------------------------------------------ */
 
-/* 0 = ceza yok, 1 = tam ceza. BELLEK TİPİNE göre — mimari adına değil.
-   Apple birleşik belleği LPDDR'dir ama veri yolu çok geniş olduğu için
-   dağınık erişimi diğer LPDDR kutulardan iyi tolere eder. */
-export const MOE_CEZA = { lpddr: 1.0, gddr: 0.35, hbm: 0.15 };
-const APPLE_CEZA = 0.55;
+/* ------------------------------------------------------------------ */
+/*  MoE OKUMA BÜYÜTMESİ                                                */
+/*                                                                     */
+/*  Seyrek bir MoE'de adım başına okunan bayt, "aktif parametre"       */
+/*  rakamının gösterdiğinden BELİRGİN fazladır: yönlendirmeden bağımsız*/
+/*  okunan ağırlıklar (dikkat, gömme, paylaşımlı uzman, normlar) her   */
+/*  token'da tam okunur, ve uzman blokları bellek erişim tanesinden    */
+/*  dolayı gereğinden geniş çekilir.                                   */
+/*                                                                     */
+/*  Ölçümlerden türetildi (bkz. KALIBRASYON):                          */
+/*    büyütme = seyreklik^(-0,36)     seyreklik = aktif / toplam       */
+/*  Dense modelde (seyreklik = 1) büyütme 1'dir.                       */
+/*                                                                     */
+/*  Beş MoE ölçümüne uyuyor — RTX 4080, RTX 5090 ve DGX Spark; yani    */
+/*  GDDR ile LPDDR arasında anlamlı fark görülmedi, etki mimari.       */
+/* ------------------------------------------------------------------ */
+export const MOE_US = 0.36;
 
-/** Seyrek MoE'nin gerçekleşen bant genişliğine etkisi (0-1 çarpan). */
-export function moeVerimi(model, cihaz) {
+/** Seyrek MoE'de adım başına okunan baytın aktif parametreye oranı. */
+export function moeBuyutmesi(model) {
   const seyreklik = Math.max(0.005, Math.min(1, model.ap / model.tp));
-  if (seyreklik >= 0.999) return 1; // dense: ceza yok
-  // Üs, DGX Spark + Qwen3.8-Flash-Next ölçümünden kalibre edildi.
-  const tamCeza = Math.pow(seyreklik, 0.358);
-  const ceza = cihaz.mim === "apple" ? APPLE_CEZA : MOE_CEZA[cihaz.bellekTipi] ?? 0.35;
-  return 1 - ceza * (1 - tamCeza);
+  if (seyreklik >= 0.999) return 1;
+  return Math.pow(seyreklik, -MOE_US);
+}
+
+/* Geriye dönük ad: 1/büyütme = verim (arayüzde yüzde olarak gösteriliyor). */
+export function moeVerimi(model) {
+  return 1 / moeBuyutmesi(model);
 }
 
 /* ------------------------------------------------------------------ */
@@ -90,17 +101,30 @@ export function moeVerimi(model, cihaz) {
 /*                                                                     */
 /*  MTP head'i olan model her adımda 1 taslak token daha üretir;       */
 /*  doğrulama aynı ağırlık okumasıyla yapıldığı için kabul edilen      */
-/*  taslak neredeyse bedavaya gelir. Kazanç kabul oranına bağlıdır.    */
-/*                                                                     */
-/*  Hızlanma = 1 + kabul_orani                                         */
-/*                                                                     */
-/*  Yayımlanmış kabul oranları %60-85 aralığında, ama uçtan uca        */
-/*  ölçülen hızlanma doğrulama maliyeti yüzünden daha düşük kalıyor.   */
-/*  Elimdeki ölçüm (DGX Spark + Qwen3.8-Flash-Next): 16,8 → 24,6 tok/s */
-/*  yani 1,46x; bu da etkin kabul oranı ~0,46 demek. Varsayılanı 0,5   */
-/*  aldım — biraz iyimser ama yuvarlak ve o ölçümün %3 içinde.         */
+/*  taslak neredeyse bedavaya gelir. Hızlanma = 1 + kabul_oranı.       */
+/*  Ölçüm (DGX Spark + Qwen3.8-Flash-Next): 16,8 → 24,6 tok/s = 1,46x. */
 /* ------------------------------------------------------------------ */
 export const MTP_KABUL_VARSAYILAN = 0.5;
+
+/* ------------------------------------------------------------------ */
+/*  TOKEN BAŞINA SABİT EK YÜK                                          */
+/*                                                                     */
+/*  Her token'da bant genişliğinden BAĞIMSIZ sabit bir süre harcanır:  */
+/*  çekirdek başlatmaları, dikkat işlemleri, örnekleme, CPU tarafı iş. */
+/*  Modellemek şart: onsuz küçük modeller çok iyimser çıkıyor.         */
+/*  Ölçümlerde efektif bant genişliği kullanımı model büyüdükçe artıyor*/
+/*  (RTX 5090'da 8B'de %53, 14B'de %63, 32B'de %69) — sebebi tam olarak*/
+/*  bu sabit payın oransal olarak erimesi.                             */
+/*                                                                     */
+/*  1,6 ms/token llama.cpp ölçümlerine uyum sağlıyor. CUDA graph       */
+/*  kullanan yığınlarda (vLLM, TensorRT-LLM) bundan düşüktür.          */
+/* ------------------------------------------------------------------ */
+/* Bellek miktarları GiB (mem: 32 = 32 GiB, ağırlıklar /1024^3), üretici bant
+   genişlikleri ise ondalık GB/s. Bayt/bant genişliği bölmesinde ikisini
+   karıştırmak süreyi %7,4 kısa gösterir; bant genişliğini GiB/s'ye çeviriyoruz. */
+export const GIB_GB = 1024 ** 3 / 1e9;
+
+export const EK_YUK_SN = 0.0015;
 
 /* Elektrik: Türkiye mesken + ticarethane ortalaması (2026, TL/kWh, dağıtım dahil) */
 export const ELEKTRIK_TL_KWH = 3.4;
@@ -170,7 +194,12 @@ export function hesapla({
 }) {
   // Bilinmeyen id'de çökmek yerine tam hassasiyete düşülür, ama sessizce
   // geçilmez: yanlış bir id sonuçları sessizce bozardı.
-  const q = QUANT_HARITA[quant] || (uyar(`bilinmeyen kuantizasyon "${quant}"`), QUANT_HARITA.bf16);
+  // Kalibrasyon betiği ölçülen dosya boyutundan türettiği bpp'yi doğrudan
+  // verebilsin diye quant bir nesne de olabilir; böylece betik motorun bir
+  // kopyasını değil motorun kendisini sınar.
+  const q = typeof quant === "object" && quant
+    ? quant
+    : QUANT_HARITA[quant] || (uyar(`bilinmeyen kuantizasyon "${quant}"`), QUANT_HARITA.bf16);
   const kvqe = KVQUANT_HARITA[kvq] || (uyar(`bilinmeyen KV kuantizasyonu "${kvq}"`), KVQUANT_HARITA.fp16);
   const bpp = q.bpp;
   const kvBayt = 2 * kvqe.f;
@@ -208,7 +237,11 @@ export function hesapla({
   const kvKullaniciGB = kvBaytToplam(model.kv, ayrilanCtx, kvBayt) / 1024 ** 3;
   const kvGB = kullanici * kvKullaniciGB;
   // Çalışma zamanı: CUDA bağlamı, aktivasyonlar, parçalanma payı.
-  const ekGB = 1.2 + 0.05 * agirlikGB + 0.35 * adet;
+  /* llama.cpp ölçümlerinde (dev.to/rosgluk, RTX 4080 16 GB) bildirilen VRAM,
+     dosya + KV'nin 1,0-1,3 GiB üstünde çıkıyor: CUDA bağlamı + compute buffer.
+     Sunucu yığınlarında (vLLM, SGLang) batch büyüdükçe aktivasyon tamponu da
+     büyür — bu yüzden kullanıcı sayısına da bağlı. */
+  const ekGB = 0.8 + 0.02 * agirlikGB + 0.25 * adet + 0.05 * kullanici;
 
   /* Offload: ağırlıkların bir kısmı host RAM'de. Yalnızca ayrık kartlarda
      anlamlı — birleşik bellekli kutuda taşınacak ayrı bir yer yok.
@@ -224,8 +257,8 @@ export function hesapla({
   const offloadMumkun = kartMi ? Math.min(agirlikGB, ramTavani) : 0;
 
   const vramIhtiyaci = agirlikGB + kvGB + ekGB;
-  // %96 hedefi: tam tepeye oturmak çalışma zamanında bellek taşmasına yol açar.
-  const acik = vramIhtiyaci - toplamBellek * 0.96;
+  // Tek pay: cihaz rezervi (sürücü + masaüstü) zaten toplamBellek'ten düşülmüş.
+  const acik = vramIhtiyaci - toplamBellek;
   const offloadGerekli = Math.max(0, Math.min(acik, offloadMumkun));
   const offload = offloadModu === "kapali" ? 0 : offloadGerekli;
   // Offload açık ama RAM yetmiyorsa açığın tamamı kapanamaz.
@@ -243,18 +276,32 @@ export function hesapla({
      Bellek bant genişliği sınırlı. Her adımda okunan bayt = aktif ağırlıklar
      + batch'teki KV cache. KV okuması attention kernel'inde tam olarak
      taranmaz (sayfalama, flash-attention); ~0,55 katsayısı bunu yansıtır. */
-  const moeVerim = moeVerimi(model, cihaz);
-  const vramBW = kumeBW * cihaz.mbu * moeVerim;
+  const buyutme = moeBuyutmesi(model);
+  const moeVerim = 1 / buyutme;
+  const vramBW = (kumeBW * cihaz.mbu) / GIB_GB;
   /* Offload edilen ağırlıklar her adımda önce host RAM'den okunur, sonra
      PCIe'den geçer — hangisi darsa o sınırlar. Masaüstü anakartta ikinci
      kart PCIe x8'e düştüğü için kart başına hat sayısı da hesaba katılır. */
   const hat = kartMi ? pcieHatti(host.ad, adet) : 16;
-  const pcieToplam = (PCIE_BW[host.pcie] || PCIE_BW[5]) * (hat / 16) * PCIE_VERIM * adet;
-  const pcieBW = kartMi ? Math.min(pcieToplam, host.ramBW || pcieToplam) : pcieToplam;
+  const pcieToplam = ((PCIE_BW[host.pcie] || PCIE_BW[5]) * (hat / 16) * PCIE_VERIM * adet) / GIB_GB;
+  /* llama.cpp offload'ı katmanı CPU'da HESAPLAR: ağırlık RAM'de kalır, PCIe'den
+     yalnızca aktivasyonlar geçer (KB mertebesinde). Sınır bu yüzden sistem RAM
+     bant genişliğidir. vLLM'in --cpu-offload-gb'si ağırlığı PCIe'den akıtır ve
+     orada PCIe sınırlar. İkisinden dar olanı alıyoruz. */
+  const pcieBW = kartMi ? pcieToplam : pcieToplam;
+  const offloadBW = kartMi ? Math.max((host.ramBW || 0) / GIB_GB, 1) : pcieToplam;
 
-  const vramBaytGB = aktifGB * (1 - offloadOrani) + kvGB * 0.55;
+  /* VRAM'de duran ağırlıklar MoE okuma büyütmesine tabidir (GPU bellek
+     erişim tanesi). RAM'e taşınan kısım llama.cpp'de CPU tarafında
+     hesaplanır ve yalnızca gereken uzmanlar okunur — ölçümler orada
+     büyütme GÖRÜLMEDİĞİNİ, sınırın sistem RAM bant genişliği olduğunu
+     gösteriyor. */
+  const vramBaytGB = aktifGB * buyutme * (1 - offloadOrani) + kvGB * 0.55;
   const ramBaytGB = aktifGB * offloadOrani;
-  const adimSure = (vramBW > 0 ? vramBaytGB / vramBW : Infinity) + (ramBaytGB > 0 ? ramBaytGB / pcieBW : 0);
+  const adimSure =
+    (vramBW > 0 ? vramBaytGB / vramBW : Infinity) +
+    (ramBaytGB > 0 ? ramBaytGB / offloadBW : 0) +
+    EK_YUK_SN;
 
   /* MTP yalnızca modelin head'i varsa ve kullanıcı açtıysa uygulanır.
      Sadece decode'u hızlandırır; ilk token (prefill) etkilenmez. */
@@ -319,7 +366,7 @@ export function hesapla({
 
   return {
     agirlikGB, vramAgirlikGB, offload, offloadOrani, offloadMumkun, ramYeterli, pcieBW,
-    offloadGerekli, offloadYetersiz, hat, ram, ramTavani,
+    offloadGerekli, offloadYetersiz, hat, ram, ramTavani, offloadBW, buyutme,
     mtpAktif, mtpHizlanma, quantHiz,
     aktifGB, kvGB, kvKullaniciGB, ekGB, gerekliGB, toplamBellek, sigar, doluluk,
     kullaniciTokS, toplamTokS, ttftTek, ttftYogun, ciktiSure, yanitSure,
