@@ -304,6 +304,31 @@ etkilenmez (taslak doğrulanır, yanlışsa atılır). Hangi modelde head olduğ
 Kalibrasyon: DGX Spark + Qwen3.8-Flash-Next için yayımlanmış ölçüm 16,8 → 24,6 tok/s
 (1,46×). Simülatör MTP'siz 16,8, MTP'li 25,2 veriyor — ikisi de ölçümün %3 içinde.
 
+## Token hızına ne kadar güvenmeli — ve kendi ölçümünle kalibre etmek
+
+Bu modelin en zayıf halkası **MBU** (gerçekleşen bant genişliği kullanımı). Token
+hızını doğrudan bu belirliyor ve elimde yalnızca **iki ölçüm noktası** var, ikisi de
+tek cihazdan (DGX Spark). Diğer 39 cihazın değeri mühendislik tahmini.
+
+Gerçek dağılım geniş: aynı kartta llama.cpp ile vLLM, farklı sürücü sürümü ve derleme
+bayrakları belirgin fark yaratıyor. Yayımlanmış llama.cpp ölçümleri bazı kartlarda
+buradaki tahminden **düşük**, iyi ayarlanmış vLLM kurulumları **yüksek** çıkabiliyor.
+Tek bir sayı bu yelpazeyi taşıyamaz.
+
+Bu yüzden Donanım panelinde **"Kendi ölçümünle kalibre et"** var:
+
+1. Seçtiğin kurulumu kendi kartında çalıştır, tek istekle, sohbetin başında
+2. Ölçtüğün **decode** hızını gir (llama.cpp'de `eval time`, vLLM'de `output toks/s`
+   — prefill/prompt işleme hızını değil)
+3. Araç o kartın MBU'sunu geri hesaplayıp saklar
+
+Bundan sonra o kartla yaptığın **tüm** tahminler senin gerçeğine oturur. Kalibrasyon
+karta bağlıdır: aynı kartın diğer modellerine geçer, başka karta geçmez. Tarayıcında
+saklanır.
+
+Sayılara güvenmeden önce bunu bir kez yapman, aracı tahmin olmaktan çıkarıp ölçüme
+dayandırır.
+
 ## Seyrek MoE cezası
 
 Dense bir modelde ağırlıklar her adımda baştan sona sırayla okunur. Seyrek bir MoE'de

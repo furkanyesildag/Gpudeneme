@@ -25,6 +25,8 @@ import { DonanimTablosu, ModelTablosu } from "./sections/Tablolar.jsx";
 import Bilgi from "./sections/Bilgi.jsx";
 import ChatBot from "./chat/ChatBot.jsx";
 import { durumuOku, durumuYaz, durumuDinle } from "./urlDurum.js";
+import Kalibrasyon from "./components/Kalibrasyon.jsx";
+import { kalibrasyonlariOku, kalibrasyonKaydet, kalibrasyonSil, kalibreCihaz } from "./kalibrasyon.js";
 import { ggufEtiketleriniBul, quantDurumu } from "./quantBul.js";
 
 /* ------------------------------------------------------------------ */
@@ -99,6 +101,7 @@ export default function Simulator() {
   const [offloadModu, setOffloadModu] = useState(ilk.offloadModu ?? "otomatik");
   const [sistemRam, setSistemRam] = useState(ilk.sistemRam ?? 0); // 0 = ana sisteme göre
   const [mtpAcik, setMtpAcik] = useState(ilk.mtpAcik ?? false);
+  const [kalibrasyonlar, setKalibrasyonlar] = useState(() => kalibrasyonlariOku());
   const [quantBilgi, setQuantBilgi] = useState(null);   // { durum, bilinmiyor, depolar }
   const [quantAraniyor, setQuantAraniyor] = useState(false);
   const [tumQuantlar, setTumQuantlar] = useState(false); // bulunmayanları da göster
@@ -122,7 +125,9 @@ export default function Simulator() {
   }, [tema]);
 
   const model = MODEL_HARITA[modelId] || MODELS[0];
-  const cihaz = CIHAZ_HARITA[cihazId] || DEVICES[0];
+  const hamCihaz = CIHAZ_HARITA[cihazId] || DEVICES[0];
+  /* Kullanıcı bu kart için kendi ölçümünü girdiyse MBU onunkiyle değişir. */
+  const cihaz = useMemo(() => kalibreCihaz(hamCihaz, kalibrasyonlar), [hamCihaz, kalibrasyonlar]);
   const qAktif = QUANT_HARITA[quant] || QUANTS[0];
   const kvAktif = KVQUANT_HARITA[kvq] || KVQUANTS[0];
 
@@ -717,7 +722,19 @@ export default function Simulator() {
                     {TP_ETIKET[r.link]} · verim %{Math.round(r.tpEtki * 100)}
                   </span></>
                 )}
+                <br />
+                <span style={{ color: cihaz.mbuKalibre ? C.ok : C.ink3 }}>
+                  bant genişliği kullanımı: %{Math.round(cihaz.mbu * 100)}
+                  {cihaz.mbuKalibre ? " (senin ölçümün)" : " (tahmin)"}
+                </span>
               </div>
+
+              <Kalibrasyon
+                cihaz={cihaz} simHiz={r.kullaniciTokS} sigar={r.sigar}
+                kalibrasyon={kalibrasyonlar[cihaz.id]}
+                uygula={(id, v) => setKalibrasyonlar(kalibrasyonKaydet(id, { ...v, model: model.ad, quant: qAktif.ad }))}
+                sil={(id) => setKalibrasyonlar(kalibrasyonSil(id))}
+              />
             </Bolum>
           </div>
 
