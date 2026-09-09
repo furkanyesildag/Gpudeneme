@@ -115,10 +115,31 @@ try {
     ["karar cümlesi", `/ucuz — üstelik|ödenebilir bir fark|pahalıya geliyor|yeterli değil/.test(document.body.innerText)`],
     ["bulut karşılaştırması", `/Buluttan alsak — yılda|Aynı işi buluttan/.test(document.body.innerText)`],
     ["riskler görünür", `/Karar verirken bilinmesi gerekenler|tek kutu yeterli değil/.test(document.body.innerText)`],
+    /* Model/donanım açılır listesi VAR (sunumda "peki X kartıyla" sorusu
+       için), ama kaydırak, kuantizasyon, bağlam gibi ayarlar yok. */
     ["kaydırak YOK", `document.querySelectorAll('input[type=range]').length === 0`],
+    ["model/donanım seçicisi var", `[...document.querySelectorAll('select')].filter(x=>[...x.options].some(o=>/Otomatik/.test(o.text))).length >= 2`],
   ]) {
     if (await s.js(ifade)) gecti(ad); else hata(`yönetici özeti: ${ad} başarısız`);
   }
+
+  // Elle model/donanım seçimi gerçekten hesabı değiştirmeli
+  const oncekiElle = await s.js("document.body.innerText");
+  await s.js(`(()=>{const s=[...document.querySelectorAll('select')];
+    const m=s.find(x=>[...x.options].some(o=>o.value==='qwen38_27b'));
+    const d=s.find(x=>[...x.options].some(o=>o.value==='5090'));
+    if(!m||!d) return false;
+    m.value='qwen38_27b'; m.dispatchEvent(new Event('change',{bubbles:true}));
+    d.value='5090'; d.dispatchEvent(new Event('change',{bubbles:true}));
+    return true;})()`);
+  await bekle(1000);
+  const elleSonra = await s.js("document.body.innerText");
+  if (elleSonra === oncekiElle) hata("yönetici özeti: elle model/donanım seçimi sonucu değiştirmedi");
+  else gecti("elle model/donanım seçimi hesabı değiştiriyor");
+  if (/Sizin seçiminiz/.test(elleSonra)) gecti("elle seçim kartta işaretli");
+  else hata("yönetici özeti: elle seçim kartta belirtilmiyor");
+  await s.js(`[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Otomatiğe dön')?.click()`);
+  await bekle(800);
 
   // Ekip büyüklüğünü değiştirmek kararı gerçekten yeniden hesaplamalı
   const oncekiKarar = await s.js("document.body.innerText");

@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { C, S, T, RADIUS, MONO } from "../theme.js";
-import { Kart, Dugme } from "../components/ui.jsx";
+import { Kart, Dugme, Secim } from "../components/ui.jsx";
 import { BANTLAR } from "../data/bantlar.js";
 import { hesapla, kapasite, paraTL, USD_TRY, VARSAYILAN_HEDEF } from "../engine.js";
-import { MODEL_HARITA } from "../data/models.js";
-import { CIHAZ_HARITA } from "../data/devices.js";
+import { MODELS, MODEL_HARITA } from "../data/models.js";
+import { DEVICES, CIHAZ_HARITA } from "../data/devices.js";
+import { QUANTS } from "../data/quants.js";
 import {
   KULLANIM, bulutAylikTL, donanimAylikTL, BULUT_MODEL, BULUT_TARIH,
   BULUT_GIRIS_USD, BULUT_CIKIS_USD, IS_GUNU, CALISMA_SAATI, KWH_TL, BAKIM_TL_AY,
@@ -38,6 +39,11 @@ const KISI_SECENEK = [5, 15, 40, 100];
    Yük, kullanıcının seçtiği profilden geliyor — bulut faturasını
    hesaplayan token sayılarının AYNISINDAN. İkisi ayrışırsa donanımı bir
    yükle boyutlayıp faturayı başka bir yükle çıkarmış oluruz. */
+/* Elle seçimde kuantizasyon sorulmuyor — yöneticiye "Q4_K_M mi IQ3_M mi"
+   diye sormak bu ekranın amacına aykırı. Kaliteden ucuza doğru inip
+   belleğe SIĞAN İLK, yani en kaliteli seçenek alınıyor. */
+const QUANT_TERCIHI = ["bf16", "q8", "q6k", "q5km", "q4km", "iq4xs", "q3km", "iq3m"];
+
 const yukCikar = (profil) => ({
   ctxK: profil.ctxK,
   girdiK: Math.max(1, Math.round(profil.girisTok / 1024)),
@@ -85,6 +91,13 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
   const [kisi, setKisi] = useState(15);
   const [profilId, setProfilId] = useState("sohbet");
   const [varsayimAcik, setVarsayimAcik] = useState(false);
+  /* "" = otomatik (bize uygun olanı sen seç). Sunum sırasında "peki X
+     kartıyla ne olurdu" sorusu mutlaka geliyor; cevabı ekranda vermek
+     gerekiyor. Kuantizasyon, bağlam, MBU gibi ayarlar burada YOK —
+     onlar hâlâ detaylı analizin işi. */
+  const [elleModel, setElleModel] = useState("");
+  const [elleCihaz, setElleCihaz] = useState("");
+  const [elleAdet, setElleAdet] = useState(1);
 
   const profil = KULLANIM.find((p) => p.id === profilId) || KULLANIM[0];
   const h = hedef || VARSAYILAN_HEDEF;
@@ -111,7 +124,42 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
       .sort((a, z) => a.maliyetTL - z.maliyetTL);
   }, [kisi, profil, h, kvOran]);
 
-  const oneri = secenekler.find((s) => s.kapasiteKisi >= kisi && s.r.sigar);
+  /* Elle seçim varsa öneri yerine o kurulum hesaplanır. */
+  const elle = useMemo(() => {
+    if (!elleModel || !elleCihaz) return null;
+    const model = MODEL_HARITA[elleModel], cihaz = CIHAZ_HARITA[elleCihaz];
+    if (!model || !cihaz) return null;
+    const yuk = yukCikar(profil);
+
+    // Sığan en kaliteli kuantizasyon
+    let quant = null;
+    for (const qid of QUANT_TERCIHI) {
+      const q = QUANTS.find((x) => x.id === qid);
+      if (!q) continue;
+      const dene = hesapla({ ...yuk, model, quant: qid, kvq: "fp8", cihaz, adet: elleAdet, kullanici: 1, kvOran, mtp: !!model.mtp });
+      if (dene.sigar) { quant = q; break; }
+    }
+    if (!quant) return { sigmaz: true, model, cihaz };
+
+    const arg = { ...yuk, model, quant: quant.id, kvq: "fp8", cihaz, adet: elleAdet, kvOran, mtp: !!model.mtp };
+    const k = kapasite(arg, h);
+    const r = hesapla({ ...arg, kullanici: Math.max(1, Math.min(k.maxC || 1, kisi)) });
+    return {
+      b: {
+        ad: `${elleAdet} × ${cihaz.ad}`,
+        fiyat: `${paraTL(r.maliyetTL)} · bileşen toplamı, satıcı marjı hariç`,
+        fiyatTemeli: "bileşen",
+      },
+      model, cihaz, quant, kapasiteKisi: profil.kat === "ajan" ? k.ajan : k.sohbet,
+      r, maliyetTL: r.maliyetTL, guc: r.guc, elleSecim: true,
+    };
+  }, [elleModel, elleCihaz, elleAdet, profil, h, kvOran, kisi]);
+
+  const oneri = elle && !elle.sigmaz
+    ? elle
+    : elle?.sigmaz
+    ? null
+    : secenekler.find((s) => s.kapasiteKisi >= kisi && s.r.sigar);
   const enBuyuk = secenekler[secenekler.length - 1];
 
   /* Kaç tane en büyük sistem gerekirdi — "sığmıyor" demekle yetinmeyip
@@ -144,10 +192,17 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
   /* ---- Asıl soru: alalım mı? ----
      Bu ekranın tek işi bu. Her senaryoda "evet" demek onu bir broşüre
      çevirirdi; hesap ne diyorsa o yazıyor. */
+  const yetersiz = oneri && oneri.kapasiteKisi < kisi;
+
   const karar = !oneri
     ? {
         renk: C.warn, etiket: "Tek sunucu yetmez",
         baslik: `${kisi} kişi için tek kutu yeterli değil`,
+      }
+    : yetersiz
+    ? {
+        renk: C.warn, etiket: "Seçtiğiniz sistem yetmiyor",
+        baslik: `Bu kurulum ${oneri.kapasiteKisi} kişiye yetiyor, ihtiyacınız ${kisi} kişi`,
       }
     : yillik.fark < 0
     ? {
@@ -202,6 +257,77 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
             <div style={{ ...T.mini, color: C.ink3, marginTop: S.sm }}>{profil.aciklama}</div>
           </div>
         </div>
+
+        {/* Sistemi elle seçme. Varsayılan otomatik — genel müdür bunlara
+            dokunmaz. Ama sunumda "peki şu kartla ne olurdu" sorusu geldiğinde
+            cevabı ekranda verebilmek gerekiyor. */}
+        <div style={{ marginTop: S.lg, paddingTop: S.md, borderTop: `1px solid ${C.line}` }}>
+          <div style={{ ...T.mini, color: C.ink3, marginBottom: S.sm }}>
+            Sistemi biz seçiyoruz. İsterseniz elle değiştirin — sonuç anında
+            yeniden hesaplanır.
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: S.md, alignItems: "flex-end" }}>
+            <div style={{ flex: "2 1 260px" }}>
+              <Secim
+                etiket="Model" deger={elleModel}
+                onChange={(v) => setElleModel(v)}
+              >
+                <option value="">Otomatik — uygun olanı seç</option>
+                {Object.entries(
+                  MODELS.reduce((g, m) => ((g[m.aile] ??= []).push(m), g), {})
+                ).map(([aile, liste]) => (
+                  <optgroup key={aile} label={aile}>
+                    {liste.map((m) => (
+                      <option key={m.id} value={m.id}>{m.ad}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </Secim>
+            </div>
+            <div style={{ flex: "2 1 260px" }}>
+              <Secim
+                etiket="Donanım" deger={elleCihaz}
+                onChange={(v) => setElleCihaz(v)}
+              >
+                <option value="">Otomatik — uygun olanı seç</option>
+                {Object.entries(
+                  DEVICES.reduce((g, d) => ((g[d.grup] ??= []).push(d), g), {})
+                ).map(([grup, liste]) => (
+                  <optgroup key={grup} label={grup}>
+                    {liste.map((d) => (
+                      <option key={d.id} value={d.id}>{d.ad}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </Secim>
+            </div>
+            <div style={{ flex: "0 1 120px" }}>
+              <Secim
+                etiket="Adet" deger={String(elleAdet)}
+                onChange={(v) => setElleAdet(Number(v))}
+              >
+                {[1, 2, 3, 4, 6, 8].map((n) => (
+                  <option key={n} value={n}>{n} adet</option>
+                ))}
+              </Secim>
+            </div>
+            {(elleModel || elleCihaz) && (
+              <div style={{ marginBottom: S.md }}>
+                <Dugme
+                  boy="kucuk"
+                  onClick={() => { setElleModel(""); setElleCihaz(""); setElleAdet(1); }}
+                >
+                  Otomatiğe dön
+                </Dugme>
+              </div>
+            )}
+          </div>
+          {(elleModel && !elleCihaz) || (!elleModel && elleCihaz) ? (
+            <div style={{ ...T.mini, color: C.warn }}>
+              Elle hesap için ikisini de seçin — model ve donanım.
+            </div>
+          ) : null}
+        </div>
       </Kart>
 
       {/* ---------------- Öneri ---------------- */}
@@ -230,6 +356,11 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
                 <div style={{ ...T.dev, color: C.ink }}>
                   {oneri.kapasiteKisi} kişilik şirket içi yapay zekâ sunucusu
                 </div>
+                {oneri.elleSecim && (
+                  <div style={{ ...T.mini, color: C.steel, marginTop: 2 }}>
+                    Sizin seçiminiz · {oneri.quant.ad} ile sığdırıldı
+                  </div>
+                )}
                 <div style={{ ...T.govde, color: C.ink2, marginTop: S.xs }}>
                   Şirketin kendi binasında duran, dışarıya hiçbir şey göndermeyen
                   bir ChatGPT benzeri sistem.
@@ -249,9 +380,13 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
                 Bu parayla ne alıyoruz
               </div>
               <ul style={{ margin: 0, padding: 0 }}>
-                <Madde isaret="✓" renk={C.ok}>
+                <Madde isaret={yetersiz ? "!" : "✓"} renk={yetersiz ? C.warn : C.ok}>
                   <b>{oneri.kapasiteKisi} kişi</b> aynı anda kullanabilir — ihtiyacınız {kisi} kişi.
-                  {oneri.kapasiteKisi > kisi * 1.5 && " Büyümeye yeriniz var."}
+                  {yetersiz
+                    ? " Yetmiyor: ya adedi artırın, ya daha küçük bir model seçin."
+                    : oneri.kapasiteKisi > kisi * 1.5
+                    ? " Büyümeye yeriniz var."
+                    : ""}
                 </Madde>
                 <Madde isaret="✓" renk={C.ok}>
                   <b>{hizCumlesi(oneri.r.kullaniciTokS)}</b> — ilk kelime{" "}
@@ -297,8 +432,18 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
         </Kart>
       ) : (
         <Kart vurgu={C.warn} style={{ padding: S.lg, marginBottom: S.lg }}>
-          <div style={{ ...T.baslik, color: C.warn }}>Bu ekip için tek kutuluk bir öneri yok</div>
+          <div style={{ ...T.baslik, color: C.warn }}>
+            {elle?.sigmaz
+              ? `${elle.model.ad}, ${elleAdet} × ${elle.cihaz.ad} belleğine sığmıyor`
+              : "Bu ekip için tek kutuluk bir öneri yok"}
+          </div>
           <div style={{ ...T.govde, color: C.ink2, marginTop: S.sm }}>
+            {elle?.sigmaz ? (
+              <>
+                Bu model bu donanıma en düşük kalitede bile sığmıyor. Daha küçük bir
+                model seçin, adedi artırın ya da otomatiğe dönün.
+              </>
+            ) : (<>
             {kisi} kişinin {profil.ad.toLowerCase()} yükünü tek bir sunucu kaldırmıyor.
             Alınabilecek en güçlü sistem ({enBuyuk ? paraTL(enBuyuk.maliyetTL) : "—"})
             {" "}{enBuyuk?.kapasiteKisi} kişiye yetiyor.
@@ -318,6 +463,7 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
             </>
             )}{" "}
             Detaylı analize geçip birden fazla sistemi birlikte planlayabilirsiniz.
+            </>)}
           </div>
         </Kart>
       )}
