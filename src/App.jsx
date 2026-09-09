@@ -305,12 +305,12 @@ export default function Simulator() {
     if (model.mtp && !mtpAcik)
       out.push({
         tip: "bilgi", baslik: "Kullanılmayan MTP head'i var",
-        metin: `${model.ad} ${model.mtp} MTP head'iyle geliyor ama speculative decoding kapalı. Açarsan decode hızı ~${1 + MTP_KABUL_VARSAYILAN}× artar; vLLM ve SGLang'de tek satırlık ayar, kalite kaybı yok (taslak doğrulanır, yanlışsa atılır).`,
+        metin: `${model.ad} ${model.mtp} MTP head'iyle geliyor ama speculative decoding kapalı. Açarsan decode hızı ~${1 + MTP_KABUL_VARSAYILAN}× artar ve kalite değişmez (taslak doğrulanır, yanlışsa atılır). Bedava değil ama: ölçümlerde prefill 0,75×'e düşüyor (ilk token gecikir) ve ~1 GB ek VRAM istediği için sığan bağlam daralıyor.`,
       });
     else if (r.mtpAktif)
       out.push({
         tip: "olumlu", baslik: `Speculative decoding açık · ${r.mtpHizlanma}× decode`,
-        metin: "Kabul edilen taslak token aynı ağırlık okumasıyla geldiği için neredeyse bedava. Yalnızca decode'u hızlandırır — ilk token (prefill) süresi değişmez. Kalite etkilenmez.",
+        metin: `Kabul edilen taslak token aynı ağırlık okumasıyla geldiği için neredeyse bedava; kalite etkilenmez. Karşılığında iki bedel var ve ikisi de bu hesaba dahil: prefill 0,75×'e düşüyor (ilk token ${Math.round((1 / 0.75 - 1) * 100)}% gecikiyor) ve ${gb(r.mtpEkGB)} ek VRAM gidiyor, yani sığan bağlam daralıyor. Hızlanmanın kendisi de modele göre değişiyor — ölçümlerde 1,24× ile 1,67× arası.`,
       });
 
     if (r.moeVerim < 0.6)
@@ -516,7 +516,7 @@ export default function Simulator() {
                 <div style={{ marginTop: S.sm }}>
                   <Onay
                     etiket={`Speculative decoding (MTP) — ${r.mtpAktif ? `${r.mtpHizlanma}× hızlanma` : "kapalı"}`}
-                    aciklama={`Bu modelde ${model.mtp} MTP head'i var. Açıldığında her adımda bir taslak token daha üretilir; kabul edilen taslak neredeyse bedava gelir. vLLM/SGLang'de tek satırlık ayar.`}
+                    aciklama={`Bu modelde ${model.mtp} MTP head'i var. Açıldığında her adımda bir taslak token daha üretilir; kabul edilen taslak neredeyse bedava gelir. vLLM/SGLang'de tek satırlık ayar. Bedeli: prefill 0,75×'e düşer ve ~1 GB VRAM gider — hızlanma karşılığında bağlamdan feragat edersin.`}
                     isaretli={mtpAcik} onChange={setMtpAcik}
                   />
                 </div>

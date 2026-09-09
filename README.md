@@ -296,13 +296,43 @@ ağırlık okumasıyla yapıldığı için kabul edilen taslak neredeyse bedavay
 hızlanma = 1 + kabul_oranı        (varsayılan kabul 0,5 → 1,5×)
 ```
 
-Yalnızca decode'u hızlandırır; ilk token (prefill) süresi değişmez, kalite
-etkilenmez (taslak doğrulanır, yanlışsa atılır). Hangi modelde head olduğu
+Kalite etkilenmez (taslak doğrulanır, yanlışsa atılır). Hangi modelde head olduğu
 `config.json`'daki `num_nextn_predict_layers` ve eşdeğeri alanlardan okundu —
 109 modelin 48'inde var.
 
-Kalibrasyon: DGX Spark + Qwen3.8-Flash-Next için yayımlanmış ölçüm 16,8 → 24,6 tok/s
-(1,46×). Simülatör MTP'siz 16,8, MTP'li 25,2 veriyor — ikisi de ölçümün %3 içinde.
+### MTP bedava değil
+
+[dev.to/rosgluk'un MTP karşılaştırması](https://dev.to/rosgluk/qwen-36-27b-and-35b-mtp-vs-standard-on-16gb-gpu-42jd)
+aynı kartta MTP'li ve MTP'siz ölçüm veriyor, ve iki maliyet çıkıyor:
+
+| | standart | MTP | |
+|---|---|---|---|
+| prefill (27B q8) | 200 t/s | 148 t/s | **0,75×** |
+| prefill (27B q5) | 191 t/s | 145 t/s | 0,76× |
+| prefill (35B q8) | 368 t/s | 277 t/s | 0,75× |
+| prefill (35B q5) | 343 t/s | 264 t/s | 0,77× |
+| maks. bağlam (27B q8) | 100 K | 60 K | **0,60×** |
+| maks. bağlam (27B q5) | 160 K | 100 K | 0,63× |
+| maks. bağlam (35B q8) | 150 K | 80 K | 0,53× |
+| maks. bağlam (35B q5) | 200 K | 120 K | 0,60× |
+
+Yani MTP decode'u hızlandırırken **ilk token'ı geciktiriyor** ve **sığan bağlamı
+daraltıyor**. Prefill çarpanı dört ölçümde de 0,75; bağlam farkından geri
+hesaplanan ek VRAM modele göre 0,5-1,2 GiB (ortası, 1 GiB alındı). İkisi de
+artık hesaba dahil. (Önceki sürümde "prefill etkilenmez" yazıyordu — ölçüm bunu
+çürüttü.)
+
+### Hızlanma tek bir sayı değil
+
+| model | seyreklik | standart | MTP | hızlanma |
+|---|---|---|---|---|
+| Qwen3.6 27B (dense) | %100 aktif | 45 | 75 | 1,67× |
+| Qwen3.6 35B-A3B | %8 aktif | 146 | 189 | 1,29× |
+| Qwen3.8-Flash-Next (Spark) | %3 aktif | 16,8 | 24,6 | 1,46× |
+
+Ölçülen aralık **1,24× - 1,67×**. Yığın, taslak derinliği (`--spec-draft-n-max`)
+ve metnin kendisi belirliyor; varsayılan 1,5× bu aralığın ortasıdır. Tek bir
+model için kesin sayı vermez — büyüklük mertebesi doğrudur.
 
 ## Token hızına ne kadar güvenmeli — ve kendi ölçümünle kalibre etmek
 

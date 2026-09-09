@@ -104,7 +104,23 @@ export function moeVerimi(model) {
 /*  taslak neredeyse bedavaya gelir. Hızlanma = 1 + kabul_oranı.       */
 /*  Ölçüm (DGX Spark + Qwen3.8-Flash-Next): 16,8 → 24,6 tok/s = 1,46x. */
 /* ------------------------------------------------------------------ */
+/* MTP hızlanması = 1 + kabul oranı. Yayımlanmış ölçümler geniş bir aralık
+   veriyor: Qwen3.6-27B dense 45→75 tok/s (1,67×), Qwen3.6-35B-A3B 146→189
+   (1,29×), DGX Spark'ta Qwen3.8-Flash-Next 16,8→24,6 (1,46×). Yığın, taslak
+   derinliği ve metnin kendisi belirliyor; 0,5 bu aralığın ortasıdır. */
 export const MTP_KABUL_VARSAYILAN = 0.5;
+
+/* MTP bedava değil — ölçümlerin gösterdiği İKİ maliyeti var:
+
+   1) Prefill yavaşlar. Dört ölçümde de aynı oran: 200→148, 191→145,
+      368→277, 343→264 t/s — yani 0,75×. İlk token gecikmesi buna bölünür.
+   2) VRAM ister, dolayısıyla maksimum bağlam düşer. Aynı kaynakta
+      100K→60K, 160K→100K, 150K→80K, 200K→120K. Bu farktan geri hesaplanan
+      ek yük modele göre 0,5-1,2 GiB; ortası alındı.
+
+   Kaynak: dev.to/rosgluk "Qwen 3.6 27B and 35B MTP vs Standard on 16GB GPU" */
+export const MTP_PREFILL_CARPANI = 0.75;
+export const MTP_EK_GB = 1.0;
 
 /* ------------------------------------------------------------------ */
 /*  TOKEN BAŞINA SABİT EK YÜK                                          */
@@ -236,12 +252,16 @@ export function hesapla({
   /* ---- Bellek bütçesi ---- */
   const kvKullaniciGB = kvBaytToplam(model.kv, ayrilanCtx, kvBayt) / 1024 ** 3;
   const kvGB = kullanici * kvKullaniciGB;
+  /* MTP yalnızca modelin head'i varsa ve kullanıcı açtıysa uygulanır. */
+  const mtpAktif = !!(mtp && model.mtp);
+
   // Çalışma zamanı: CUDA bağlamı, aktivasyonlar, parçalanma payı.
   /* llama.cpp ölçümlerinde (dev.to/rosgluk, RTX 4080 16 GB) bildirilen VRAM,
      dosya + KV'nin 1,0-1,3 GiB üstünde çıkıyor: CUDA bağlamı + compute buffer.
      Sunucu yığınlarında (vLLM, SGLang) batch büyüdükçe aktivasyon tamponu da
      büyür — bu yüzden kullanıcı sayısına da bağlı. */
-  const ekGB = 0.8 + 0.02 * agirlikGB + 0.25 * adet + 0.05 * kullanici;
+  const ekGB = 0.8 + 0.02 * agirlikGB + 0.25 * adet + 0.05 * kullanici
+    + (mtpAktif ? MTP_EK_GB : 0);
 
   /* Offload: ağırlıkların bir kısmı host RAM'de. Yalnızca ayrık kartlarda
      anlamlı — birleşik bellekli kutuda taşınacak ayrı bir yer yok.
@@ -303,9 +323,6 @@ export function hesapla({
     (ramBaytGB > 0 ? ramBaytGB / offloadBW : 0) +
     EK_YUK_SN;
 
-  /* MTP yalnızca modelin head'i varsa ve kullanıcı açtıysa uygulanır.
-     Sadece decode'u hızlandırır; ilk token (prefill) etkilenmez. */
-  const mtpAktif = !!(mtp && model.mtp);
   const mtpHizlanma = mtpAktif ? 1 + Math.max(0, Math.min(0.95, mtpKabul)) : 1;
 
   /* IQ (importance-matrix) şemalarının dequant çekirdeği daha karmaşıktır ve
@@ -320,7 +337,8 @@ export function hesapla({
      Batchingde prefill'ler sıraya girer, bu yüzden kullanıcı sayısıyla
      doğrusala yakın büyür (kuyrukta bekleme). */
   const flops = 2 * model.ap * 1e9 * girdiTok;
-  const prefillVerim = kumeTF * 1e12 * 0.42;
+  // MTP açıkken prefill de taslak head'i çalıştırmak zorunda: ölçülen 0,75×.
+  const prefillVerim = kumeTF * 1e12 * 0.42 * (mtpAktif ? MTP_PREFILL_CARPANI : 1);
   const ttftTek = prefillVerim > 0 ? flops / prefillVerim : Infinity;
   const ttftYogun = ttftTek * (1 + (kullanici - 1) * 0.62);
 
@@ -367,7 +385,7 @@ export function hesapla({
   return {
     agirlikGB, vramAgirlikGB, offload, offloadOrani, offloadMumkun, ramYeterli, pcieBW,
     offloadGerekli, offloadYetersiz, hat, ram, ramTavani, offloadBW, buyutme,
-    mtpAktif, mtpHizlanma, quantHiz,
+    mtpAktif, mtpHizlanma, quantHiz, mtpEkGB: mtpAktif ? MTP_EK_GB : 0,
     aktifGB, kvGB, kvKullaniciGB, ekGB, gerekliGB, toplamBellek, sigar, doluluk,
     kullaniciTokS, toplamTokS, ttftTek, ttftYogun, ciktiSure, yanitSure,
     maxKullanici, maxCtxK, maxCtxBellek, maxCtxModelSinirli: maxCtxBellek > modelTavani,

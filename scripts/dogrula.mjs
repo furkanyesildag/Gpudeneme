@@ -293,7 +293,16 @@ for (const s of SENARYOLAR) {
   const c = hesapla({ ...taban, model: mtpli, cihaz: CIHAZ_HARITA.b200, adet: 8, mtp: false });
   const d = hesapla({ ...taban, model: mtpli, cihaz: CIHAZ_HARITA.b200, adet: 8, mtp: true });
   if (!(d.kullaniciTokS > c.kullaniciTokS)) hata("MTP: head'i olan modelde hız artmadı");
-  if (Math.abs(d.ttftYogun - c.ttftYogun) > 1e-9) hata("MTP: ilk token'ı da değiştirdi");
+  // MTP bedava değil: ölçümlerde prefill 0,75×'e düşüyor (dolayısıyla TTFT artar)
+  // ve ek VRAM istediği için maksimum bağlam daralıyor.
+  if (!(d.ttftYogun > c.ttftYogun)) hata("MTP: ilk token gecikmesi artmadı");
+  if (!(d.ekGB > c.ekGB)) hata("MTP: ek VRAM maliyeti işlenmedi");
+  // Bağlam daralmasını bellekle SINIRLI bir kurulumda ölç: 8× B200'de tavan
+  // modelin kendi bağlam sınırı olur, bellek değil — orada fark görünmez.
+  const mtpDar = { ...taban, model: mtpli, cihaz: CIHAZ_HARITA["5090"], adet: 1 };
+  const darsiz = hesapla({ ...mtpDar, mtp: false }), darli = hesapla({ ...mtpDar, mtp: true });
+  if (darsiz.maxCtxBellek > 0 && !(darli.maxCtxBellek < darsiz.maxCtxBellek))
+    hata("MTP: belleğe sığan maksimum bağlam daralmadı");
 
   // Kalibrasyon: DGX Spark + Qwen3.8-Flash-Next, ölçülen 16,8 → 24,6 tok/s
   const fn = MODEL_HARITA["qwen38_flash_next"], spark = CIHAZ_HARITA["spark"];
