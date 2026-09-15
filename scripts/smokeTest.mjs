@@ -76,6 +76,26 @@ if (!chrome) {
   process.exit(0);
 }
 
+/* Sunucu yoksa kendimiz başlatırız. Önceden betik çalışan bir `npm run dev`
+   varsayıyordu; sunucu kapalıyken "sayfa neredeyse boş" diye 20 sahte hata
+   basıyor, yani sunucu sorununu arayüz bozukluğu gibi gösteriyordu. */
+async function sunucuAyakta() {
+  try { return (await fetch(URL, { signal: AbortSignal.timeout(2000) })).ok; } catch { return false; }
+}
+let sunucu = null;
+if (!(await sunucuAyakta())) {
+  console.log(`${URL} yanıt vermiyor — geçici bir Vite sunucusu başlatılıyor…`);
+  sunucu = spawn("npx", ["vite", "--port", String(PORT), "--strictPort"], { stdio: "ignore", detached: true });
+  let hazir = false;
+  for (let i = 0; i < 60 && !hazir; i++) { await bekle(500); hazir = await sunucuAyakta(); }
+  if (!hazir) {
+    console.log("  ✗ Vite sunucusu 30 saniyede ayağa kalkmadı — arayüz test edilemedi.");
+    try { process.kill(-sunucu.pid); } catch { /* yoksay */ }
+    process.exit(1);
+  }
+}
+const sunucuyuKapat = () => { if (sunucu) try { process.kill(-sunucu.pid); } catch { /* yoksay */ } };
+
 const profil = mkdtempSync(join(tmpdir(), "gpudeneme-smoke-"));
 const cp = spawn(chrome, [
   "--headless=new", `--remote-debugging-port=${CDP}`, "--no-sandbox",
@@ -210,6 +230,7 @@ try {
 } finally {
   s?.kapat();
   cp.kill();
+  sunucuyuKapat();
   try { rmSync(profil, { recursive: true, force: true }); } catch { /* yoksay */ }
 }
 

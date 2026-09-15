@@ -238,16 +238,25 @@ export function hesapla({
   const maliyetTL = cihaz.try * adet + host.usd * USD_TRY * ITHALAT;
   const guc = cihaz.w * adet + host.w;
 
-  /* Kullanılabilir bellek: işletim sistemi + sürücü payı düşülmüş. */
-  const rezerv = cihaz.tur === "kutu" ? 0.12 : 0.06;
+  /* Kullanılabilir bellek: işletim sistemi + sürücü payı düşülmüş.
+     Birleşik bellekli kutuda işletim sistemi aynı belleği paylaştığı için
+     pay büyük (%12). Hazır GPU sunucusu da bir "kutu" ama GPU belleği
+     ayrık HBM — orada pay ayrık kartınki kadar (%6). */
+  const rezerv = cihaz.tur === "kutu" && !cihaz.gpu ? 0.12 : 0.06;
   const cihazKullanilabilir = cihaz.mem * (1 - rezerv);
   const toplamBellek = cihazKullanilabilir * adet;
 
-  /* Interconnect verimi */
+  /* Interconnect verimi.
+     Hazır GPU sunucusunda iki katman var: sunucu İÇİNDEKİ GPU'lar NVLink ile
+     bölünür (cihaz.gpu.link), birden fazla sunucu ise ağ üzerinden
+     (cihaz.link). Tek bir 8 GPU'lu sunucu, aynı 8 kartın NVLink ile
+     bağlandığı kurulumla aynı sonucu vermeli — dogrula.mjs bunu sınıyor. */
+  const icAdet = cihaz.gpu?.adet || 1;
+  const icEtki = icAdet > 1 ? TP_ETKI[cihaz.gpu.link] : 1;
   const link = adet > 1 ? cihaz.link : "tek";
   const tpEtki = TP_ETKI[link];
-  const kumeBW = cihaz.bw * adet * tpEtki;
-  const kumeTF = cihaz.tf * adet * (adet > 1 ? 0.9 : 1);
+  const kumeBW = cihaz.bw * icEtki * adet * tpEtki;
+  const kumeTF = cihaz.tf * (icAdet > 1 ? 0.9 : 1) * adet * (adet > 1 ? 0.9 : 1);
 
   /* ---- Bellek bütçesi ---- */
   const kvKullaniciGB = kvBaytToplam(model.kv, ayrilanCtx, kvBayt) / 1024 ** 3;
@@ -445,7 +454,10 @@ export function hedefiKarsilar(r, hedef) {
  * @param hedef  { ttftMs, tps, sohbetKat, ajanKat }
  * @param tavan  taranacak en yüksek eşzamanlılık
  */
-export function kapasite(args, hedef, tavan = 256) {
+/* Tavan: tek kutuda 256 eşzamanlı istek zaten uç bir değer. Ama 8-72 GPU'lu
+   hazır sunucular bunu rahatça aşar; orada tavan dar kalırsa kapasite
+   yapay olarak kırpılır ve "256'ya yetiyor" diye düşük gösterilir. */
+export function kapasite(args, hedef, tavan = args.cihaz?.gpu ? 8192 : 256) {
   const dene = (c) => hedefiKarsilar(hesapla({ ...args, kullanici: c }), hedef);
 
   // C=1 bile karşılamıyorsa kapasite sıfırdır: bu kurulum bu hedeflere uygun değil.

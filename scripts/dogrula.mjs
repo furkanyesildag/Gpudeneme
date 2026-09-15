@@ -61,6 +61,19 @@ for (const d of DEVICES) {
   if (!["nvlink", "pcie", "net"].includes(d.link)) hata(`${et}: geçersiz bağlantı "${d.link}"`);
   if (d.mbu <= 0 || d.mbu > 1) hata(`${et}: mbu aralık dışı (${d.mbu})`);
   if (d.fiyat !== d.usd) hata(`${et}: fiyat/usd tutarsız`);
+
+  /* Hazır GPU sunucusu: sistem toplamları GPU başına değerlerden türemeli
+     ve satın alma kararına giren kasa bilgisi eksiksiz olmalı. */
+  if (d.gpu) {
+    const g = d.gpu;
+    if (!(g.adet > 1)) hata(`${et}: gpu.adet 1'den büyük olmalı`);
+    if (!["nvlink", "pcie"].includes(g.link)) hata(`${et}: sunucu içi bağlantı "${g.link}" geçersiz`);
+    if (d.mem !== g.mem * g.adet || d.bw !== g.bw * g.adet || d.tf !== g.tf * g.adet)
+      hata(`${et}: sistem toplamları GPU başına değerlerle tutmuyor`);
+    if (d.tur !== "kutu") hata(`${et}: hazır sunucu "kutu" olmalı — kendi CPU/RAM/güç kaynağıyla gelir`);
+    for (const alan of ["islemci", "ram", "ag", "guc", "kasa", "fiyatNotu"])
+      if (!d.sistem?.[alan]) hata(`${et}: sistem.${alan} eksik`);
+  }
   // TL fiyat USD ile kabaca tutarlı mı? (0,8x - 3,5x aralığı)
   const oran = d.try / (d.usd * 48.4);
   if (oran < 0.8 || oran > 3.5) uyar(`${et}: TL fiyatı USD'nin ${oran.toFixed(2)} katı — gözden geçir`);
@@ -290,6 +303,34 @@ for (const s of SENARYOLAR) {
   const kucukP = hesapla({ ...taban, model: m, cihaz: kart, adet: 2, sistemRam: 64 });
   const buyukP = hesapla({ ...taban, model: m, cihaz: kart, adet: 2, sistemRam: 384 });
   if (buyukP.pcieBW <= kucukP.pcieBW) hata("platform: büyük platformda offload yolu genişlemedi");
+
+  /* Hazır sunucu = aynı GPU'ların NVLink'le bağlandığı kurulum.
+     1 × XD690 (8 × B300) ile 8 × B200 kartı: GPU başına bant genişliği ve
+     TFLOPS aynı nesil olduğu için HIZ aynı çıkmalı, BELLEK 288/192 oranında
+     büyük olmalı. Sunucu içi TP verimi unutulursa sunucu 8 kartın
+     %16 üstünde hızlı görünür — bu test onu yakalar. */
+  {
+    const xd = CIHAZ_HARITA.xd690, b2 = CIHAZ_HARITA.b200;
+    if (xd && b2) {
+      const t = { ...taban, model: MODEL_HARITA["glm_53_flash"] || m, quant: "fp8", kullanici: 16 };
+      const s1 = hesapla({ ...t, cihaz: xd, adet: 1 });
+      const k8 = hesapla({ ...t, cihaz: b2, adet: 8 });
+      if (Math.abs(s1.kullaniciTokS / k8.kullaniciTokS - 1) > 0.01)
+        hata(`hazır sunucu: 1×XD690 hızı (${s1.kullaniciTokS.toFixed(0)}) 8×B200 ile tutmuyor (${k8.kullaniciTokS.toFixed(0)})`);
+      if (Math.abs(s1.ttftTek / k8.ttftTek - 1) > 0.01)
+        hata("hazır sunucu: ilk token süresi 8 kartlık eşdeğerle tutmuyor");
+      if (Math.abs(s1.toplamBellek / k8.toplamBellek - 288 / 192) > 0.01)
+        hata("hazır sunucu: bellek oranı 288/192 değil");
+      if (s1.host?.usd) hata("hazır sunucu: üstüne ayrıca ana sistem fiyatı eklendi");
+    }
+    // Büyük sunucuda kapasite 256 tavanında kırpılmamalı
+    const nvl = CIHAZ_HARITA.gb300nvl72;
+    if (nvl) {
+      const k = kapasite({ ...taban, model: MODEL_HARITA["qwen38_flash_next"] || m, quant: "fp8",
+        cihaz: nvl, adet: 1, ctxK: 16, girdiK: 2, cikti: 700 }, VARSAYILAN_HEDEF);
+      if (k.tavanda || k.maxC <= 256) hata(`hazır sunucu: NVL72 kapasitesi tavana takıldı (maxC ${k.maxC})`);
+    }
+  }
 
   // MTP yalnızca head'i olan modelde çalışır
   const mtpsiz = MODELS.find((x) => !x.mtp);

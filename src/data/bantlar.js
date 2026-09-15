@@ -262,6 +262,31 @@ export const BANTLAR = [
       "2650 W: tek fazlı bir prizden beslenemez, elektrik tesisatına bakmak gerekir. Dört kart tek kasada ciddi bir soğutma problemidir; iş istasyonu kasası yerine açık tezgâh ya da özel şasi gerekebilir. Platform dolu — beşinci kart sunucu şasisi demek. Ve 384 GB'ı 2× MI300X ile yarı fiyata almak mümkün, tek engel ROCm.",
     renk: "warn",
   },
+  {
+    no: 12,
+    ad: "HPE Compute XD690 (8× B300)",
+    fiyat: "~29 milyon ₺ · tahmin, HPE teklifi şart",
+    fiyatTL: 29403000,
+    fiyatTemeli: "anahtar teslim",
+    ozet: "Tek kasada 2,3 TB GPU belleği — en büyük açık modeller 4 bite inmeden sığar.",
+    ne: "8 × NVIDIA B300 (GPU başına 288 GB HBM3e), NVLink 5 ile tek düğüm. 2 × Xeon 6, 2-4 TB DDR5-6400, 8 × ConnectX-8. 10U, hava soğutmalı, azami ~14,5 kW, 3 yıl yerinde servis.",
+    ayar: {
+      modelId: "kimi_k26", cihazId: "xd690", adet: 1,
+      quant: "fp8", kvq: "fp8", ctxK: 128, girdiK: 8,
+      kullanici: 32, cikti: 1500, indirGibi: false,
+    },
+    tekKullanici:
+      "1T parametreli Kimi K2.6 ya da 1,6T'lik DeepSeek-V4-Pro FP8'de sığar; tek kullanıcıda saniyede 150-270 token. Bu sınıfta \"model sığar mı\" sorusu ortadan kalkıyor — soru artık kaç kişiye yettiği.",
+    ekip:
+      "Kod/ajan yükünde (8K prompt, 32K bağlam) tek sunucu 1T sınıfı modelle ~60, 400B sınıfıyla ~85, Qwen3.8-Flash-Next gibi hafif bir MoE ile ~250 eşzamanlı kullanıcıya yetiyor. Soru-cevap yükünde bunun yaklaşık on katı.",
+    kime:
+      "Yüzlerce geliştirici ya da sürekli çalışan ajanlar için bulut faturası ciddi bir kalem hâline gelmiş; verisini dışarı çıkaramayan (bankacılık, savunma, kamu, sağlık) kurum. Bir veri merkezi odası ve BT operasyon ekibi zaten var.",
+    tikanma:
+      "Ekonomisi tamamen hacme bağlı. Yıllık maliyeti (donanım 4 yıla bölünmüş + işletme) ~9 mn ₺ — bu, Sonnet 5 fiyatıyla ~160 ajan kullanıcının bulut faturasına denk. Tek sunucunun 160 kişiye yetmesi ise ancak hafif bir MoE ile mümkün; 1T sınıfı modelde ~60 kişide doluyor, yani o modelle parasal gerekçe yok, gerekçe veri. 14,5 kW tipik bir kabinin güç bütçesini tek başına aşar: elektrik ve soğutma ayrı bir proje. HPE fiyat yayımlamıyor; kur ve teklif rakamı ±%30 oynatabilir.",
+    ilginc:
+      "Aynı 8 GPU'lu B200 kurulumuyla aynı hızda koşar — bellek bant genişliği aynı nesil. Farkı hız değil bellek: GPU başına 192 yerine 288 GB. Bu, 1T sınıfı modellerin 4 bite düşmeden, uzun bağlamla ve çok kullanıcıyla aynı anda sığması demek.",
+    renk: "warn",
+  },
 ];
 
 /* ------------------------------------------------------------------ */

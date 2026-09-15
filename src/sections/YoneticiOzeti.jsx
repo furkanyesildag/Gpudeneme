@@ -6,6 +6,7 @@ import { hesapla, kapasite, paraTL, USD_TRY, VARSAYILAN_HEDEF } from "../engine.
 import { MODELS, MODEL_HARITA } from "../data/models.js";
 import { DEVICES, CIHAZ_HARITA } from "../data/devices.js";
 import { QUANTS } from "../data/quants.js";
+import SistemOzellik from "../components/SistemOzellik.jsx";
 import {
   KULLANIM, bulutAylikTL, donanimAylikTL, BULUT_MODEL, BULUT_TARIH,
   BULUT_GIRIS_USD, BULUT_CIKIS_USD, IS_GUNU, CALISMA_SAATI, KWH_TL, BAKIM_TL_AY,
@@ -27,7 +28,10 @@ import {
 /*  Bu sayfa bir satış broşürü değil, bir karar notudur.               */
 /* ------------------------------------------------------------------ */
 
-const KISI_SECENEK = [5, 15, 40, 100];
+/* 250: hazır GPU sunucularının (XD690 gibi) buluta göre başa baş geldiği
+   ölçek bu civarda. Seçenek 100'de bitseydi o sınıf hiçbir zaman mantıklı
+   görünmezdi — hesap doğru olsa bile soru yanlış sorulmuş olurdu. */
+const KISI_SECENEK = [5, 15, 40, 100, 250];
 
 /* Bantları kıyaslarken HEPSİNİ aynı yükle çalıştırıyoruz. Her bandın
    kendi `ayar`ındaki bağlam/prompt farklı — o ayarlar "bu sistem ne için
@@ -147,7 +151,10 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
     return {
       b: {
         ad: `${elleAdet} × ${cihaz.ad}`,
-        fiyat: `${paraTL(r.maliyetTL)} · bileşen toplamı, satıcı marjı hariç`,
+        // Hazır sunucunun fiyatı zaten bütün sistemi kapsıyor; ayrık kartta
+        // ise motor kart + genel ana sistemi topluyor, satıcı marjını bilmiyor.
+        // Rakamın kendisi kartta büyük yazıyor; burada yalnızca neye dayandığı.
+        fiyat: cihaz.sistem?.fiyatNotu || "bileşen toplamı, satıcı marjı hariç",
         fiyatTemeli: "bileşen",
       },
       model, cihaz, quant, kapasiteKisi: profil.kat === "ajan" ? k.ajan : k.sohbet,
@@ -301,13 +308,19 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
                 ))}
               </Secim>
             </div>
-            <div style={{ flex: "0 1 120px" }}>
+            <div style={{ flex: "0 1 180px" }}>
+              {/* Hazır sunucuda "adet" kart değil sunucu sayısıdır — XD690'da
+                  1 = 8 GPU. Aynı kelimeyle göstermek "1 GPU mu?" diye yanıltır. */}
               <Secim
-                etiket="Adet" deger={String(elleAdet)}
+                etiket={CIHAZ_HARITA[elleCihaz]?.gpu ? "Sunucu" : "Adet"} deger={String(elleAdet)}
                 onChange={(v) => setElleAdet(Number(v))}
               >
                 {[1, 2, 3, 4, 6, 8].map((n) => (
-                  <option key={n} value={n}>{n} adet</option>
+                  <option key={n} value={n}>
+                    {CIHAZ_HARITA[elleCihaz]?.gpu
+                      ? `${n} sunucu (${n * CIHAZ_HARITA[elleCihaz].gpu.adet} GPU)`
+                      : `${n} adet`}
+                  </option>
                 ))}
               </Secim>
             </div>
@@ -427,6 +440,14 @@ export default function YoneticiOzeti({ hedef, kvOran, detaya }) {
                   Ayrıntılı hesap
                 </button>
               </div>
+              {oneri.cihaz?.sistem && (
+                <details style={{ marginTop: S.sm }}>
+                  <summary style={{ ...T.mini, color: C.steel, cursor: "pointer" }}>
+                    Sunucunun tüm özellikleri
+                  </summary>
+                  <SistemOzellik cihaz={oneri.cihaz} baslik={oneri.cihaz.ad} />
+                </details>
+              )}
             </div>
           </div>
         </Kart>

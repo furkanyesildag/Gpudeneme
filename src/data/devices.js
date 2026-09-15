@@ -18,6 +18,11 @@
 /*  tr    Türkiye tedarik durumu                                       */
 /*  mim   mimari — kuantizasyon donanım desteğini belirler             */
 /*  slot  kaç PCIe slotu kaplıyor (kart tipinde; şasi planlaması için) */
+/*  gpu   YALNIZCA hazır GPU sunucularında: { adet, mem, bw, tf, link } */
+/*        GPU başına fiziksel değerler. Üst düzey mem/bw/tf bunlardan    */
+/*        TÜRETİLİR (sistem toplamı), elle yazılmaz. Sunucu kendi CPU,  */
+/*        RAM ve güç kaynağıyla gelir — ayrıca ana sistem eklenmez.     */
+/*  sistem  hazır sunucunun kasası: işlemci, RAM, ağ, güç, boyut        */
 /* ------------------------------------------------------------------ */
 
 export const DEVICES = [
@@ -84,6 +89,59 @@ export const DEVICES = [
   { id: "mi300x", ad: "AMD Instinct MI300X 192 GB", grup: "Veri merkezi", mem: 192, bw: 5300, tf: 2610, w: 750, usd: 15000, try: 810000, tur: "kart", link: "nvlink", mbu: 0.75, tr: "kurumsal", mim: "cdna3" },
   { id: "gaudi3", ad: "Intel Gaudi 3 128 GB", grup: "Veri merkezi", mem: 128, bw: 3700, tf: 1835, w: 900, usd: 15000, try: 810000, tur: "kart", link: "nvlink", mbu: 0.73, tr: "kurumsal", mim: "gaudi" },
 
+  /* ---------- Hazır GPU sunucusu / raf ----------
+     Kart gibi tek tek alınmaz: GPU'lar NVLink tabanlı bir kartta (HGX) ya da
+     rafta sabittir, sunucu kendi işlemcisi, belleği ve güç kaynağıyla gelir.
+     Bu yüzden "8 × kart + genel sunucu şasisi" diye toplanırsa hem fiyat hem
+     güç yanlış çıkar — kendi kaydı olmalı. */
+  {
+    id: "xd690", ad: "HPE Compute XD690 (8× B300)", grup: "Hazır sunucu / raf",
+    gpu: { adet: 8, mem: 288, bw: 8000, tf: 4500, link: "nvlink" },
+    /* 14,5 kW: HGX B300 sistemi için bildirilen azami çekiş. 12 × 3.200 W
+       güç kaynağı N+N yedekli olduğu için kurulu kapasite (38,4 kW) çekiş
+       değildir. */
+    w: 14500,
+    /* HPE liste fiyatı yayımlamıyor. 8 GPU'lu HGX B300 sunucular için
+       gözlenen aralık $300-500 bin; HPE'nin 8× ConnectX-8, çift Xeon 6 ve
+       3 yıl yerinde servisli kurulumu aralığın üst yarısına düşer. */
+    usd: 450000, tur: "kutu", link: "net", mbu: 0.83, tr: "kurumsal", mim: "blackwell",
+    sistem: {
+      islemci: "2 × Intel Xeon 6 (6776P / 6767P, işlemci başına 64 çekirdeğe kadar)",
+      ram: "32 × DDR5-6400 yuva · 2 TB veya 4 TB",
+      ag: "8 × NVIDIA ConnectX-8 (InfiniBand XDR / Spectrum-X, GPU başına 800 Gb/s) · BlueField-3 DPU",
+      nvlink: "NVLink 5 · NVSwitch · GPU başına 1,8 TB/s, düğüm içi toplam 14,4 TB/s",
+      guc: "12 × 3.200 W Titanium, N+N yedekli · azami çekiş ~14,5 kW",
+      kasa: "10U · hava soğutmalı · ~70 kg",
+      garanti: "3/3/3 — 3 yıl parça, işçilik ve yerinde servis",
+      isletimSistemi: "RHEL, Ubuntu, SLES",
+      fiyatNotu: "HPE liste fiyatı yayımlamıyor; $300-500 bin aralığından tahmin — teklif alınmalı",
+    },
+    not: "Tek düğümde 2,3 TB GPU belleği: 1T parametreli MoE'leri FP8'de, 400-700B sınıfını tam hassasiyete yakın çalıştırır. Hava soğutmalı olması normal bir veri merkezi odasına girebilmesini sağlar, ama 14,5 kW tek bir kabinin tipik güç bütçesini tek başına aşar — elektrik ve soğutma altyapısı ayrıca planlanmalı.",
+  },
+  {
+    id: "gb300nvl72", ad: "NVIDIA GB300 NVL72 (72× B300, raf)", grup: "Hazır sunucu / raf",
+    gpu: { adet: 72, mem: 288, bw: 8000, tf: 4500, link: "nvlink" },
+    /* 132-142 kW bildiriliyor (üretici değil, sistem entegratörleri). */
+    w: 137000,
+    /* NVIDIA ve ODM'ler raf fiyatı yayımlamıyor. Loop Capital donanım
+       fiyatını $3,7-4,0 milyon, tedarik zinciri kaynaklı Tom's Hardware
+       haberi $6,0-6,5 milyon veriyor. Temkinli uçta değil, alt uçta
+       duruldu — üst uç 1,6 kat daha pahalı. */
+    usd: 4000000, tur: "kutu", link: "net", mbu: 0.83, tr: "kurumsal", mim: "gb300",
+    sistem: {
+      islemci: "36 × NVIDIA Grace (toplam 2.592 Arm Neoverse V2 çekirdek)",
+      ram: "17 TB LPDDR5X (CPU tarafı, NVLink-C2C ile GPU'ya bağlı) · toplam hızlı bellek 37 TB",
+      ag: "72 GPU tek NVLink alanında · raflar arası InfiniBand / Spectrum-X",
+      nvlink: "NVLink 5 · raf içi toplam 130 TB/s",
+      guc: "~132-142 kW",
+      kasa: "Tam raf · sıvı soğutmalı",
+      garanti: "Entegratöre göre değişir",
+      isletimSistemi: "NVIDIA DGX OS / Ubuntu",
+      fiyatNotu: "Yayımlanmış fiyat yok; analist tahmini $3,7-4,0 mn, tedarik zinciri tahmini $6,0-6,5 mn",
+    },
+    not: "Tek bir model için değil, bir yapay zekâ servis altyapısı için: 20 TB GPU belleği. Sıvı soğutma ve ~140 kW raf gücü, sıradan bir sunucu odasında karşılanamaz — özel veri merkezi altyapısı şart. CPU tarafındaki 17 TB LPDDR5X bu simülasyonda hesaba katılmıyor (yalnızca GPU belleği sayılıyor). Masaüstü GB300 için listedeki DGX Station kaydına bakın.",
+  },
+
   /* ---------- Uç / saha ---------- */
   { id: "thor", ad: "Jetson AGX Thor 128 GB", grup: "Uç / saha", mem: 128, bw: 273, tf: 400, w: 130, usd: 3499, try: 200000, tur: "kutu", link: "net", mbu: 0.75, tr: "sinirli", mim: "thor" },
   { id: "agxorin", ad: "Jetson AGX Orin 64 GB", grup: "Uç / saha", mem: 64, bw: 204, tf: 138, w: 60, usd: 1999, try: 118000, tur: "kutu", link: "net", mbu: 0.75, tr: "sinirli", mim: "ampere" },
@@ -93,11 +151,18 @@ export const DEVICES = [
 /* Bellek tipi — MoE erişim cezası ve gerçekçi bant genişliği için gerekli.
    Mimari adı bunu belirlemez: B200 ve RTX 5090 ikisi de "Blackwell" ama
    biri HBM3e biri GDDR7 kullanır. */
-const HBM = new Set(["b200", "h200", "h100s", "a100", "mi355x", "mi325x", "mi300x", "gaudi3", "l40s"]);
+const HBM = new Set(["b200", "h200", "h100s", "a100", "mi355x", "mi325x", "mi300x", "gaudi3", "l40s", "xd690", "gb300nvl72"]);
 const LPDDR = new Set(["spark", "gx10", "station", "m3u", "m4max", "m4pro", "strix", "evox2", "thor", "agxorin", "orinnano"]);
 
 /* Yukarıdaki kayıtlarda gözden kaçan alanları tamamla / normalize et. */
 for (const d of DEVICES) {
+  /* Hazır GPU sunucusu: sistem toplamları GPU başına değerlerden türer.
+     Elle iki yerde yazılırsa biri güncellenip öteki unutulur. */
+  if (d.gpu) {
+    d.mem = d.gpu.mem * d.gpu.adet;
+    d.bw = d.gpu.bw * d.gpu.adet;
+    d.tf = d.gpu.tf * d.gpu.adet;
+  }
   d.bellekTipi = HBM.has(d.id) ? "hbm" : LPDDR.has(d.id) ? "lpddr" : "gddr";
   if (!d.tur || (d.tur !== "kart" && d.tur !== "kutu")) {
     d.tur = d.grup === "Hazır kutu" || d.grup === "Uç / saha" ? "kutu" : "kart";
@@ -119,6 +184,7 @@ export const GRUP_SIRA = [
   "İş istasyonu kartı",
   "Hazır kutu",
   "Veri merkezi",
+  "Hazır sunucu / raf",
   "Uç / saha",
 ];
 

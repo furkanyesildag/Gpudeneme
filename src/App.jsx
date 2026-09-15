@@ -24,6 +24,7 @@ import Grafik from "./sections/Grafik.jsx";
 import { DonanimTablosu, ModelTablosu } from "./sections/Tablolar.jsx";
 import Bilgi from "./sections/Bilgi.jsx";
 import YoneticiOzeti from "./sections/YoneticiOzeti.jsx";
+import SistemOzellik from "./components/SistemOzellik.jsx";
 import ChatBot from "./chat/ChatBot.jsx";
 import { durumuOku, durumuYaz, durumuDinle } from "./urlDurum.js";
 import Kalibrasyon from "./components/Kalibrasyon.jsx";
@@ -726,7 +727,14 @@ export default function Simulator() {
                   </optgroup>
                 ))}
               </Secim>
-              <Kaydirac etiket="Adet" deger={adet} onChange={setAdet} min={1} max={16} step={1} goster={`${adet} adet`} />
+              <Kaydirac
+                etiket={cihaz.gpu ? "Sunucu sayısı" : "Adet"} deger={adet} onChange={setAdet}
+                min={1} max={16} step={1}
+                goster={cihaz.gpu ? `${adet} sunucu · ${adet * cihaz.gpu.adet} GPU` : `${adet} adet`}
+                alt={cihaz.gpu && adet > 1
+                  ? "Sunucular arası bağlantı ağ üzerinden varsayılır (kötü senaryo). Model tek sunucuya sığıyorsa gerçekte her sunucu ayrı bir kopya çalıştırır ve kapasite sunucu sayısıyla çarpılır."
+                  : undefined}
+              />
 
               {/* Offload yalnızca ayrık kartlarda anlamlı: birleşik bellekli
                   kutuda ağırlıklar zaten sistem RAM'inde, taşınacak yer yok. */}
@@ -773,6 +781,8 @@ export default function Simulator() {
                   {cihaz.mbuKalibre ? " (senin ölçümün)" : " (tahmin)"}
                 </span>
               </div>
+
+              <SistemOzellik cihaz={cihaz} kompakt />
 
               <Kalibrasyon
                 cihaz={cihaz} simHiz={r.kullaniciTokS} sigar={r.sigar}

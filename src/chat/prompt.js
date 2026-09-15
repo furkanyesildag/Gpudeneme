@@ -31,7 +31,15 @@ function cihazTablosu() {
   return DEVICES.map(
     (d) =>
       `${d.ad} | ${d.grup} | ${d.mem}GB | ${d.bw}GB/s | ${d.tf}TFLOPS(FP8) | ${d.w}W | ~$${d.fiyat} (~${Math.round(d.try / 1000)}b TL)` +
-      ` | ${MIM_AD[d.mim]} | TR: ${TR_DURUM[d.tr].ad} | yigin: ${(YIGIN[d.mim] || []).join(", ")}`
+      ` | ${MIM_AD[d.mim]} | TR: ${TR_DURUM[d.tr].ad} | yigin: ${(YIGIN[d.mim] || []).join(", ")}` +
+      // Hazır sunucu: danışman "XD690'da kaç çekirdek / ne kadar RAM var" diye
+      // sorulunca kasayı da bilmeli, yalnızca GPU toplamını değil.
+      (d.gpu
+        ? ` | HAZIR SUNUCU: ${d.gpu.adet}×${d.gpu.mem}GB GPU, sunucu içi ${d.gpu.link}; ` +
+          `işlemci: ${d.sistem.islemci}; RAM: ${d.sistem.ram}; ağ: ${d.sistem.ag}; güç: ${d.sistem.guc}; ` +
+          `kasa: ${d.sistem.kasa}; fiyat: ${d.sistem.fiyatNotu}`
+        : "") +
+      (d.not ? ` | not: ${d.not}` : "")
   ).join("\n");
 }
 
