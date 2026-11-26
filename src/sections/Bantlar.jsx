@@ -68,7 +68,7 @@ export default function Bantlar({ hedef, kvOran, yukle, aktifAyar }) {
                     style={{
                       ...T.sayi, fontSize: 15, width: 26, height: 26, lineHeight: "25px",
                       textAlign: "center", borderRadius: "50%", flexShrink: 0,
-                      background: vRenk, color: "#fff",
+                      background: vRenk, color: C.onAccent,
                     }}
                   >
                     {b.no}
@@ -102,9 +102,16 @@ export default function Bantlar({ hedef, kvOran, yukle, aktifAyar }) {
                   ["bellek", `${gb(r.gerekliGB)}/${gb(r.toplamBellek)} GB`, r.sigar ? C.ok : C.bad],
                   ["hız", `${r.kullaniciTokS.toFixed(0)} tok/s`, C.ink],
                   ["ilk token", sureYazi(r.ttftYogun), C.ink],
-                  ["sohbet", `${k.sohbet} kişi`, k.sohbet ? C.ok : C.bad],
-                ].map(([ad, v, renk]) => (
-                  <span key={ad} style={{ display: "inline-flex", flexDirection: "column" }}>
+                  k.sohbet
+                    ? ["sohbet", `${k.sohbet} kişi`, C.ok]
+                    : ["sohbet", k.sebep === "bellek" ? "sığmıyor" : k.sebep === "hiz" ? "hız < hedef" : "TTFT > hedef", C.warn,
+                       k.sebep === "ttft"
+                         ? `Bu bandın ilk token süresi senin hedefini (${hedef.ttftMs} ms) aşıyor; hedef gevşerse kapasite görünür.`
+                         : k.sebep === "hiz"
+                         ? `Bu bant tek istekte bile senin hız hedefine (${hedef.tps} tok/s) ulaşmıyor.`
+                         : "Bu bant mevcut iş yükü ayarlarında belleğe sığmıyor."],
+                ].map(([ad, v, renk, ipucu]) => (
+                  <span key={ad} title={ipucu} style={{ display: "inline-flex", flexDirection: "column", cursor: ipucu ? "help" : undefined }}>
                     <span style={{ ...T.etiket, fontSize: 9, color: C.ink3 }}>{ad}</span>
                     <span style={{ fontFamily: MONO, fontSize: 12, color: renk }}>{v}</span>
                   </span>

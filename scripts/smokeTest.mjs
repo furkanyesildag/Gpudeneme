@@ -123,58 +123,6 @@ try {
   if (await s.js(`!!document.querySelector('h1')`)) gecti("başlık var");
   else hata("h1 başlığı yok");
 
-  /* Varsayılan açılış YÖNETİCİ ÖZETİ — karar verici için sade ekran.
-     Önce onu sına, sonra detaylı analize geçip mühendis ekranını sına. */
-  console.log("\nYönetici özeti (varsayılan açılış):");
-  for (const [ad, ifade] of [
-    ["ekip büyüklüğü seçimi", `[...document.querySelectorAll('button')].some(b=>/^\\d+ kişi$/.test(b.textContent.trim()))`],
-    ["kullanım profili seçimi", `[...document.querySelectorAll('button')].some(b=>/Kod yazma ve ajanlar/.test(b.textContent))`],
-    /* Etiket CSS ile büyük harfe çevriliyor ve Türkçe "İ" (U+0130) JS'te
-       "i"ye küçülmüyor — /i bayrağı burada işe yaramaz. Bu yüzden büyük
-       harfe çevrilmeyen başlık cümlesine bakıyoruz. */
-    ["karar cümlesi", `/ucuz — üstelik|ödenebilir bir fark|pahalıya geliyor|yeterli değil/.test(document.body.innerText)`],
-    ["bulut karşılaştırması", `/Buluttan alsak — yılda|Aynı işi buluttan/.test(document.body.innerText)`],
-    ["riskler görünür", `/Karar verirken bilinmesi gerekenler|tek kutu yeterli değil/.test(document.body.innerText)`],
-    /* Model/donanım açılır listesi VAR (sunumda "peki X kartıyla" sorusu
-       için), ama kaydırak, kuantizasyon, bağlam gibi ayarlar yok. */
-    ["kaydırak YOK", `document.querySelectorAll('input[type=range]').length === 0`],
-    ["model/donanım seçicisi var", `[...document.querySelectorAll('select')].filter(x=>[...x.options].some(o=>/Otomatik/.test(o.text))).length >= 2`],
-  ]) {
-    if (await s.js(ifade)) gecti(ad); else hata(`yönetici özeti: ${ad} başarısız`);
-  }
-
-  // Elle model/donanım seçimi gerçekten hesabı değiştirmeli
-  const oncekiElle = await s.js("document.body.innerText");
-  await s.js(`(()=>{const s=[...document.querySelectorAll('select')];
-    const m=s.find(x=>[...x.options].some(o=>o.value==='qwen38_27b'));
-    const d=s.find(x=>[...x.options].some(o=>o.value==='5090'));
-    if(!m||!d) return false;
-    m.value='qwen38_27b'; m.dispatchEvent(new Event('change',{bubbles:true}));
-    d.value='5090'; d.dispatchEvent(new Event('change',{bubbles:true}));
-    return true;})()`);
-  await bekle(1000);
-  const elleSonra = await s.js("document.body.innerText");
-  if (elleSonra === oncekiElle) hata("yönetici özeti: elle model/donanım seçimi sonucu değiştirmedi");
-  else gecti("elle model/donanım seçimi hesabı değiştiriyor");
-  if (/Sizin seçiminiz/.test(elleSonra)) gecti("elle seçim kartta işaretli");
-  else hata("yönetici özeti: elle seçim kartta belirtilmiyor");
-  await s.js(`[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Otomatiğe dön')?.click()`);
-  await bekle(800);
-
-  // Ekip büyüklüğünü değiştirmek kararı gerçekten yeniden hesaplamalı
-  const oncekiKarar = await s.js("document.body.innerText");
-  await s.js(`[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='100 kişi')?.click()`);
-  await bekle(800);
-  if ((await s.js("document.body.innerText")) === oncekiKarar)
-    hata("yönetici özeti: ekip büyüklüğü değişince sonuç değişmedi");
-  else gecti("ekip büyüklüğü sonucu değiştiriyor");
-
-  console.log("\nDetaylı analize geçiş:");
-  await s.js(`[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Detaylı analiz')?.click()`);
-  await bekle(1200);
-  if (await s.js(`document.querySelectorAll('input[type=range]').length >= 5`)) gecti("detaylı analiz açıldı");
-  else hata("detaylı analize geçilemedi");
-
   console.log("\nTemel kontroller:");
   for (const [ad, ifade] of [
     ["model seçici", `[...document.querySelectorAll('select')].some(x=>x.options.length>50)`],
@@ -185,9 +133,20 @@ try {
     ["sohbet önizlemesi", `[...document.querySelectorAll('button')].some(b=>/Sohbeti başlat/.test(b.textContent))`],
     ["düşünme seviyeleri", `['Kapalı','Düşük','Orta','Yüksek'].every(t=>[...document.querySelectorAll('button')].some(b=>b.textContent.trim()===t))`],
     ["danışman düğmesi", `[...document.querySelectorAll('button')].some(b=>/Danışman/.test(b.textContent))`],
+    ["tema anahtarı", `document.querySelectorAll('[role=radiogroup][aria-label=Tema] [role=radio]').length === 3`],
+    ["yönetici özeti kaldırıldı", `!/Yönetici özeti/.test(document.body.innerText)`],
   ]) {
     if (await s.js(ifade)) gecti(ad); else hata(`${ad} bulunamadı`);
   }
+
+  /* Sonuç kartı ekrandan çıkınca özet çubuğu görünmeli. */
+  await s.js("window.scrollTo(0, document.body.scrollHeight / 2)");
+  await bekle(700);
+  if (await s.js(`[...document.querySelectorAll('button[title="Sonuca git"]')].some(b=>b.closest('[aria-hidden=false]'))`))
+    gecti("kaydırınca özet çubuğu görünüyor");
+  else hata("kaydırınca özet çubuğu görünmedi");
+  await s.js("window.scrollTo(0, 0)");
+  await bekle(300);
 
   console.log("\nSekmeler:");
   const sekmeler = await s.js(`[...document.querySelectorAll('[role=tab]')].map(t=>t.textContent)`);

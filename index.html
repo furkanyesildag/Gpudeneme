@@ -43,6 +43,9 @@
         --kv: #c2703d;
         --ovh: #9aa4ab;
         --acc: #1e4d6b;
+        /* Dolu renkli zemin üstündeki yazı ve her iki temada koyu kalan yüzey */
+        --on-accent: #ffffff;
+        --koyu: #12171c;
       }
 
       /* ---- Koyu tema: sistem tercihi (açık'a sabitlenmemişse) ---- */
@@ -67,6 +70,8 @@
           --kv: #e0966a;
           --ovh: #6b7780;
           --acc: #7db4d8;
+        --on-accent: #0b1116;
+        --koyu: #26323c;
         }
       }
 
@@ -91,6 +96,8 @@
         --kv: #e0966a;
         --ovh: #6b7780;
         --acc: #7db4d8;
+        --on-accent: #0b1116;
+        --koyu: #26323c;
       }
 
       html,
@@ -106,6 +113,13 @@
       }
       * {
         box-sizing: border-box;
+      }
+      /* Form öğeleri yazı tipini tarayıcıdan değil sayfadan alsın */
+      button,
+      input,
+      select,
+      textarea {
+        font-family: inherit;
       }
       /* Grafiklerde ve tablolarda seçim rengi okunur kalsın */
       ::selection {
@@ -127,6 +141,22 @@
           animation-duration: 0.01ms !important;
           animation-iteration-count: 1 !important;
           transition-duration: 0.01ms !important;
+        }
+      }
+      /* Sabit özet çubuğu: dar ekranda ikincil bilgiler gizlenir */
+      @media (max-width: 760px) {
+        .ozet-cubugu-kurulum,
+        .ozet-cubugu-fiyat {
+          display: none !important;
+        }
+        .ozet-cubugu-metrikler {
+          gap: 2px 12px !important;
+          margin-left: 0 !important;
+        }
+      }
+      @media (max-width: 440px) {
+        .ozet-cubugu-bellek {
+          display: none !important;
         }
       }
       /* İnce kaydırma çubukları */

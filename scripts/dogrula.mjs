@@ -235,9 +235,8 @@ for (const s of SENARYOLAR) {
     const r = hesapla({ ...a, model: m, cihaz: d, kvOran: 0.6 });
     if (!r.sigar) hata(`${et}: belleğe sığmıyor (${r.gerekliGB.toFixed(0)}/${r.toplamBellek.toFixed(0)} GB)`);
     if (r.kullaniciTokS < 3) hata(`${et}: kullanılamayacak kadar yavaş (${r.kullaniciTokS.toFixed(1)} tok/s)`);
-    /* fiyatTL yönetici özetinde gösterilen ve amorti hesabına giren sayı;
-       fiyat metni ise detay sekmesinde görünen. İkisi ayrışırsa sunumda
-       aynı sistem için iki farklı rakam çıkar. */
+    /* fiyatTL, bant kartında yazan fiyat metninin hesaplanabilir hâli.
+       İkisi ayrışırsa aynı sistem için iki farklı rakam çıkar. */
     if (!(b.fiyatTL > 0)) hata(`${et}: sayısal fiyatTL yok`);
     else if (b.fiyatTL < r.maliyetTL * 0.9)
       hata(`${et}: fiyatTL (${b.fiyatTL}) bileşen toplamının altında (${Math.round(r.maliyetTL)})`);

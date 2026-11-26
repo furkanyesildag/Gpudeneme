@@ -15,7 +15,7 @@ import {
   para, paraTL, gb, sureYazi, TP_ETIKET, VARSAYILAN_HEDEF, anaSistem, MTP_KABUL_VARSAYILAN,
 } from "./engine.js";
 import {
-  Kart, Bolum, Etiket, Secim, Kaydirac, Onay, Rozet, Dugme, Sekmeler, Aciklama,
+  Bolum, Etiket, Secim, Kaydirac, Onay, Rozet, Sekmeler,
 } from "./components/ui.jsx";
 import Hedefler from "./components/Hedefler.jsx";
 import Sonuc from "./sections/Sonuc.jsx";
@@ -23,7 +23,6 @@ import Bantlar from "./sections/Bantlar.jsx";
 import Grafik from "./sections/Grafik.jsx";
 import { DonanimTablosu, ModelTablosu } from "./sections/Tablolar.jsx";
 import Bilgi from "./sections/Bilgi.jsx";
-import YoneticiOzeti from "./sections/YoneticiOzeti.jsx";
 import SistemOzellik from "./components/SistemOzellik.jsx";
 import ChatBot from "./chat/ChatBot.jsx";
 import { durumuOku, durumuYaz, durumuDinle } from "./urlDurum.js";
@@ -70,7 +69,28 @@ const VARSAYILAN = {
   ctxK: 16, girdiK: 1, kullanici: 8, cikti: 400, kvOran: 40, indirGibi: false,
 };
 
-const HEDEF_RENK = { iyi: C.ok, sinir: C.warn, kotu: C.bad };
+/* Tema simgeleri SVG: ◐ ☾ gibi karakterler yazı tipine göre kayıyor
+   ya da hiç çizilmiyordu. */
+const simgeOrtak = { width: 13, height: 13, viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: 1.6, "aria-hidden": true };
+const TEMA_SIMGE = {
+  light: (
+    <svg {...simgeOrtak}>
+      <circle cx="8" cy="8" r="3" />
+      <path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" strokeLinecap="round" />
+    </svg>
+  ),
+  sistem: (
+    <svg {...simgeOrtak}>
+      <rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.3" />
+      <path d="M5.5 13.8h5M8 11v2.8" strokeLinecap="round" />
+    </svg>
+  ),
+  dark: (
+    <svg {...simgeOrtak}>
+      <path d="M13.5 9.6A5.6 5.6 0 0 1 6.4 2.5a5.6 5.6 0 1 0 7.1 7.1z" strokeLinejoin="round" />
+    </svg>
+  ),
+};
 
 const SEKMELER = [
   { k: "bantlar", ad: "Satın alma bantları", rozet: BANTLAR.length },
@@ -111,16 +131,6 @@ export default function Simulator() {
      (kapalı / düşük / orta / yüksek), açık-kapalı bir anahtar olarak değil. */
   const [dusunmeSeviye, setDusunmeSeviye] = useState("kapali");
   const [sekme, setSekme] = useState("bantlar");
-  /* İki izleyici, iki ekran. Karar verici "alalım mı" sorusunun cevabını
-     ister; mühendis ara hesapları görmek ister. Aynı ekranda ikisini
-     birden vermek ikisini de bozuyordu — bu yüzden ayrıldılar.
-     Varsayılan yönetici özeti: siteyi ilk açan çoğunlukla karar verici. */
-  const [mod, setMod] = useState(() => {
-    try {
-      return new URLSearchParams((location.hash || "").replace(/^#/, "")).has("detay")
-        ? "detay" : "yonetici";
-    } catch { return "yonetici"; }
-  });
   const [sohbetAcik, setSohbetAcik] = useState(false);
   const [tema, setTema] = useState(() => {
     try { return localStorage.getItem("tema") || "sistem"; } catch { return "sistem"; }
@@ -429,65 +439,45 @@ export default function Simulator() {
             <div style={{ ...T.etiket, color: C.steel, marginBottom: 6 }}>
               Yerel LLM altyapısı · kapasite simülasyonu
             </div>
-            {mod === "yonetici" ? (
-              <>
-                <h1 style={{ ...T.dev, margin: 0, color: C.ink }}>
-                  Kendi yapay zekâ sunucumuzu kuralım mı?
-                </h1>
-                <p style={{ ...T.govde, color: C.ink2, margin: `${S.sm}px 0 0`, maxWidth: 720 }}>
-                  Ekibinizin büyüklüğünü seçin; ne almanız gerektiğini, ne kadara mal
-                  olacağını ve aynı işi buluttan satın almakla kıyasını gösterelim.
-                </p>
-              </>
-            ) : (
-              <>
-                <h1 style={{ ...T.dev, margin: 0, color: C.ink }}>
-                  Hangi donanım, kaç adet, ne kadar token
-                </h1>
-                <p style={{ ...T.govde, color: C.ink2, margin: `${S.sm}px 0 0`, maxWidth: 720 }}>
-                  {MODELS.length} açık ağırlıklı model, {DEVICES.length} donanım, Türkiye fiyatlarıyla.
-                  KV cache hesabı her modelin gerçek{" "}
-                  <code style={{ fontFamily: MONO, fontSize: 12.5 }}>config.json</code> katman
-                  geometrisinden yapılır.
-                </p>
-              </>
-            )}
+            <h1 style={{ ...T.dev, margin: 0, color: C.ink }}>
+              Hangi donanım, kaç adet, ne kadar token
+            </h1>
+            <p style={{ ...T.govde, color: C.ink2, margin: `${S.sm}px 0 0`, maxWidth: 720 }}>
+              {MODELS.length} açık ağırlıklı model, {DEVICES.length} donanım, Türkiye fiyatlarıyla.
+              KV cache hesabı her modelin gerçek{" "}
+              <code style={{ fontFamily: MONO, fontSize: 12.5 }}>config.json</code> katman
+              geometrisinden yapılır.
+            </p>
           </div>
-          <div style={{ display: "flex", gap: S.sm, alignItems: "center", flexWrap: "wrap" }}>
-            {/* Mod seçici: iki farklı izleyici, iki farklı ekran. */}
-            <div style={{ display: "flex", border: `1px solid ${C.line}`, borderRadius: RADIUS.sm, overflow: "hidden" }}>
-              {[["yonetici", "Yönetici özeti"], ["detay", "Detaylı analiz"]].map(([k, ad]) => (
+          {/* Danışman sağ alttaki kalıcı düğmede; burada ikinci bir kopyası
+              yalnızca kalabalık yapıyordu. Tema seçimi üç durumlu anahtar. */}
+          <div
+            role="radiogroup" aria-label="Tema"
+            style={{ display: "inline-flex", padding: 3, gap: 2, background: C.wash, border: `1px solid ${C.line}`, borderRadius: RADIUS.hap }}
+          >
+            {[["light", TEMA_SIMGE.light, "Açık"], ["sistem", TEMA_SIMGE.sistem, "Sistem"], ["dark", TEMA_SIMGE.dark, "Koyu"]].map(([k, simge, ad]) => {
+              const secili = tema === k;
+              return (
                 <button
-                  key={k} onClick={() => setMod(k)}
+                  key={k} role="radio" aria-checked={secili} title={`Tema: ${ad.toLowerCase()}`}
+                  onClick={() => setTema(k)}
                   style={{
-                    fontFamily: SANS, fontSize: 12.5, fontWeight: mod === k ? 600 : 500,
-                    padding: "8px 13px", cursor: "pointer", border: "none",
-                    background: mod === k ? C.steel : C.paper,
-                    color: mod === k ? "#fff" : C.ink2,
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    fontFamily: SANS, fontSize: 12, fontWeight: secili ? 600 : 500,
+                    padding: "5px 11px", borderRadius: RADIUS.hap, cursor: "pointer",
+                    border: "none", background: secili ? C.paper : "transparent",
+                    color: secili ? C.ink : C.ink3, boxShadow: secili ? GOLGE.hafif : "none",
                   }}
                 >
-                  {ad}
+                  {simge}{ad}
                 </button>
-              ))}
-            </div>
-            <Dugme tur="birincil" boy="buyuk" onClick={() => setSohbetAcik(true)}>💬 Danışmana sor</Dugme>
-            <select
-              value={tema} onChange={(e) => setTema(e.target.value)} aria-label="Tema"
-              style={{ fontFamily: SANS, fontSize: 12.5, padding: "8px 9px", border: `1px solid ${C.line}`, borderRadius: RADIUS.sm, background: C.paper, color: C.ink }}
-            >
-              <option value="sistem">Tema: sistem</option>
-              <option value="light">Tema: açık</option>
-              <option value="dark">Tema: koyu</option>
-            </select>
+              );
+            })}
           </div>
         </div>
       </header>
 
       <main style={{ maxWidth: 1560, margin: "0 auto", padding: `${S.lg}px ${S.lg}px 110px` }}>
-        {mod === "yonetici" ? (
-          <YoneticiOzeti hedef={hedef} kvOran={kvOran / 100} detaya={() => setMod("detay")} />
-        ) : (
-        <>
         {/* ---------------- Hazır senaryolar ---------------- */}
         <div style={{ display: "flex", alignItems: "center", gap: S.md, flexWrap: "wrap", marginBottom: S.md }}>
           <Etiket>Hazır senaryo</Etiket>
@@ -844,8 +834,6 @@ export default function Simulator() {
           <Grafik ortak={ortak} model={model} cihaz={cihaz} adet={adet} girdiK={girdiK} hedef={hedef} />
         )}
         {sekme === "bilgi" && <Bilgi />}
-        </>
-        )}
 
         <footer style={{ marginTop: S.xl, ...T.mini, color: C.ink3, textAlign: "center" }}>
           Seçimlerin adres çubuğunda saklanır — bu sayfanın linkini paylaşırsan karşı taraf aynı

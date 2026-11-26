@@ -31,6 +31,8 @@ export const C = {
   badSoft: "var(--bad-soft)",
   kv: "var(--kv)",
   ovh: "var(--ovh)",
+  onAccent: "var(--on-accent)",
+  koyu: "var(--koyu)",
 };
 
 /* 4 px tabanlı boşluk ölçeği. */

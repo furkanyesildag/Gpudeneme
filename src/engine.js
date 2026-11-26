@@ -514,7 +514,9 @@ export const ctxYazi = (k) =>
 
 export const harfYazi = (tok) => {
   const h = tok * 4;
-  return h >= 1000 ? `~${(h / 1000).toFixed(h < 10000 ? 1 : 0)}b harf` : `~${h} harf`;
+  return h >= 1000
+    ? `~${(h / 1000).toFixed(h < 10000 ? 1 : 0).replace(".", ",")} bin harf`
+    : `~${h} harf`;
 };
 
 export const para = (x) =>
@@ -522,7 +524,7 @@ export const para = (x) =>
 
 export const paraTL = (x) => {
   if (x >= 1e6) return `${(x / 1e6).toFixed(x >= 1e7 ? 1 : 2)} mn ₺`;
-  if (x >= 1000) return `${Math.round(x / 1000)}b ₺`;
+  if (x >= 1000) return `${Math.round(x / 1000)} bin ₺`;
   return `${Math.round(x)} ₺`;
 };
 

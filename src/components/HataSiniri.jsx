@@ -31,7 +31,7 @@ export default class HataSiniri extends React.Component {
         </pre>
         <button
           onClick={() => { location.hash = ""; location.reload(); }}
-          style={{ background: "var(--steel)", color: "#fff", border: "none", borderRadius: 4, padding: "9px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}
+          style={{ background: "var(--steel)", color: "var(--on-accent)", border: "none", borderRadius: 4, padding: "9px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}
         >
           Sıfırla ve yeniden yükle
         </button>

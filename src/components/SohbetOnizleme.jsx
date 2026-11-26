@@ -176,7 +176,7 @@ export default function SohbetOnizleme({
                     fontFamily: SANS, fontSize: 11, padding: "5px 9px", cursor: "pointer", border: "none",
                     borderLeft: sv.id === "kapali" ? "none" : `1px solid ${C.line}`,
                     background: dusunmeSeviye === sv.id ? C.steel : C.paper,
-                    color: dusunmeSeviye === sv.id ? "#fff" : C.ink3,
+                    color: dusunmeSeviye === sv.id ? C.onAccent : C.ink3,
                     fontWeight: dusunmeSeviye === sv.id ? 600 : 400,
                   }}
                 >
@@ -228,7 +228,7 @@ export default function SohbetOnizleme({
       <div ref={kaydirRef} style={{ padding: S.md, minHeight: 210, maxHeight: 300, overflowY: "auto", background: C.paper }}>
         {/* kullanıcı balonu */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: S.sm }}>
-          <div style={{ background: C.steel, color: "#fff", borderRadius: RADIUS.md, padding: "8px 11px", ...T.kucuk, maxWidth: "80%" }}>
+          <div style={{ background: C.steel, color: C.onAccent, borderRadius: RADIUS.md, padding: "8px 11px", ...T.kucuk, maxWidth: "80%" }}>
             {SORU}
           </div>
         </div>
@@ -315,7 +315,7 @@ const anaDugme = (aktif) => ({
   fontFamily: SANS, fontSize: 12, fontWeight: 600, padding: "6px 13px",
   borderRadius: RADIUS.sm, border: "none", whiteSpace: "nowrap",
   background: aktif ? C.steel : C.line,
-  color: aktif ? "#fff" : C.ink3,
+  color: aktif ? C.onAccent : C.ink3,
   cursor: aktif ? "pointer" : "not-allowed",
 });
 const yanDugme = {

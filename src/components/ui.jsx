@@ -5,9 +5,10 @@ import { C, MONO, SANS, S, T, RADIUS, GOLGE, DURUM } from "../theme.js";
 /*  TEMEL YÜZEYLER                                                     */
 /* ------------------------------------------------------------------ */
 
-export function Kart({ children, style, vurgu, ...rest }) {
+export const Kart = React.forwardRef(function Kart({ children, style, vurgu, ...rest }, ref) {
   return (
     <div
+      ref={ref}
       {...rest}
       style={{
         background: C.paper,
@@ -20,7 +21,7 @@ export function Kart({ children, style, vurgu, ...rest }) {
       {children}
     </div>
   );
-}
+});
 
 /** Başlıklı kart — sayfadaki her büyük blok bunu kullanır, ritim böyle tutar. */
 export function Bolum({ baslik, aciklama, sag, children, style, ic = true }) {
@@ -237,7 +238,7 @@ export function Onay({ etiket, aciklama, isaretli, onChange }) {
 
 export function Dugme({ children, onClick, tur = "ikincil", boy = "orta", style, ...rest }) {
   const turler = {
-    birincil: { background: C.steel, color: "#fff", border: "1px solid transparent" },
+    birincil: { background: C.steel, color: C.onAccent, border: "1px solid transparent" },
     ikincil: { background: C.paper, color: C.ink, border: `1px solid ${C.line}` },
     sade: { background: "transparent", color: C.ink3, border: "1px solid transparent" },
   };

@@ -262,7 +262,7 @@ export default function ChatBot({ baglam, hfCtx, acikDis, setAcikDis }) {
     alignSelf: rol === "user" ? "flex-end" : "stretch",
     maxWidth: rol === "user" ? "88%" : "100%",
     background: rol === "user" ? C.steel : rol === "analiz" ? C.steelSoft : C.wash,
-    color: rol === "user" ? "#fff" : C.ink,
+    color: rol === "user" ? C.onAccent : C.ink,
     border: rol === "user" ? "none" : `1px solid ${rol === "analiz" ? "var(--steel)" : C.line2}`,
     borderLeft: rol === "analiz" ? `3px solid var(--steel)` : undefined,
     borderRadius: 8,
@@ -293,7 +293,7 @@ export default function ChatBot({ baglam, hfCtx, acikDis, setAcikDis }) {
           }}
         >
           {/* başlık */}
-          <div style={{ background: "var(--ink)", color: "#fff", padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <div style={{ background: "var(--koyu)", color: "#fff", padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexShrink: 0 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>LLM Altyapı Danışmanı</div>
               <div style={{ fontSize: 10, color: "#AEBAC3", fontFamily: MONO, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -407,7 +407,7 @@ export default function ChatBot({ baglam, hfCtx, acikDis, setAcikDis }) {
         title={acik ? "Danışmanı kapat" : "Danışmana sor"}
         style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          background: "var(--ink)", color: "#fff", border: "none",
+          background: "var(--koyu)", color: "#fff", border: "1px solid rgba(255,255,255,0.12)",
           borderRadius: dar && !acik ? "50%" : 24,
           width: dar && !acik ? 52 : undefined,
           height: dar && !acik ? 52 : undefined,
@@ -474,7 +474,7 @@ const ikonBtn = {
   cursor: "pointer", lineHeight: 1.3,
 };
 const gonderBtn = {
-  background: "var(--steel)", color: "#fff", border: "none", borderRadius: 4,
+  background: "var(--steel)", color: "var(--on-accent)", border: "none", borderRadius: 4,
   padding: "9px 14px", fontFamily: SANS, fontSize: 12.5, fontWeight: 600,
   cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
 };

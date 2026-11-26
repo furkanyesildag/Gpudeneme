@@ -65,7 +65,7 @@ export default function Kalibrasyon({ cihaz, simHiz, sigar, kalibrasyon, uygula,
               }}
             />
             <span style={{ ...T.mini, color: C.ink3 }}>tok/s</span>
-            <button onClick={kaydet} disabled={!onizleme} style={{ ...kucukBtn, background: onizleme ? C.steel : C.line, color: onizleme ? "#fff" : C.ink3, border: "none" }}>
+            <button onClick={kaydet} disabled={!onizleme} style={{ ...kucukBtn, background: onizleme ? C.steel : C.line, color: onizleme ? C.onAccent : C.ink3, border: "none" }}>
               Uygula
             </button>
             <button onClick={() => { setAcik(false); setGirdi(""); }} style={kucukBtn}>Vazgeç</button>
