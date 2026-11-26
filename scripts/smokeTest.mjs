@@ -129,12 +129,14 @@ try {
     ["kuantizasyon seçici", `[...document.querySelectorAll('select')].some(s=>[...s.options].some(o=>/Q4_K_M/.test(o.textContent)))`],
     ["iş yükü kaydırakları", `document.querySelectorAll('input[type=range]').length >= 5`],
     ["sonuç kararı", `/Rahat çalışır|Sınırda çalışır|Belleğe sığmıyor/.test(document.body.innerText)`],
-    ["bellek dökümü", `/BELLEK BÜTÇESİ/i.test(document.body.innerText)`],
+    ["bellek dökümü", `/Bellek bütçesi/.test(document.body.innerText)`],
     ["sohbet önizlemesi", `[...document.querySelectorAll('button')].some(b=>/Sohbeti başlat/.test(b.textContent))`],
     ["düşünme seviyeleri", `['Kapalı','Düşük','Orta','Yüksek'].every(t=>[...document.querySelectorAll('button')].some(b=>b.textContent.trim()===t))`],
     ["danışman düğmesi", `[...document.querySelectorAll('button')].some(b=>/Danışman/.test(b.textContent))`],
     ["tema anahtarı", `document.querySelectorAll('[role=radiogroup][aria-label=Tema] [role=radio]').length === 3`],
     ["yönetici özeti kaldırıldı", `!/Yönetici özeti/.test(document.body.innerText)`],
+    ["sayfa menüsü", `document.querySelectorAll('nav [role=tab]').length === 6`],
+    ["açıklama baloncukları", `document.querySelectorAll('button[aria-label="Açıklama"]').length >= 8`],
   ]) {
     if (await s.js(ifade)) gecti(ad); else hata(`${ad} bulunamadı`);
   }
@@ -171,6 +173,7 @@ try {
       if(!/auto|scroll/.test(st.overflowY)) return;
       if(el.scrollHeight-el.clientHeight<=4) return;
       if(el.closest('table')||el.querySelector('table')||el.getAttribute('aria-live')) return;
+      if(el.closest('[data-kaydirma]')===el) return;
       s.push(el.tagName+' '+(el.innerText||'').slice(0,30).replace(/\\n/g,' '));});return s;})()`);
     if (kirpan.length) hata(`${ad}: içeriğini kesen ${kirpan.length} kap — ${kirpan[0]}`);
     if (tasma <= 2 && !kirpan.length) gecti(`${ad} (${g_}px) temiz`);

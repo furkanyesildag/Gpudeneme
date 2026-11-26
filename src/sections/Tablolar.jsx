@@ -1,5 +1,5 @@
 import React from "react";
-import { C, MONO, S, T } from "../theme.js";
+import { C, S, T } from "../theme.js";
 import { Bolum, MiniSecim, Aciklama, TabloSarici, thStil, tdStil } from "../components/ui.jsx";
 import { DEVICES, TR_DURUM, ANA_SISTEM } from "../data/devices.js";
 import { MODELS, AILE_SIRA } from "../data/models.js";
@@ -107,7 +107,7 @@ export function DonanimTablosu({ ortak, model, cihazId, hedef, kullanici, girdiK
               >
                 <td style={{ padding: `${S.sm}px ${S.sm + 2}px` }}>
                   <div style={{ ...T.kucuk, fontWeight: secili ? 600 : 400, color: C.ink }}>{row.d.ad}</div>
-                  <div style={{ ...T.mini, color: C.ink3, fontFamily: MONO, display: "flex", alignItems: "center", gap: 5, fontSize: 10.5 }}>
+                  <div style={{ ...T.mini, color: C.ink3, display: "flex", alignItems: "center", gap: 5, fontSize: 11.5 }}>
                     <span title={TR_DURUM[row.d.tr].ad} style={{ width: 6, height: 6, borderRadius: "50%", background: TR_DURUM[row.d.tr].renk, display: "inline-block", flexShrink: 0 }} />
                     {row.d.mem} GB · {row.d.bw} GB/s · {TR_DURUM[row.d.tr].kisa}
                   </div>
@@ -234,7 +234,7 @@ export function ModelTablosu({ ortak, cihaz, adet, modelId, qAktif, indirGibi, c
               >
                 <td style={{ padding: `${S.sm}px ${S.sm + 2}px` }}>
                   <div style={{ ...T.kucuk, fontWeight: secili ? 600 : 400, color: C.ink }}>{row.mm.ad}</div>
-                  <div style={{ ...T.mini, fontSize: 10.5, color: C.ink3, fontFamily: MONO }}>
+                  <div style={{ ...T.mini, fontSize: 11.5, color: C.ink3 }}>
                     {row.mm.aile} · {row.mm.lis} · {kvTipi(row.mm.kv)}
                   </div>
                 </td>

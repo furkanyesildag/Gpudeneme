@@ -1,5 +1,5 @@
 import React from "react";
-import { C, MONO, S, T, RADIUS, DURUM } from "../theme.js";
+import { C, S, T, RADIUS, DURUM } from "../theme.js";
 import { Kart, Dugme, Rozet, Aciklama } from "../components/ui.jsx";
 import { BANTLAR, BANT_UYARISI, FIYAT_TEMELI } from "../data/bantlar.js";
 import { hesapla, kapasite, gb, sureYazi } from "../engine.js";
@@ -21,13 +21,13 @@ function Satir({ etiket, children, renk }) {
     <div style={{ display: "flex", gap: S.sm, marginBottom: S.sm }}>
       <span
         style={{
-          ...T.etiket, fontSize: 9.5, color: renk || C.ink3, width: 74,
-          flexShrink: 0, paddingTop: 2,
+          ...T.mini, fontWeight: 600, color: renk || C.ink3, width: 70,
+          flexShrink: 0,
         }}
       >
         {etiket}
       </span>
-      <span style={{ ...T.mini, color: C.ink2, minWidth: 0 }}>{children}</span>
+      <span style={{ ...T.kucuk, color: C.ink2, minWidth: 0 }}>{children}</span>
     </div>
   );
 }
@@ -58,16 +58,15 @@ export default function Bantlar({ hedef, kvOran, yukle, aktifAyar }) {
               {/* başlık */}
               <div
                 style={{
-                  padding: `${S.md}px ${S.lg}px`, minHeight: 118,
-                  background: seciliMi ? C.steelSoft : C.paper2,
-                  borderBottom: `1px solid ${C.line2}`,
+                  padding: `${S.lg}px ${S.lg + 2}px ${S.md}px`, minHeight: 124,
+                  background: seciliMi ? C.steelSoft : C.paper,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: S.sm, marginBottom: S.xs, flexWrap: "wrap" }}>
                   <span
                     style={{
-                      ...T.sayi, fontSize: 15, width: 26, height: 26, lineHeight: "25px",
-                      textAlign: "center", borderRadius: "50%", flexShrink: 0,
+                      ...T.sayi, fontSize: 13, width: 24, height: 24, lineHeight: "24px",
+                      textAlign: "center", borderRadius: RADIUS.sm + 1, flexShrink: 0,
                       background: vRenk, color: C.onAccent,
                     }}
                   >
@@ -78,33 +77,34 @@ export default function Bantlar({ hedef, kvOran, yukle, aktifAyar }) {
                   {seciliMi && <Rozet tip="bilgi">yüklü</Rozet>}
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                  <span style={{ ...T.sayi, fontSize: 14, color: vRenk }}>{b.fiyat}</span>
+                  <span style={{ ...T.sayi, fontSize: 17, color: C.ink }}>{b.fiyat}</span>
                   {b.fiyatTemeli && (
                     <span
                       title={FIYAT_TEMELI[b.fiyatTemeli]}
-                      style={{ ...T.mini, fontSize: 10, color: C.ink3, border: `1px solid ${C.line}`, borderRadius: RADIUS.sm, padding: "1px 5px", cursor: "help" }}
+                      style={{ ...T.mini, fontSize: 11, color: C.ink3, background: C.wash, borderRadius: RADIUS.hap, padding: "1px 8px", cursor: "help" }}
                     >
                       {b.fiyatTemeli}
                     </span>
                   )}
                 </div>
-                <div style={{ ...T.mini, color: C.ink2, marginTop: 3 }}>{b.ozet}</div>
+                <div style={{ ...T.kucuk, color: C.ink2, marginTop: 4 }}>{b.ozet}</div>
               </div>
 
               {/* simülatörün kendi hesabı */}
               <div
                 style={{
-                  display: "flex", gap: S.md, flexWrap: "wrap", padding: `${S.sm}px ${S.lg}px`,
-                  background: C.paper, borderBottom: `1px solid ${C.line2}`, ...T.mini,
+                  display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: S.sm,
+                  padding: `${S.sm + 2}px ${S.lg + 2}px`, background: C.paper2,
+                  borderTop: `1px solid ${C.line2}`, borderBottom: `1px solid ${C.line2}`, ...T.mini,
                 }}
               >
                 {[
-                  ["bellek", `${gb(r.gerekliGB)}/${gb(r.toplamBellek)} GB`, r.sigar ? C.ok : C.bad],
-                  ["hız", `${r.kullaniciTokS.toFixed(0)} tok/s`, C.ink],
-                  ["ilk token", sureYazi(r.ttftYogun), C.ink],
+                  ["Bellek", `${gb(r.gerekliGB)}/${gb(r.toplamBellek)} GB`, r.sigar ? C.ok : C.bad],
+                  ["Hız", `${r.kullaniciTokS.toFixed(0)} tok/s`, C.ink],
+                  ["İlk token", sureYazi(r.ttftYogun), C.ink],
                   k.sohbet
-                    ? ["sohbet", `${k.sohbet} kişi`, C.ok]
-                    : ["sohbet", k.sebep === "bellek" ? "sığmıyor" : k.sebep === "hiz" ? "hız < hedef" : "TTFT > hedef", C.warn,
+                    ? ["Sohbet", `${k.sohbet} kişi`, C.ok]
+                    : ["Sohbet", k.sebep === "bellek" ? "sığmıyor" : k.sebep === "hiz" ? "hız < hedef" : "TTFT > hedef", C.warn,
                        k.sebep === "ttft"
                          ? `Bu bandın ilk token süresi senin hedefini (${hedef.ttftMs} ms) aşıyor; hedef gevşerse kapasite görünür.`
                          : k.sebep === "hiz"
@@ -112,19 +112,19 @@ export default function Bantlar({ hedef, kvOran, yukle, aktifAyar }) {
                          : "Bu bant mevcut iş yükü ayarlarında belleğe sığmıyor."],
                 ].map(([ad, v, renk, ipucu]) => (
                   <span key={ad} title={ipucu} style={{ display: "inline-flex", flexDirection: "column", cursor: ipucu ? "help" : undefined }}>
-                    <span style={{ ...T.etiket, fontSize: 9, color: C.ink3 }}>{ad}</span>
-                    <span style={{ fontFamily: MONO, fontSize: 12, color: renk }}>{v}</span>
+                    <span style={{ ...T.mini, color: C.ink3 }}>{ad}</span>
+                    <span style={{ ...T.sayi, fontSize: 13.5, color: renk }}>{v}</span>
                   </span>
                 ))}
               </div>
 
               {/* anlatı */}
-              <div style={{ padding: `${S.md}px ${S.lg}px`, flex: 1 }}>
-                <Satir etiket="ne">{b.ne}</Satir>
-                <Satir etiket="tek kişi">{b.tekKullanici}</Satir>
-                <Satir etiket="ekip">{b.ekip}</Satir>
-                <Satir etiket="kime">{b.kime}</Satir>
-                <Satir etiket="tıkanma" renk={C.warn}>{b.tikanma}</Satir>
+              <div style={{ padding: `${S.md + 2}px ${S.lg + 2}px`, flex: 1 }}>
+                <Satir etiket="Ne">{b.ne}</Satir>
+                <Satir etiket="Tek kişi">{b.tekKullanici}</Satir>
+                <Satir etiket="Ekip">{b.ekip}</Satir>
+                <Satir etiket="Kime">{b.kime}</Satir>
+                <Satir etiket="Tıkanma" renk={C.warn}>{b.tikanma}</Satir>
                 {b.ilginc && (
                   <div
                     style={{
@@ -138,7 +138,7 @@ export default function Bantlar({ hedef, kvOran, yukle, aktifAyar }) {
                 )}
               </div>
 
-              <div style={{ padding: `${S.sm}px ${S.lg}px ${S.md}px` }}>
+              <div style={{ padding: `${S.xs}px ${S.lg + 2}px ${S.lg}px` }}>
                 <Dugme tur={b.onerilen ? "birincil" : "ikincil"} onClick={() => yukle(b.ayar)} style={{ width: "100%" }}>
                   Bu bandı simülatöre yükle
                 </Dugme>

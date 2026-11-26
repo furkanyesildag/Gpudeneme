@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, ReferenceLine, Area, ComposedChart,
 } from "recharts";
-import { C, CHART, MONO, SANS, S, T, RADIUS } from "../theme.js";
+import { C, CHART, SANS, S, T, RADIUS } from "../theme.js";
 import { Bolum, MiniSecim, Aciklama } from "../components/ui.jsx";
 import { hesapla, ctxYazi } from "../engine.js";
 
@@ -79,26 +79,26 @@ export default function Grafik({ ortak, model, cihaz, adet, girdiK, hedef }) {
           <ComposedChart data={egri} margin={{ top: 8, right: 8, left: -14, bottom: 2 }}>
             <CartesianGrid stroke={CHART.grid} strokeOpacity={0.2} vertical={false} />
             <XAxis
-              dataKey="x" tick={{ fontSize: 10.5, fill: CHART.axis, fontFamily: MONO }}
+              dataKey="x" tick={{ fontSize: 10.5, fill: CHART.axis, fontFamily: SANS }}
               stroke={CHART.axis} strokeOpacity={0.35}
               tickFormatter={(v) => (xEksen === "baglam" ? ctxYazi(v) : v)}
             />
             {yEksen === "hiz" ? (
               <>
-                <YAxis yAxisId="l" tick={{ fontSize: 10.5, fill: CHART.axis, fontFamily: MONO }} stroke={CHART.axis} strokeOpacity={0.35} />
-                <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 10.5, fill: CHART.axis, fontFamily: MONO }} stroke={CHART.axis} strokeOpacity={0.35} />
+                <YAxis yAxisId="l" tick={{ fontSize: 10.5, fill: CHART.axis, fontFamily: SANS }} stroke={CHART.axis} strokeOpacity={0.35} />
+                <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 10.5, fill: CHART.axis, fontFamily: SANS }} stroke={CHART.axis} strokeOpacity={0.35} />
               </>
             ) : (
               <YAxis
                 yAxisId="l" domain={yEksen === "bellek" ? [0, 250] : [0, "auto"]}
-                tick={{ fontSize: 10.5, fill: CHART.axis, fontFamily: MONO }}
+                tick={{ fontSize: 10.5, fill: CHART.axis, fontFamily: SANS }}
                 stroke={CHART.axis} strokeOpacity={0.35}
                 tickFormatter={(v) => (yEksen === "bellek" ? `%${v}` : yEksen === "ttft" ? `${v}` : v)}
               />
             )}
             <Tooltip
               contentStyle={{
-                fontFamily: MONO, fontSize: 11.5, border: `1px solid ${C.line}`,
+                fontFamily: SANS, fontSize: 11.5, border: `1px solid ${C.line}`,
                 borderRadius: RADIUS.sm, background: C.paper, color: C.ink,
               }}
               labelFormatter={(v) => `${xEksen === "baglam" ? ctxYazi(v) : v} ${X_ETIKET[xEksen]}`}

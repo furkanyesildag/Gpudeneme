@@ -1,5 +1,5 @@
 import React from "react";
-import { C, S, T, RADIUS, MONO } from "../theme.js";
+import { C, S, T, RADIUS, RAKAMLAR } from "../theme.js";
 
 /* ------------------------------------------------------------------ */
 /*  HAZIR SUNUCU ÖZELLİKLERİ                                           */
@@ -33,7 +33,7 @@ export default function SistemOzellik({ cihaz, baslik = "Sunucu özellikleri", k
   return (
     <div
       style={{
-        marginTop: S.md, border: `1px solid ${C.line2}`, borderRadius: RADIUS.sm,
+        marginTop: S.md, border: `1px solid ${C.line2}`, borderRadius: RADIUS.md,
         background: C.paper2, padding: `${S.sm + 2}px ${S.md}px`,
       }}
     >
@@ -45,7 +45,7 @@ export default function SistemOzellik({ cihaz, baslik = "Sunucu özellikleri", k
           return (
             <React.Fragment key={etiket}>
               <dt style={{ ...T.mini, color: C.ink3, marginTop: kompakt ? S.xs : 0 }}>{etiket}</dt>
-              <dd style={{ ...T.mini, color: C.ink2, margin: 0, fontFamily: alan === null ? MONO : "inherit", minWidth: 0 }}>
+              <dd style={{ ...T.mini, color: C.ink2, margin: 0, ...(alan === null ? RAKAMLAR : {}), minWidth: 0 }}>
                 {deger}
               </dd>
             </React.Fragment>

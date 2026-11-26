@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 
-import { C, MONO, SANS, S, T, RADIUS, GOLGE } from "./theme.js";
+import { C, SANS, S, T, RADIUS, GOLGE, RAKAMLAR } from "./theme.js";
 import { MODELS, MODEL_HARITA, AILE_SIRA } from "./data/models.js";
 import {
   DEVICES, CIHAZ_HARITA, GRUP_SIRA, TR_DURUM, TR_NOT, MIM_AD,
@@ -15,7 +15,7 @@ import {
   para, paraTL, gb, sureYazi, TP_ETIKET, VARSAYILAN_HEDEF, anaSistem, MTP_KABUL_VARSAYILAN,
 } from "./engine.js";
 import {
-  Bolum, Etiket, Secim, Kaydirac, Onay, Rozet, Sekmeler,
+  Panel, Secim, Kaydirac, Anahtar, Rozet, Ipucu, Kod,
 } from "./components/ui.jsx";
 import Hedefler from "./components/Hedefler.jsx";
 import Sonuc from "./sections/Sonuc.jsx";
@@ -69,36 +69,44 @@ const VARSAYILAN = {
   ctxK: 16, girdiK: 1, kullanici: 8, cikti: 400, kvOran: 40, indirGibi: false,
 };
 
-/* Tema simgeleri SVG: ◐ ☾ gibi karakterler yazı tipine göre kayıyor
-   ya da hiç çizilmiyordu. */
-const simgeOrtak = { width: 13, height: 13, viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: 1.6, "aria-hidden": true };
-const TEMA_SIMGE = {
-  light: (
-    <svg {...simgeOrtak}>
-      <circle cx="8" cy="8" r="3" />
-      <path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" strokeLinecap="round" />
-    </svg>
-  ),
-  sistem: (
-    <svg {...simgeOrtak}>
-      <rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.3" />
-      <path d="M5.5 13.8h5M8 11v2.8" strokeLinecap="round" />
-    </svg>
-  ),
-  dark: (
-    <svg {...simgeOrtak}>
-      <path d="M13.5 9.6A5.6 5.6 0 0 1 6.4 2.5a5.6 5.6 0 1 0 7.1 7.1z" strokeLinejoin="round" />
-    </svg>
-  ),
+/* Simgeler SVG: ◐ ☾ gibi karakterler yazı tipine göre kayıyor ya da hiç
+   çizilmiyordu. Hepsi 16'lık ızgarada, çizgi kalınlığı aynı. */
+const simge = (d, boy = 14) => (
+  <svg width={boy} height={boy} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {d}
+  </svg>
+);
+const SIMGE = {
+  acik: simge(<><circle cx="8" cy="8" r="3" /><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" /></>, 13),
+  sistem: simge(<><rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.3" /><path d="M5.5 13.8h5M8 11v2.8" /></>, 13),
+  koyu: simge(<path d="M13.5 9.6A5.6 5.6 0 0 1 6.4 2.5a5.6 5.6 0 1 0 7.1 7.1z" />, 13),
+  model: simge(<><path d="M8 1.8 13.5 5v6L8 14.2 2.5 11V5z" /><path d="M2.5 5 8 8.2 13.5 5M8 8.2v6" /></>, 15),
+  is: simge(<path d="M1.5 8.5h2.8l1.8-4.5 3.6 8.5 1.8-4h3" />, 15),
+  donanim: simge(<><rect x="2" y="2.5" width="12" height="4.5" rx="1" /><rect x="2" y="9" width="12" height="4.5" rx="1" /><path d="M4.5 4.75h.01M4.5 11.25h.01" /></>, 15),
+  ayar: simge(<><path d="M2.5 4.5h6M11.5 4.5h2M2.5 11.5h2M7.5 11.5h6" /><circle cx="10" cy="4.5" r="1.5" /><circle cx="6" cy="11.5" r="1.5" /></>, 15),
+  dis: simge(<path d="M6 3.5H3.5v9h9V10M9 2.5h4.5V7M13.5 2.5 7.5 8.5" />, 12),
+  ok: simge(<path d="M3 8h10M9 4l4 4-4 4" />, 13),
 };
 
-const SEKMELER = [
-  { k: "bantlar", ad: "Satın alma bantları", rozet: BANTLAR.length },
-  { k: "donanim", ad: "Donanım karşılaştırması" },
-  { k: "modeller", ad: "Model uyumu" },
-  { k: "grafik", ad: "Duyarlılık grafiği" },
-  { k: "bilgi", ad: "Kavramlar ve varsayımlar" },
+/* Üst menüdeki sayfalar. Eskiden hepsi tek uzun sayfanın en altında
+   sekme olarak duruyordu; simülatörün altına gömülü oldukları için
+   bulunmaları zordu. Artık her biri ayrı bir sayfa. */
+const SAYFALAR = [
+  { k: "simulator", ad: "Simülatör" },
+  { k: "bantlar", ad: "Satın alma", rozet: BANTLAR.length },
+  { k: "donanim", ad: "Donanımlar" },
+  { k: "modeller", ad: "Modeller" },
+  { k: "grafik", ad: "Duyarlılık" },
+  { k: "bilgi", ad: "Kavramlar" },
 ];
+
+const SAYFA_BASLIK = {
+  bantlar: ["Satın alma bantları", "Yaklaşık 200 bin ₺'den veri merkezi kabinine kadar hazır kurulumlar: ne alınır, kime yeter, nerede tıkanır."],
+  donanim: ["Donanım karşılaştırması", "Seçili model ve iş yükü, listedeki her donanımda nasıl çalışır? Bir satıra tıklayınca simülatöre o donanım yüklenir."],
+  modeller: ["Model uyumu", "Seçili donanıma hangi modeller sığar ve hangi hızda çalışır?"],
+  grafik: ["Duyarlılık", "Bir değişkeni gezdir, hızın, ilk token süresinin ve belleğin nasıl tepki verdiğini gör."],
+  bilgi: ["Kavramlar ve varsayımlar", "Hesabın arkasındaki terimler, kabuller ve verinin ne kadar güvenilir olduğu."],
+};
 
 /* ------------------------------------------------------------------ */
 
@@ -130,7 +138,7 @@ export default function Simulator() {
   /* Düşünme seviyesi: modern modeller bunu "reasoning effort" olarak sunuyor
      (kapalı / düşük / orta / yüksek), açık-kapalı bir anahtar olarak değil. */
   const [dusunmeSeviye, setDusunmeSeviye] = useState("kapali");
-  const [sekme, setSekme] = useState("bantlar");
+  const [sekme, setSekme] = useState("simulator");
   const [sohbetAcik, setSohbetAcik] = useState(false);
   const [tema, setTema] = useState(() => {
     try { return localStorage.getItem("tema") || "sistem"; } catch { return "sistem"; }
@@ -425,51 +433,460 @@ export default function Simulator() {
   const gruplar = GRUP_SIRA.filter((g) => DEVICES.some((d) => d.grup === g));
   const aktifAyar = { modelId, cihazId, adet };
 
+  /* Üst çubuğun yüksekliği dar ekranda iki satıra çıkıyor; yapışkan yan
+     panel ve özet çubuğu bu değeri CSS değişkeninden okuyor. */
+  const ustRef = useRef(null);
+  useEffect(() => {
+    const el = ustRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() =>
+      document.documentElement.style.setProperty("--ust-h", `${el.offsetHeight}px`));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const sayfayaGit = useCallback((k) => {
+    setSekme(k);
+    window.scrollTo({ top: 0 });
+  }, []);
+
+  const simulatoreYukle = useCallback((a) => { ayarYukle(a); setSekme("simulator"); }, [ayarYukle]);
+
+  const isYukuAd = aktifProfil ? IS_YUKU_HARITA[aktifProfil].ad : "Özel iş yükü";
+  const quantAd = indirGibi ? "BF16, kuantizasyon yok" : qAktif.ad;
+  const gguf = /GGUF|IQ|^Q\d/.test(qAktif.ad);
+  const bayrak = kvBayragi(kvq, gguf ? "gguf" : "vllm");
+
+  /* ---------------- Yan panel: kontroller ---------------- */
+  const kontroller = (
+    <div style={{ display: "flex", flexDirection: "column", gap: S.md }}>
+      <Panel baslik="Model" ozet={`${model.ad} · ${quantAd}`} simge={SIMGE.model}>
+        <Secim etiket="Açık ağırlıklı model" deger={modelId} onChange={setModelId}>
+          {aileler.map((a) => (
+            <optgroup key={a} label={a}>
+              {MODELS.filter((m) => m.aile === a).map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.ad} · {ctxYazi(m.ctx)}{m.vl ? " · görsel" : ""}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </Secim>
+
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: -S.sm, marginBottom: S.sm }}>
+          <Rozet tip="bilgi">
+            {model.ap < model.tp ? `MoE · ${model.tp}B, ${model.ap}B aktif` : `Dense · ${model.tp}B`}
+          </Rozet>
+          <Rozet tip="bilgi">{kvTipi(model.kv)}</Rozet>
+          {model.vl && <Rozet tip="olumlu">görsel giriş</Rozet>}
+          {model.gated && <Rozet tip="uyari" baslik="İndirmek için HuggingFace onayı gerekir">onay gerekli</Rozet>}
+        </div>
+        <div style={{ ...T.mini, color: C.ink3, display: "flex", flexWrap: "wrap", gap: "2px 10px", marginBottom: S.md }}>
+          <span>Bağlam {ctxYazi(model.ctx)}{model.ext ? ` (YaRN → ${ctxYazi(model.ext)})` : ""}</span>
+          <span>{model.lis}</span>
+          <span>KV {r.kvKBtok.toFixed(0)} KB/token</span>
+          <a
+            href={`https://huggingface.co/${model.hf}`} target="_blank" rel="noreferrer noopener"
+            style={{ color: C.steel, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }}
+          >
+            HuggingFace {SIMGE.dis}
+          </a>
+        </div>
+
+        <div style={{ borderTop: `1px solid ${C.line2}`, paddingTop: S.xs, marginBottom: S.sm }}>
+          <Anahtar
+            etiket="İndirdiğin gibi çalıştır"
+            aciklama="BF16 ağırlık, FP16 KV — kuantizasyon yok"
+            ipucu="Tam hassasiyet ağırlık (BF16) + KV cache'e dokunma (FP16). İkisi ayrı şeydir: ağırlık indirdiğin dosyada, KV ise sunucuyu başlatırken verilen bir çalışma zamanı ayarı. Belleğe sığıyorsa kuantizasyona hiç gerek yok."
+            isaretli={indirGibi} onChange={setIndirGibi}
+          />
+          {/* MTP yalnızca modelin head'i varsa gösterilir — config.json'dan
+              okundu, tahmin değil. Olmayan modelde seçenek sunmak yanıltıcı olur. */}
+          {model.mtp ? (
+            <Anahtar
+              etiket="Speculative decoding (MTP)"
+              aciklama={r.mtpAktif ? `${r.mtpHizlanma}× daha hızlı yazma` : `Modelde ${model.mtp} MTP head'i var`}
+              ipucu="Açıldığında her adımda bir taslak token daha üretilir; kabul edilen taslak neredeyse bedava gelir, kalite değişmez. vLLM/SGLang'de tek satırlık ayar. Bedeli: prefill 0,75×'e düşer (ilk token gecikir) ve ~1 GB VRAM gider, yani sığan bağlam daralır."
+              isaretli={mtpAcik} onChange={setMtpAcik}
+            />
+          ) : null}
+        </div>
+
+        {!indirGibi && (
+          <>
+            <Secim
+              etiket="Ağırlık kuantizasyonu"
+              deger={quant}
+              onChange={setQuant}
+              ipucu="Ağırlıkların kaç bitle saklandığı. Bu, indirdiğin dosyanın kendisidir: Q4_K_M gibi bir GGUF dosyası seçtiğinde ağırlıklar o hassasiyetle gelir. Düşük bit = daha az bellek ve daha hızlı, ama biraz kalite kaybı."
+              alt={
+                quantAraniyor
+                  ? "HuggingFace'te hazır dosyalar aranıyor…"
+                  : quantBilgi && !quantBilgi.bilinmiyor
+                  ? `${quantBilgi.depolar.length} GGUF deposunda bulunan şemalar listeleniyor.`
+                  : "Hazır dosya araması sonuç vermedi — tüm şemalar gösteriliyor."
+              }
+            >
+              {QUANT_GRUP.map((g) => {
+                const secenekler = QUANTS.filter((q) => {
+                  if (q.grup !== g) return false;
+                  if (tumQuantlar || q.id === quant) return true;
+                  // "bilinmiyor" olanlar (FP8/NVFP4/AWQ gibi GGUF dışı
+                  // formatlar) bu aramayla ölçülemez, hep gösterilir.
+                  return quantBilgi?.durum?.[q.id] !== "yok";
+                });
+                if (!secenekler.length) return null;
+                return (
+                  <optgroup key={g} label={g}>
+                    {secenekler.map((q) => {
+                      const d = quantBilgi?.durum?.[q.id];
+                      const isaret = d === "var" ? " ✓" : d === "yok" ? " · hazır dosya yok" : "";
+                      return (
+                        <option key={q.id} value={q.id}>
+                          {q.ad} — {q.bit}, kalite ~{q.kalite}{isaret}
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                );
+              })}
+            </Secim>
+
+            {quantBilgi && !quantBilgi.bilinmiyor && (
+              <div style={{ marginTop: -S.sm, marginBottom: S.md }}>
+                <Anahtar
+                  etiket="Hazır dosyası olmayanları da göster"
+                  aciklama="Kendin kuantize edeceksen"
+                  isaretli={tumQuantlar} onChange={setTumQuantlar}
+                />
+              </div>
+            )}
+
+            <Secim
+              etiket="KV cache kuantizasyonu" deger={kvq} onChange={setKvq}
+              ipucu={kvAktif.not}
+            >
+              {KVQUANTS.map((q) => <option key={q.id} value={q.id}>{q.ad}</option>)}
+            </Secim>
+
+            {/* En sık karışan nokta: KV kuantizasyonu indirilen dosyanın
+                içinde GELMEZ, sunucuyu başlatırken bayrakla açılır. */}
+            <div style={{ marginTop: -S.sm, marginBottom: S.sm }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                <span style={{ ...T.mini, color: C.ink3 }}>Sunucuyu başlatırken</span>
+                <Ipucu>
+                  KV kuantizasyonu indirdiğin dosyada gelmez ve otomatik açılmaz. KV cache konuşma
+                  başlayınca oluşur, bu yüzden hassasiyeti sunucuyu başlatırken bayrakla verilir. Her
+                  yığının varsayılanı tam hassasiyettir; bayrağı vermezsen buradaki bellek hesabı tutmaz.
+                </Ipucu>
+              </div>
+              {bayrak.durum === "bayrak" ? (
+                <Kod>{gguf ? "llama-server … " : "vllm serve … "}{bayrak.bayrak}</Kod>
+              ) : (
+                <div style={{ ...T.mini, color: C.ink3 }}>
+                  {bayrak.durum === "varsayilan"
+                    ? "Varsayılan davranış — ek bayrak gerekmiyor."
+                    : `${gguf ? "llama.cpp" : "vLLM"} bu şemayı desteklemiyor; ${gguf ? "FP8/q8_0" : "FP8"} seç ya da diğer yığına geç.`}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </Panel>
+
+      <Panel baslik="İş yükü" ozet={`${isYukuAd} · ${kullanici} kişi · ${ctxYazi(ctxK)} bağlam`} simge={SIMGE.is}>
+        <Secim
+          etiket="Ne inşa ediyorsun?"
+          deger={aktifProfil || "ozel"}
+          onChange={(v) => v !== "ozel" && profilUygula(v)}
+          ipucu={aktifProfil
+            ? IS_YUKU_HARITA[aktifProfil].neden
+            : "Bir profil seçince beş kaydırak ve dört performans hedefi birden dolar. Kaydıraklardan birini oynattığın an profil “özel”e döner — profil yalnızca bir başlangıç noktasıdır."}
+        >
+          <option value="ozel">Özel — kaydırakları kendim ayarlıyorum</option>
+          {IS_YUKLERI.map((p) => (
+            <option key={p.id} value={p.id}>{p.ad} — {p.ozet}</option>
+          ))}
+        </Secim>
+
+        <Kaydirac
+          etiket="Eşzamanlı kullanıcı" deger={kullanici} onChange={setKullanici}
+          min={1} max={64} step={1} goster={`${kullanici} kişi`}
+          ipucu="Aynı anda modelden cevap bekleyen istek sayısı. Toplam kullanıcı sayısı değildir — sohbet eden biri zamanının çoğunu okuyarak geçirir."
+        />
+        <Kaydirac
+          etiket="Bağlam penceresi" deger={ctxK} onChange={setCtxK}
+          min={4} max={1024} olcek="log" goster={`${ctxYazi(ctxK)} token`}
+          ipucu="Her kullanıcı için ayrılan en uzun konuşma/belge uzunluğu. Uzun bağlam daha çok KV cache, yani daha çok bellek demek."
+          alt={ctxK > model.ctx ? `Modelin desteği ${ctxYazi(model.ctx)} — aşıyorsun` : undefined}
+        />
+        <Kaydirac
+          etiket="Ortalama prompt" deger={girdiK} onChange={setGirdiK}
+          min={1} max={Math.max(4, ctxK)} olcek="log" goster={`${ctxYazi(girdiK)} token`}
+          ipucu="Her istekte modelin işlemesi gereken yeni metin. İlk token gecikmesini bu belirler. Prefix caching açıksa yalnızca yeni token'lar sayılır."
+        />
+        <Kaydirac
+          etiket="Ortalama yanıt" deger={cikti} onChange={setCikti}
+          min={100} max={8000} step={100} goster={`${cikti} token`}
+          ipucu={`Modelin bir yanıtta ürettiği metin. ${cikti} token yaklaşık ${harfYazi(cikti).replace("~", "")}.`}
+        />
+        <Kaydirac
+          etiket="KV doluluk varsayımı" deger={kvOran} onChange={setKvOran}
+          min={10} max={100} step={5} goster={`%${kvOran}`}
+          ipucu="Her kullanıcının bağlam penceresini ortalama ne kadar doldurduğu. %100 en kötü senaryodur; sohbette çoğu konuşma pencerenin küçük bir kısmını kullanır."
+        />
+      </Panel>
+
+      <Panel baslik="Donanım" ozet={`${adet} × ${cihaz.ad}`} simge={SIMGE.donanim}>
+        <Secim etiket="Cihaz" deger={cihazId} onChange={setCihazId}>
+          {gruplar.map((g) => (
+            <optgroup key={g} label={g}>
+              {DEVICES.filter((d) => d.grup === g).map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.ad} · {d.mem} GB{d.tr === "kolay" ? " · TR ✓" : ""}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </Secim>
+        <Kaydirac
+          etiket={cihaz.gpu ? "Sunucu sayısı" : "Adet"} deger={adet} onChange={setAdet}
+          min={1} max={16} step={1}
+          goster={cihaz.gpu ? `${adet} sunucu · ${adet * cihaz.gpu.adet} GPU` : `${adet} adet`}
+          ipucu={cihaz.gpu
+            ? "Sunucular arası bağlantı ağ üzerinden varsayılır (kötü senaryo). Model tek sunucuya sığıyorsa gerçekte her sunucu ayrı bir kopya çalıştırır ve kapasite sunucu sayısıyla çarpılır."
+            : "Birden fazla cihaz tek küme olarak modeli paylaşır (tensor parallelism). Bağlantı NVLink, PCIe ya da ağ olabilir; verim buna göre düşer."}
+        />
+
+        <dl
+          style={{
+            margin: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1,
+            background: C.line2, border: `1px solid ${C.line2}`, borderRadius: RADIUS.md, overflow: "hidden",
+          }}
+        >
+          {[
+            ["Bellek", `${cihaz.mem} GB ${cihaz.bellekTipi.toUpperCase()}`],
+            ["Bant genişliği", `${cihaz.bw} GB/s`],
+            ["Güç", `${cihaz.w} W`],
+            ["Birim fiyat", `~${paraTL(cihaz.try)}`],
+            ["Mimari", MIM_AD[cihaz.mim]],
+            ["Türkiye", <span key="tr" style={{ color: TR_DURUM[cihaz.tr].renk }}>{TR_DURUM[cihaz.tr].kisa}</span>],
+          ].map(([e, v]) => (
+            <div key={e} style={{ background: C.paper, padding: `${S.sm}px ${S.md}px`, minWidth: 0 }}>
+              <dt style={{ ...T.mini, color: C.ink3 }}>{e}</dt>
+              <dd style={{ ...T.kucuk, ...RAKAMLAR, color: C.ink, fontWeight: 500, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <div style={{ ...T.mini, color: C.ink3, marginTop: S.sm, display: "flex", flexWrap: "wrap", gap: "2px 10px" }}>
+          <span>Yığın: {(YIGIN[cihaz.mim] || []).slice(0, 3).join(", ")}</span>
+          {adet > 1 && (
+            <span style={{ color: r.tpEtki < 0.5 ? C.bad : C.ink3 }}>
+              {TP_ETIKET[r.link]} · verim %{Math.round(r.tpEtki * 100)}
+            </span>
+          )}
+          <span style={{ color: cihaz.mbuKalibre ? C.ok : C.ink3 }}>
+            Bant kullanımı %{Math.round(cihaz.mbu * 100)} {cihaz.mbuKalibre ? "(ölçümün)" : "(tahmin)"}
+          </span>
+        </div>
+
+        <SistemOzellik cihaz={cihaz} kompakt />
+      </Panel>
+
+      <Panel
+        baslik="Gelişmiş" acikBaslangic={false} simge={SIMGE.ayar}
+        ozet={cihaz.tur === "kart" ? "Offload, sistem RAM'i, kalibrasyon" : "Kendi ölçümünle kalibrasyon"}
+      >
+        {/* Offload yalnızca ayrık kartlarda anlamlı: birleşik bellekli
+            kutuda ağırlıklar zaten sistem RAM'inde, taşınacak yer yok. */}
+        {cihaz.tur === "kart" && (
+          <>
+            <Secim
+              etiket="Sistem RAM'i" deger={String(sistemRam)} onChange={(v) => setSistemRam(Number(v))}
+              ipucu={`Offload tavanını bu belirler (işletim sistemi için ${RAM_ISLETIM_PAYI} GB pay bırakılır).`}
+            >
+              <option value="0">Ana sisteme göre — {anaSistem(adet).ram} GB</option>
+              {RAM_SECENEK.map((g) => <option key={g} value={g}>{g} GB</option>)}
+            </Secim>
+            <Secim
+              etiket="Offload (sistem RAM'ine taşıma)"
+              deger={offloadModu} onChange={setOffloadModu}
+              ipucu="Model VRAM'e sığmıyorsa ağırlığın bir kısmı sistem RAM'ine taşınabilir. O kısım her adımda PCIe üzerinden okunduğu için yavaşlar; MoE modellerde ceza çok daha hafiftir."
+              alt={
+                offloadModu === "kapali"
+                  ? "Model VRAM'e sığmıyorsa “sığmıyor” denir."
+                  : r.offload > 0
+                  ? `${gb(r.offload)} GB taşındı (ağırlığın %${Math.round(r.offloadOrani * 100)}'i) — VRAM'den ${Math.round((r.kumeBW * cihaz.mbu) / r.pcieBW)}× yavaş okunuyor.`
+                  : "Gerek yok — model zaten VRAM'e sığıyor."
+              }
+            >
+              <option value="otomatik">Otomatik — gerektiği kadar taşı</option>
+              <option value="kapali">Kapalı — yalnızca VRAM kullan</option>
+            </Secim>
+          </>
+        )}
+        <div style={{ ...T.kucuk, fontWeight: 500, color: C.ink, marginBottom: 4 }}>Kendi ölçümünle kalibre et</div>
+        <div style={{ ...T.mini, color: C.ink3 }}>
+          Bu kurulumu kendi kartında ölçtüysen tok/s değerini gir; bu karttaki tüm tahminler ona göre düzelir.
+        </div>
+        <Kalibrasyon
+          cihaz={cihaz} simHiz={r.kullaniciTokS} sigar={r.sigar}
+          kalibrasyon={kalibrasyonlar[cihaz.id]}
+          uygula={(id, v) => setKalibrasyonlar(kalibrasyonKaydet(id, { ...v, model: model.ad, quant: qAktif.ad }))}
+          sil={(id) => setKalibrasyonlar(kalibrasyonSil(id))}
+        />
+      </Panel>
+    </div>
+  );
+
+  /* ---------------- Sağ: sonuç ---------------- */
+  const sonuclar = (
+    <div style={{ display: "flex", flexDirection: "column", gap: S.lg, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: S.sm, flexWrap: "wrap" }}>
+        <span style={{ ...T.mini, color: C.ink3, fontWeight: 500, marginRight: 2 }}>Hazır senaryolar</span>
+        {SENARYOLAR.map((s) => (
+          <button
+            key={s.ad} onClick={() => ayarYukle(s.ayar)} title={s.aciklama} className="dokun"
+            style={{
+              background: C.paper, color: C.ink2, border: `1px solid ${C.line}`,
+              borderRadius: RADIUS.hap, padding: "5px 12px", fontSize: 12.5, fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            {s.ad}
+          </button>
+        ))}
+      </div>
+
+      <Sonuc
+        r={r} kap={kap} model={model} cihaz={cihaz} adet={adet} quant={quant}
+        qAktif={qAktif} indirGibi={indirGibi} ctxK={ctxK} girdiK={girdiK}
+        kullanici={kullanici} cikti={cikti} kvOran={kvOran} hedef={hedef}
+        tpsDurum={tpsDurum} ttftDurum={ttftDurum} bildirimler={bildirimler}
+        isYuku={isYukuAd}
+        deneyim={
+          <Hedefler
+            hedef={hedef} setHedef={setHedef} kap={kap}
+            tps={r.sigar ? r.kullaniciTokS : 0}
+            ttftMs={r.sigar ? r.ttftYogun * 1000 : 0}
+            sigar={r.sigar}
+            modelAd={model.ad} donanimAd={`${adet} × ${cihaz.ad}`}
+            dusunmeSeviye={dusunmeSeviye} setDusunmeSeviye={setDusunmeSeviye}
+          />
+        }
+      />
+    </div>
+  );
+
+  /* Diğer sayfalarda hesap hep şu anki kurulumla yapılıyor; bunu
+     söylemezsek tablo "neden bu sayılar" sorusunu cevapsız bırakır. */
+  const baglamSeridi = (
+    <div
+      style={{
+        display: "flex", alignItems: "center", gap: `${S.xs}px ${S.md}px`, flexWrap: "wrap",
+        background: C.paper, border: `1px solid ${C.line}`, borderRadius: RADIUS.lg,
+        padding: `${S.sm + 2}px ${S.lg}px`, marginBottom: S.lg, ...T.kucuk,
+      }}
+    >
+      <span style={{ color: C.ink3 }}>Hesaplar şu kuruluma göre:</span>
+      <b style={{ color: C.ink, fontWeight: 600 }}>{model.ad}</b>
+      <span style={{ color: C.ink3 }}>·</span>
+      <span style={{ color: C.ink2 }}>{adet} × {cihaz.ad}</span>
+      <span style={{ color: C.ink3 }}>·</span>
+      <span style={{ color: C.ink2 }}>{isYukuAd}, {kullanici} kişi, {ctxYazi(ctxK)} bağlam</span>
+      <button
+        onClick={() => sayfayaGit("simulator")}
+        style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: C.steel, fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0 }}
+      >
+        Simülatörde değiştir {SIMGE.ok}
+      </button>
+    </div>
+  );
+
   return (
-    <div style={{ fontFamily: SANS, background: C.wash, color: C.ink, minHeight: "100%" }}>
-      {/* ================= BAŞLIK ================= */}
+    <div style={{ fontFamily: SANS, background: C.wash, color: C.ink, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* ================= ÜST ÇUBUK ================= */}
       <header
+        ref={ustRef}
         style={{
-          background: C.paper, borderBottom: `1px solid ${C.line}`,
-          padding: `${S.lg}px ${S.lg}px ${S.md}px`,
+          position: "sticky", top: 0, zIndex: 45,
+          background: "color-mix(in srgb, var(--paper) 88%, transparent)",
+          backdropFilter: "saturate(1.6) blur(12px)", WebkitBackdropFilter: "saturate(1.6) blur(12px)",
+          borderBottom: `1px solid ${C.line}`,
         }}
       >
-        <div style={{ maxWidth: 1560, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: S.lg, flexWrap: "wrap" }}>
-          <div style={{ minWidth: 260, flex: "1 1 480px" }}>
-            <div style={{ ...T.etiket, color: C.steel, marginBottom: 6 }}>
-              Yerel LLM altyapısı · kapasite simülasyonu
-            </div>
-            <h1 style={{ ...T.dev, margin: 0, color: C.ink }}>
-              Hangi donanım, kaç adet, ne kadar token
-            </h1>
-            <p style={{ ...T.govde, color: C.ink2, margin: `${S.sm}px 0 0`, maxWidth: 720 }}>
-              {MODELS.length} açık ağırlıklı model, {DEVICES.length} donanım, Türkiye fiyatlarıyla.
-              KV cache hesabı her modelin gerçek{" "}
-              <code style={{ fontFamily: MONO, fontSize: 12.5 }}>config.json</code> katman
-              geometrisinden yapılır.
-            </p>
-          </div>
-          {/* Danışman sağ alttaki kalıcı düğmede; burada ikinci bir kopyası
-              yalnızca kalabalık yapıyordu. Tema seçimi üç durumlu anahtar. */}
+        <div className="ust-ic sayfa-ic" style={{ maxWidth: 1480, margin: "0 auto", padding: "0 24px" }}>
+          <button
+            onClick={() => sayfayaGit("simulator")}
+            style={{ all: "unset", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}
+            aria-label="Simülatöre dön"
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: 30, height: 30, borderRadius: 9, display: "grid", placeItems: "center",
+                background: "linear-gradient(135deg, #6366f1, #4338ca)", boxShadow: GOLGE.hafif,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <rect x="2.5" y="3" width="11" height="2.4" rx="1.2" fill="#fff" />
+                <rect x="2.5" y="6.8" width="7.5" height="2.4" rx="1.2" fill="#f0a060" />
+                <rect x="2.5" y="10.6" width="4.5" height="2.4" rx="1.2" fill="#c7caf7" />
+              </svg>
+            </span>
+            <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
+              <span style={{ fontSize: 14.5, fontWeight: 700, color: C.ink, letterSpacing: "-0.01em" }}>LLM Kapasite</span>
+              <span className="marka-alt" style={{ fontSize: 11.5, color: C.ink3 }}>
+                {MODELS.length} model · {DEVICES.length} donanım · TR fiyatları
+              </span>
+            </span>
+          </button>
+
+          <nav className="ust-nav" role="tablist" aria-label="Sayfalar">
+            {SAYFALAR.map((p) => {
+              const secili = sekme === p.k;
+              return (
+                <button
+                  key={p.k} role="tab" aria-selected={secili} className="nav-sekme"
+                  onClick={() => sayfayaGit(p.k)}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    fontSize: 13.5, fontWeight: secili ? 600 : 500, whiteSpace: "nowrap",
+                    padding: "7px 12px", borderRadius: RADIUS.md, border: "none", cursor: "pointer",
+                    background: secili ? C.steelSoft : "transparent",
+                    color: secili ? C.steel : C.ink2,
+                  }}
+                >
+                  {p.ad}
+                  {p.rozet != null && (
+                    <span style={{ ...T.sayi, fontSize: 11, padding: "0 6px", borderRadius: RADIUS.hap, background: secili ? C.paper : C.wash, color: secili ? C.steel : C.ink3 }}>
+                      {p.rozet}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
           <div
             role="radiogroup" aria-label="Tema"
-            style={{ display: "inline-flex", padding: 3, gap: 2, background: C.wash, border: `1px solid ${C.line}`, borderRadius: RADIUS.hap }}
+            style={{ display: "inline-flex", padding: 3, gap: 2, background: C.wash, border: `1px solid ${C.line}`, borderRadius: RADIUS.md, marginLeft: "auto", flexShrink: 0 }}
           >
-            {[["light", TEMA_SIMGE.light, "Açık"], ["sistem", TEMA_SIMGE.sistem, "Sistem"], ["dark", TEMA_SIMGE.dark, "Koyu"]].map(([k, simge, ad]) => {
+            {[["light", SIMGE.acik, "Açık"], ["sistem", SIMGE.sistem, "Sistem"], ["dark", SIMGE.koyu, "Koyu"]].map(([k, sm, ad]) => {
               const secili = tema === k;
               return (
                 <button
-                  key={k} role="radio" aria-checked={secili} title={`Tema: ${ad.toLowerCase()}`}
+                  key={k} role="radio" aria-checked={secili} title={`Tema: ${ad.toLowerCase()}`} aria-label={`Tema: ${ad.toLowerCase()}`}
                   onClick={() => setTema(k)}
                   style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    fontFamily: SANS, fontSize: 12, fontWeight: secili ? 600 : 500,
-                    padding: "5px 11px", borderRadius: RADIUS.hap, cursor: "pointer",
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
+                    fontSize: 12, fontWeight: secili ? 600 : 500, minWidth: 28,
+                    padding: "5px 7px", borderRadius: RADIUS.sm, cursor: "pointer",
                     border: "none", background: secili ? C.paper : "transparent",
                     color: secili ? C.ink : C.ink3, boxShadow: secili ? GOLGE.hafif : "none",
                   }}
                 >
-                  {simge}{ad}
+                  {sm}
                 </button>
               );
             })}
@@ -477,373 +894,73 @@ export default function Simulator() {
         </div>
       </header>
 
-      <main style={{ maxWidth: 1560, margin: "0 auto", padding: `${S.lg}px ${S.lg}px 110px` }}>
-        {/* ---------------- Hazır senaryolar ---------------- */}
-        <div style={{ display: "flex", alignItems: "center", gap: S.md, flexWrap: "wrap", marginBottom: S.md }}>
-          <Etiket>Hazır senaryo</Etiket>
-          {SENARYOLAR.map((s) => (
-            <button
-              key={s.ad} onClick={() => ayarYukle(s.ayar)} title={s.aciklama}
-              style={{
-                background: C.paper, color: C.ink2, border: `1px solid ${C.line}`,
-                borderRadius: RADIUS.hap, padding: "6px 13px", fontFamily: SANS,
-                fontSize: 12.5, cursor: "pointer", boxShadow: GOLGE.hafif,
-              }}
-            >
-              {s.ad}
-            </button>
-          ))}
-        </div>
-
-        {/* ---------------- Kontroller + Sonuç ---------------- */}
-        <div style={{ display: "flex", gap: S.md, alignItems: "flex-start", flexWrap: "wrap", marginBottom: S.md }}>
-          {/* SOL: kontroller */}
-          <div
-            style={{
-              flex: "1 1 300px", minWidth: 285, maxWidth: 360,
-              display: "flex", flexDirection: "column", gap: S.md,
-            }}
-          >
-            <Bolum baslik="Model">
-              <Secim etiket="Açık ağırlıklı model" deger={modelId} onChange={setModelId}>
-                {aileler.map((a) => (
-                  <optgroup key={a} label={a}>
-                    {MODELS.filter((m) => m.aile === a).map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.ad} · {ctxYazi(m.ctx)}{m.vl ? " · görsel" : ""}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </Secim>
-
-              <div style={{ background: C.paper2, border: `1px solid ${C.line2}`, borderRadius: RADIUS.sm, padding: `${S.sm + 2}px ${S.md}px`, fontFamily: MONO, fontSize: 11, color: C.ink2, lineHeight: 1.8, marginBottom: S.md }}>
-                {model.ap < model.tp
-                  ? <>toplam <b style={{ color: C.ink }}>{model.tp}B</b> · aktif <b style={{ color: C.ink }}>{model.ap}B</b></>
-                  : <>dense <b style={{ color: C.ink }}>{model.tp}B</b></>}
-                <br />KV {r.kvKBtok.toFixed(0)} KB/token @ {ctxYazi(ctxK)}
-                <br />bağlam {ctxYazi(model.ctx)}{model.ext ? ` (YaRN → ${ctxYazi(model.ext)})` : ""}
-                <br />lisans: {model.lis}
-              </div>
-
-              <div style={{ display: "flex", gap: 6, marginBottom: S.md, flexWrap: "wrap" }}>
-                {model.ap < model.tp && <Rozet>MoE</Rozet>}
-                <Rozet tip="bilgi">{kvTipi(model.kv)}</Rozet>
-                {model.vl && <Rozet tip="olumlu">görsel giriş</Rozet>}
-                {model.gated && <Rozet tip="uyari" baslik="İndirmek için HuggingFace onayı gerekir">gated</Rozet>}
-              </div>
-
-              <a
-                href={`https://huggingface.co/${model.hf}`} target="_blank" rel="noreferrer noopener"
-                style={{ fontFamily: SANS, fontSize: 11.5, color: C.steel, textDecoration: "none", border: `1px solid ${C.line}`, borderRadius: RADIUS.sm, padding: "6px 10px", background: C.paper, display: "inline-block", marginBottom: S.md }}
-              >
-                ↗ {model.hf}
-              </a>
-
-              <Onay
-                etiket="İndirdiğin gibi çalıştır"
-                aciklama="Tam hassasiyet ağırlık (BF16) + KV cache'e dokunma (FP16). İkisi ayrı şeydir: ağırlık indirdiğin dosyada, KV ise çalışma zamanı ayarı."
-                isaretli={indirGibi} onChange={setIndirGibi}
-              />
-
-              {/* MTP yalnızca modelin head'i varsa gösterilir — config.json'dan
-                  okundu, tahmin değil. Olmayan modelde seçenek sunmak yanıltıcı olur. */}
-              {model.mtp ? (
-                <div style={{ marginTop: S.sm }}>
-                  <Onay
-                    etiket={`Speculative decoding (MTP) — ${r.mtpAktif ? `${r.mtpHizlanma}× hızlanma` : "kapalı"}`}
-                    aciklama={`Bu modelde ${model.mtp} MTP head'i var. Açıldığında her adımda bir taslak token daha üretilir; kabul edilen taslak neredeyse bedava gelir. vLLM/SGLang'de tek satırlık ayar. Bedeli: prefill 0,75×'e düşer ve ~1 GB VRAM gider — hızlanma karşılığında bağlamdan feragat edersin.`}
-                    isaretli={mtpAcik} onChange={setMtpAcik}
-                  />
-                </div>
-              ) : (
-                <div style={{ ...T.mini, color: C.ink3, marginTop: S.sm }}>
-                  Bu modelin yayımlanmış ağırlıklarında MTP head'i yok — speculative
-                  decoding için ayrı bir taslak model gerekir.
-                </div>
-              )}
-
-              {!indirGibi && (
-                <div style={{ marginTop: S.md }}>
-                  <Secim
-                    etiket="Ağırlık kuantizasyonu"
-                    deger={quant}
-                    onChange={setQuant}
-                    alt={
-                      quantAraniyor
-                        ? "HuggingFace'te hazır dosyalar aranıyor…"
-                        : quantBilgi && !quantBilgi.bilinmiyor
-                        ? `${quantBilgi.depolar.length} GGUF deposunda bulunanlar listeleniyor.`
-                        : "Hazır dosya araması sonuç vermedi — tüm şemalar gösteriliyor."
-                    }
-                  >
-                    {QUANT_GRUP.map((g) => {
-                      const secenekler = QUANTS.filter((q) => {
-                        if (q.grup !== g) return false;
-                        if (tumQuantlar || q.id === quant) return true;
-                        // "bilinmiyor" olanlar (FP8/NVFP4/AWQ gibi GGUF dışı
-                        // formatlar) bu aramayla ölçülemez, hep gösterilir.
-                        return quantBilgi?.durum?.[q.id] !== "yok";
-                      });
-                      if (!secenekler.length) return null;
-                      return (
-                        <optgroup key={g} label={g}>
-                          {secenekler.map((q) => {
-                            const d = quantBilgi?.durum?.[q.id];
-                            const isaret = d === "var" ? " ✓" : d === "yok" ? " · hazır dosya yok" : "";
-                            return (
-                              <option key={q.id} value={q.id}>
-                                {q.ad} — {q.bit}, kalite ~{q.kalite}{isaret}
-                              </option>
-                            );
-                          })}
-                        </optgroup>
-                      );
-                    })}
-                  </Secim>
-
-                  {quantBilgi && !quantBilgi.bilinmiyor && (
-                    <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: -S.sm, marginBottom: S.md, cursor: "pointer" }}>
-                      <input
-                        type="checkbox" checked={tumQuantlar}
-                        onChange={(e) => setTumQuantlar(e.target.checked)}
-                        style={{ accentColor: "var(--steel)" }}
-                      />
-                      <span style={{ ...T.mini, color: C.ink3 }}>
-                        Hazır dosyası bulunmayanları da göster (kendin kuantize edersin)
-                      </span>
-                    </label>
-                  )}
-                  <Secim etiket="KV cache kuantizasyonu" deger={kvq} onChange={setKvq} alt={kvAktif.not}>
-                    {KVQUANTS.map((q) => <option key={q.id} value={q.id}>{q.ad}</option>)}
-                  </Secim>
-
-                  {/* En sık karışan nokta: KV kuantizasyonu indirilen dosyanın
-                      içinde GELMEZ, sunucuyu başlatırken bayrakla açılır.
-                      Bayrağı vermeyi unutan kişi bu sayfadaki bellek hesabını
-                      tutturamaz — o yüzden komutu doğrudan gösteriyoruz. */}
-                  {(() => {
-                    const gguf = /GGUF|IQ|^Q\d/.test(qAktif.ad);
-                    const b = kvBayragi(kvq, gguf ? "gguf" : "vllm");
-                    return (
-                      <div style={{ background: C.paper2, border: `1px solid ${C.line2}`, borderRadius: RADIUS.sm, padding: `${S.sm}px ${S.md}px`, marginTop: -S.sm, marginBottom: S.md }}>
-                        <div style={{ ...T.mini, color: C.ink2 }}>
-                          KV kuantizasyonu <b>indirdiğin dosyada gelmez ve otomatik açılmaz</b> —
-                          KV cache konuşma başlayınca oluşur, bu yüzden hassasiyeti sunucuyu
-                          başlatırken verilir. Her yığının varsayılanı tam hassasiyettir; bayrağı
-                          vermezsen aşağıdaki bellek hesabı tutmaz.
-                        </div>
-                        <div style={{ marginTop: S.sm }}>
-                          {b.durum === "bayrak" ? (
-                            <code style={{ fontFamily: MONO, fontSize: 11, color: C.steel, wordBreak: "break-all" }}>
-                              {gguf ? "llama-server … " : "vllm serve … "}{b.bayrak}
-                            </code>
-                          ) : (
-                            <span style={{ ...T.mini, color: C.ink3, fontStyle: "italic" }}>
-                              {b.durum === "varsayilan"
-                                ? "Varsayılan davranış — ek bayrak gerekmiyor."
-                                : `${gguf ? "llama.cpp" : "vLLM"} bu şemayı desteklemiyor; ${gguf ? "FP8/q8_0" : "FP8"} seç ya da diğer yığına geç.`}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </Bolum>
-
-            <Bolum baslik="İş yükü" aciklama="Ne inşa ettiğini seç, beş değer birden dolsun">
-              <Secim
-                etiket="İş yükü profili"
-                deger={aktifProfil || "ozel"}
-                onChange={(v) => v !== "ozel" && profilUygula(v)}
-              >
-                <option value="ozel">Özel — kaydırakları kendim ayarlıyorum</option>
-                {IS_YUKLERI.map((p) => (
-                  <option key={p.id} value={p.id}>{p.ad} — {p.ozet}</option>
-                ))}
-              </Secim>
-
-              {aktifProfil ? (
-                <div
-                  style={{
-                    background: C.steelSoft, borderLeft: `3px solid ${C.steel}`,
-                    borderRadius: RADIUS.sm, padding: `${S.sm}px ${S.md}px`,
-                    marginBottom: S.md, ...T.mini, color: C.ink2,
-                  }}
-                >
-                  {IS_YUKU_HARITA[aktifProfil].neden}
-                </div>
-              ) : (
-                <div style={{ ...T.mini, color: C.ink3, marginBottom: S.md }}>
-                  Kaydıraklardan birini oynattığın an profil "özel"e döner — profil
-                  yalnızca bir başlangıç noktasıdır, kilit değil.
-                </div>
-              )}
-
-              <Kaydirac
-                etiket="Bağlam penceresi" deger={ctxK} onChange={setCtxK}
-                min={4} max={1024} olcek="log" goster={`${ctxYazi(ctxK)} token`}
-                alt={`Modelin desteği: ${ctxYazi(model.ctx)}${ctxK > model.ctx ? " — aşıyorsun" : ""}`}
-              />
-              <Kaydirac
-                etiket="Ortalama prompt uzunluğu" deger={girdiK} onChange={setGirdiK}
-                min={1} max={Math.max(4, ctxK)} olcek="log" goster={`${ctxYazi(girdiK)} token`}
-                alt="İlk token gecikmesini bu belirler. Prefix caching açıksa yalnızca yeni token'lar sayılır."
-              />
-              <Kaydirac etiket="Eşzamanlı kullanıcı" deger={kullanici} onChange={setKullanici} min={1} max={64} step={1} goster={`${kullanici} kişi`} />
-              <Kaydirac
-                etiket="Ortalama yanıt uzunluğu" deger={cikti} onChange={setCikti}
-                min={100} max={8000} step={100} goster={`${cikti} token`}
-                alt={`Yaklaşık ${harfYazi(cikti)} — modelin bir yanıtta ürettiği metin.`}
-              />
-              <Kaydirac
-                etiket="KV doluluk varsayımı" deger={kvOran} onChange={setKvOran}
-                min={10} max={100} step={5} goster={`%${kvOran}`}
-                alt="Her kullanıcının bağlam penceresini ortalama ne kadar doldurduğu. %100 en kötü senaryodur."
-              />
-            </Bolum>
-
-            <Bolum baslik="Donanım">
-              <Secim etiket="Cihaz" deger={cihazId} onChange={setCihazId}>
-                {gruplar.map((g) => (
-                  <optgroup key={g} label={g}>
-                    {DEVICES.filter((d) => d.grup === g).map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.ad} · {d.mem} GB{d.tr === "kolay" ? " · TR ✓" : ""}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </Secim>
-              <Kaydirac
-                etiket={cihaz.gpu ? "Sunucu sayısı" : "Adet"} deger={adet} onChange={setAdet}
-                min={1} max={16} step={1}
-                goster={cihaz.gpu ? `${adet} sunucu · ${adet * cihaz.gpu.adet} GPU` : `${adet} adet`}
-                alt={cihaz.gpu && adet > 1
-                  ? "Sunucular arası bağlantı ağ üzerinden varsayılır (kötü senaryo). Model tek sunucuya sığıyorsa gerçekte her sunucu ayrı bir kopya çalıştırır ve kapasite sunucu sayısıyla çarpılır."
-                  : undefined}
-              />
-
-              {/* Offload yalnızca ayrık kartlarda anlamlı: birleşik bellekli
-                  kutuda ağırlıklar zaten sistem RAM'inde, taşınacak yer yok. */}
-              {cihaz.tur === "kart" && (
-                <>
-                  <Secim
-                    etiket="Sistem RAM'i" deger={String(sistemRam)} onChange={(v) => setSistemRam(Number(v))}
-                    alt={`Offload tavanını bu belirler (işletim sistemi için ${RAM_ISLETIM_PAYI} GB pay bırakılır).`}
-                  >
-                    <option value="0">Ana sisteme göre — {anaSistem(adet).ram} GB</option>
-                    {RAM_SECENEK.map((g) => <option key={g} value={g}>{g} GB</option>)}
-                  </Secim>
-
-                  <Secim
-                    etiket="Offload (sistem RAM'ine taşıma)"
-                    deger={offloadModu} onChange={setOffloadModu}
-                    alt={
-                      offloadModu === "kapali"
-                        ? "Model VRAM'e sığmıyorsa “sığmıyor” denir. Gerçek kapasiteyi görmek için."
-                        : r.offload > 0
-                        ? `Sığdırmak için ${gb(r.offload)} GB taşındı (ağırlığın %${Math.round(r.offloadOrani * 100)}'i). Bu kısım her adımda ~${Math.round(r.pcieBW)} GB/s ile okunur — VRAM'den ${Math.round((r.kumeBW * cihaz.mbu) / r.pcieBW)}× yavaş.`
-                        : "Gerek yok — model zaten VRAM'e sığıyor. Sığmasaydı yetecek en az miktar otomatik taşınırdı."
-                    }
-                  >
-                    <option value="otomatik">Otomatik — gerektiği kadar taşı</option>
-                    <option value="kapali">Kapalı — yalnızca VRAM kullan</option>
-                  </Secim>
-                </>
-              )}
-              <div style={{ background: C.paper2, border: `1px solid ${C.line2}`, borderRadius: RADIUS.sm, padding: `${S.sm + 2}px ${S.md}px`, fontFamily: MONO, fontSize: 11, color: C.ink2, lineHeight: 1.8 }}>
-                {cihaz.mem} GB {cihaz.bellekTipi.toUpperCase()} · {cihaz.bw} GB/s · {cihaz.w} W
-                <br />{MIM_AD[cihaz.mim]}
-                <br />birim {para(cihaz.fiyat)} · <b style={{ color: C.ink }}>~{paraTL(cihaz.try)}</b>
-                <br /><span style={{ color: TR_DURUM[cihaz.tr].renk }}>TR: {TR_DURUM[cihaz.tr].ad}</span>
-                <br />yığın: {(YIGIN[cihaz.mim] || []).slice(0, 3).join(", ")}
-                {adet > 1 && (
-                  <><br /><span style={{ color: r.tpEtki < 0.5 ? C.bad : C.ink2 }}>
-                    {TP_ETIKET[r.link]} · verim %{Math.round(r.tpEtki * 100)}
-                  </span></>
-                )}
-                <br />
-                <span style={{ color: cihaz.mbuKalibre ? C.ok : C.ink3 }}>
-                  bant genişliği kullanımı: %{Math.round(cihaz.mbu * 100)}
-                  {cihaz.mbuKalibre ? " (senin ölçümün)" : " (tahmin)"}
-                </span>
-              </div>
-
-              <SistemOzellik cihaz={cihaz} kompakt />
-
-              <Kalibrasyon
-                cihaz={cihaz} simHiz={r.kullaniciTokS} sigar={r.sigar}
-                kalibrasyon={kalibrasyonlar[cihaz.id]}
-                uygula={(id, v) => setKalibrasyonlar(kalibrasyonKaydet(id, { ...v, model: model.ad, quant: qAktif.ad }))}
-                sil={(id) => setKalibrasyonlar(kalibrasyonSil(id))}
-              />
-            </Bolum>
-          </div>
-
-          {/* SAĞ: sonuç */}
-          <div style={{ flex: "3 1 560px", minWidth: 320 }}>
-            <Sonuc
-              r={r} kap={kap} model={model} cihaz={cihaz} adet={adet} quant={quant}
-              qAktif={qAktif} indirGibi={indirGibi} ctxK={ctxK} girdiK={girdiK}
-              kullanici={kullanici} cikti={cikti} kvOran={kvOran} hedef={hedef}
-              tpsDurum={tpsDurum} ttftDurum={ttftDurum} bildirimler={bildirimler}
-            />
-
-            {/* Sohbet önizlemesi sonucun hemen altında: aynı kurulumun
-                sayısal ve yaşanan hâli yan yana okunuyor. */}
-            <div style={{ marginTop: S.md }}>
-              <Hedefler
-                hedef={hedef} setHedef={setHedef} kap={kap}
-                tps={r.sigar ? r.kullaniciTokS : 0}
-                ttftMs={r.sigar ? r.ttftYogun * 1000 : 0}
-                sigar={r.sigar}
-                modelAd={model.ad} donanimAd={`${adet} × ${cihaz.ad}`}
-                dusunmeSeviye={dusunmeSeviye} setDusunmeSeviye={setDusunmeSeviye}
-              />
+      <main className="sayfa-ic" style={{ width: "100%", maxWidth: 1480, margin: "0 auto", padding: `${S.xl}px 24px 120px`, flex: 1 }}>
+        {sekme === "simulator" ? (
+          <>
+            <div style={{ marginBottom: S.xl }}>
+              <h1 style={{ ...T.dev, margin: 0, color: C.ink }}>Hangi donanım, kaç adet, ne kadar token?</h1>
+              <p style={{ ...T.govde, color: C.ink3, margin: `${S.xs + 2}px 0 0`, maxWidth: 760 }}>
+                Modeli, iş yükünü ve donanımı seç; belleğe sığıp sığmadığını, ne hızda
+                çalışacağını ve kaç kişiye yeteceğini anında gör. KV cache her modelin
+                gerçek katman geometrisinden hesaplanır.
+              </p>
             </div>
-          </div>
-        </div>
-
-        {/* ---------------- Sekmeli alt bölüm ---------------- */}
-        <Sekmeler sekmeler={SEKMELER} aktif={sekme} onChange={setSekme} />
-
-        {sekme === "bantlar" && (
-          <Bantlar hedef={hedef} kvOran={kvOran / 100} yukle={ayarYukle} aktifAyar={aktifAyar} />
+            <div className="sim-izgara">
+              <aside className="sim-kenar" data-kaydirma="kasitli" aria-label="Ayarlar">{kontroller}</aside>
+              {sonuclar}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ marginBottom: S.lg }}>
+              <h1 style={{ ...T.dev, margin: 0, color: C.ink }}>{SAYFA_BASLIK[sekme][0]}</h1>
+              <p style={{ ...T.govde, color: C.ink3, margin: `${S.xs + 2}px 0 0`, maxWidth: 760 }}>
+                {SAYFA_BASLIK[sekme][1]}
+              </p>
+            </div>
+            {sekme !== "bilgi" && baglamSeridi}
+            {sekme === "bantlar" && (
+              <Bantlar hedef={hedef} kvOran={kvOran / 100} yukle={simulatoreYukle} aktifAyar={aktifAyar} />
+            )}
+            {sekme === "donanim" && (
+              <DonanimTablosu
+                ortak={ortak} model={model} cihazId={cihazId} hedef={hedef}
+                kullanici={kullanici} girdiK={girdiK} ctxK={ctxK}
+                sec={(id, n) => { setCihazId(id); setAdet(n); }}
+              />
+            )}
+            {sekme === "modeller" && (
+              <ModelTablosu
+                ortak={ortak} cihaz={cihaz} adet={adet} modelId={modelId}
+                qAktif={qAktif} indirGibi={indirGibi} ctxK={ctxK} kullanici={kullanici}
+                sec={(id, cozum) => {
+                  setModelId(id);
+                  if (cozum) { setIndirGibi(false); setQuant(cozum.id); setKvq("q4"); }
+                }}
+              />
+            )}
+            {sekme === "grafik" && (
+              <Grafik ortak={ortak} model={model} cihaz={cihaz} adet={adet} girdiK={girdiK} hedef={hedef} />
+            )}
+            {sekme === "bilgi" && <Bilgi />}
+          </>
         )}
-        {sekme === "donanim" && (
-          <DonanimTablosu
-            ortak={ortak} model={model} cihazId={cihazId} hedef={hedef}
-            kullanici={kullanici} girdiK={girdiK} ctxK={ctxK}
-            sec={(id, n) => { setCihazId(id); setAdet(n); }}
-          />
-        )}
-        {sekme === "modeller" && (
-          <ModelTablosu
-            ortak={ortak} cihaz={cihaz} adet={adet} modelId={modelId}
-            qAktif={qAktif} indirGibi={indirGibi} ctxK={ctxK} kullanici={kullanici}
-            sec={(id, cozum) => {
-              setModelId(id);
-              if (cozum) { setIndirGibi(false); setQuant(cozum.id); setKvq("q4"); }
-            }}
-          />
-        )}
-        {sekme === "grafik" && (
-          <Grafik ortak={ortak} model={model} cihaz={cihaz} adet={adet} girdiK={girdiK} hedef={hedef} />
-        )}
-        {sekme === "bilgi" && <Bilgi />}
-
-        <footer style={{ marginTop: S.xl, ...T.mini, color: C.ink3, textAlign: "center" }}>
-          Seçimlerin adres çubuğunda saklanır — bu sayfanın linkini paylaşırsan karşı taraf aynı
-          kurulumu ve aynı hedefleri görür.
-          <br />
-          <a href="https://github.com/furkanyesildag/Gpudeneme" target="_blank" rel="noreferrer noopener" style={{ color: C.steel }}>
-            github.com/furkanyesildag/Gpudeneme
-          </a>
-        </footer>
       </main>
+
+      <footer style={{ borderTop: `1px solid ${C.line}`, background: C.paper }}>
+        <div
+          className="sayfa-ic"
+          style={{
+            maxWidth: 1480, margin: "0 auto", padding: `${S.lg}px 24px`, ...T.mini, color: C.ink3,
+            display: "flex", justifyContent: "space-between", gap: S.md, flexWrap: "wrap",
+          }}
+        >
+          <span>Seçimlerin adres çubuğunda saklanır — linki paylaşırsan karşı taraf aynı kurulumu görür.</span>
+          <a href="https://github.com/furkanyesildag/Gpudeneme" target="_blank" rel="noreferrer noopener" style={{ color: C.ink2, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            GitHub'da kaynak kodu {SIMGE.dis}
+          </a>
+        </div>
+      </footer>
 
       <ChatBot baglam={sohbetBaglami} hfCtx={hfCtx} acikDis={sohbetAcik} setAcikDis={setSohbetAcik} />
     </div>

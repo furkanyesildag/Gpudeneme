@@ -60,8 +60,9 @@ export default function Kalibrasyon({ cihaz, simHiz, sigar, kalibrasyon, uygula,
               placeholder={simHiz > 0 ? simHiz.toFixed(0) : "örn. 95"}
               aria-label="Ölçülen token/saniye"
               style={{
-                width: 92, fontFamily: MONO, fontSize: 13, padding: "6px 8px",
-                border: `1px solid ${C.line}`, borderRadius: RADIUS.sm, background: C.paper, color: C.ink,
+                width: 100, fontSize: 13, padding: "6px 9px",
+                border: `1px solid ${C.line}`, borderRadius: RADIUS.md, background: C.paper, color: C.ink,
+                fontVariantNumeric: "tabular-nums",
               }}
             />
             <span style={{ ...T.mini, color: C.ink3 }}>tok/s</span>
@@ -90,7 +91,7 @@ export default function Kalibrasyon({ cihaz, simHiz, sigar, kalibrasyon, uygula,
 }
 
 const kucukBtn = {
-  fontFamily: SANS, fontSize: 11.5, padding: "5px 10px", borderRadius: RADIUS.sm,
+  fontFamily: SANS, fontSize: 12.5, fontWeight: 500, padding: "6px 12px", borderRadius: RADIUS.md,
   border: `1px solid ${C.line}`, background: C.paper, color: C.ink2, cursor: "pointer",
   whiteSpace: "nowrap",
 };

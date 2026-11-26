@@ -5,12 +5,16 @@
 /*  isimle okunur — açık/koyu tema tek yerden döner.                   */
 /*  Boşluk ve tipografi ölçekleri burada; bileşenlerde serbest sayı    */
 /*  yazmak yerine bunları kullan, sayfa böylece tek bir ritim tutar.   */
+/*                                                                     */
+/*  Sayılar eş aralıklı yazı tipiyle değil, Inter'in tablo rakamlarıyla */
+/*  yazılır: hizalı kalır ama "terminal" gibi görünmez. MONO yalnızca  */
+/*  kod, komut ve dosya adı içindir.                                   */
 /* ------------------------------------------------------------------ */
 
 export const MONO =
-  'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace';
+  '"JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace';
 export const SANS =
-  '"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
 export const C = {
   ink: "var(--ink)",
@@ -38,40 +42,41 @@ export const C = {
 /* 4 px tabanlı boşluk ölçeği. */
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 36 };
 
+const RAKAM = { fontVariantNumeric: "tabular-nums", fontFeatureSettings: '"tnum"' };
+
 /* Tipografi ölçeği — her seviyenin tek bir tanımı var. */
 export const T = {
-  dev: { fontSize: 30, fontWeight: 500, letterSpacing: "-0.025em", lineHeight: 1.15 },
-  baslik: { fontSize: 19, fontWeight: 600, letterSpacing: "-0.015em", lineHeight: 1.3 },
-  altBaslik: { fontSize: 15, fontWeight: 600, lineHeight: 1.35 },
-  govde: { fontSize: 13.5, lineHeight: 1.65 },
-  kucuk: { fontSize: 12.5, lineHeight: 1.6 },
-  mini: { fontSize: 11.5, lineHeight: 1.5 },
-  /* Bölüm etiketi: seyrek kullan — her yerde büyük harf gürültü yapar. */
-  etiket: {
-    fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.1em",
-    textTransform: "uppercase", fontWeight: 500,
-  },
-  sayi: { fontFamily: MONO, fontWeight: 500, letterSpacing: "-0.01em" },
+  dev: { fontSize: 28, fontWeight: 700, letterSpacing: "-0.025em", lineHeight: 1.15 },
+  baslik: { fontSize: 18, fontWeight: 600, letterSpacing: "-0.015em", lineHeight: 1.3 },
+  altBaslik: { fontSize: 14.5, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: 1.35 },
+  govde: { fontSize: 14, lineHeight: 1.6 },
+  kucuk: { fontSize: 13, lineHeight: 1.55 },
+  mini: { fontSize: 12, lineHeight: 1.5 },
+  /* Bölüm/ölçüm etiketi: küçük, orta kalınlıkta, büyük harfe çevrilmez. */
+  etiket: { fontFamily: SANS, fontSize: 12, fontWeight: 500, letterSpacing: "0", lineHeight: 1.4 },
+  sayi: { fontFamily: SANS, fontWeight: 600, letterSpacing: "-0.02em", ...RAKAM },
 };
 
-export const RADIUS = { sm: 4, md: 6, lg: 10, hap: 999 };
+export const RAKAMLAR = RAKAM;
+
+export const RADIUS = { sm: 6, md: 8, lg: 12, xl: 16, hap: 999 };
 
 export const GOLGE = {
   yok: "none",
-  hafif: "0 1px 2px rgba(0,0,0,0.05)",
-  orta: "0 2px 8px rgba(0,0,0,0.07)",
-  yuksek: "0 12px 40px rgba(0,0,0,0.22)",
+  hafif: "var(--golge-1)",
+  orta: "var(--golge-2)",
+  yuksek: "var(--golge-3)",
 };
 
 /* Recharts SVG'de CSS değişkeni her yerde çözülmediği için sabit yedekler.
    Grafik renkleri iki zeminde de okunacak biçimde seçildi. */
 export const CHART = {
-  steel: "#3E86B4",
-  kv: "#D07E45",
-  bad: "#D25550",
-  ok: "#18A08C",
-  grid: "#8A9AA5",
-  axis: "#8A9AA5",
+  steel: "#6366F1",
+  kv: "#EA8A3A",
+  bad: "#E05252",
+  ok: "#14A874",
+  grid: "#9AA0AD",
+  axis: "#8A90A0",
 };
 
 /* Durum → renk çifti (metin, zemin). Bildirim ve rozetlerde ortak. */

@@ -1,5 +1,5 @@
 import React from "react";
-import { C, MONO, S, T, RADIUS } from "../theme.js";
+import { C, S, T, RADIUS } from "../theme.js";
 import { Bolum, Aciklama } from "../components/ui.jsx";
 import { KAVRAMLAR } from "../data/concepts.js";
 import { MODELS } from "../data/models.js";
@@ -47,18 +47,18 @@ export default function Bilgi() {
           <button
             onClick={() => setKavramAcik((v) => !v)}
             style={{
-              fontFamily: MONO, fontSize: 11.5, color: C.steel, border: `1px solid ${C.line}`,
-              borderRadius: RADIUS.sm, padding: "4px 9px", background: C.paper, cursor: "pointer",
+              fontSize: 12.5, fontWeight: 600, color: C.steel, border: `1px solid ${C.line}`,
+              borderRadius: RADIUS.md, padding: "5px 11px", background: C.paper, cursor: "pointer",
             }}
           >
-            {kavramAcik ? "gizle −" : "göster +"}
+            {kavramAcik ? "Gizle" : "Göster"}
           </button>
         }
       >
         {kavramAcik && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: S.md }}>
             {KAVRAMLAR.map((k) => (
-              <div key={k.ad} style={{ background: C.paper2, border: `1px solid ${C.line2}`, borderRadius: RADIUS.sm, padding: `${S.md}px ${S.md}px` }}>
+              <div key={k.ad} style={{ background: C.paper2, border: `1px solid ${C.line2}`, borderRadius: RADIUS.md, padding: `${S.md + 2}px ${S.md + 2}px` }}>
                 <div style={{ ...T.kucuk, fontWeight: 600, color: C.ink, marginBottom: 3 }}>{k.ad}</div>
                 <div style={{ ...T.mini, color: C.steel, fontStyle: "italic", marginBottom: 5 }}>{k.benzet}</div>
                 <div style={{ ...T.mini, color: C.ink2 }}>{k.ozet}</div>

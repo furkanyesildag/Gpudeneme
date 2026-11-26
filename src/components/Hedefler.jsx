@@ -1,6 +1,6 @@
 import React from "react";
-import { C, MONO, SANS, S, T, RADIUS } from "../theme.js";
-import { Kart } from "./ui.jsx";
+import { C, S, T } from "../theme.js";
+import { Kart, Ipucu, Dugme } from "./ui.jsx";
 import SohbetOnizleme from "./SohbetOnizleme.jsx";
 import { HEDEF_SINIR, VARSAYILAN_HEDEF } from "../engine.js";
 
@@ -40,33 +40,21 @@ function Alan({ tanim, deger, onChange }) {
   const id = `hedef-${tanim.k}`;
   return (
     <div>
-      <label htmlFor={id} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
-        <span style={{ ...T.mini, color: C.ink2, fontWeight: 500 }}>{tanim.ad}</span>
-        <span
-          title={tanim.ipucu} aria-label={tanim.ipucu}
-          style={{
-            fontFamily: MONO, fontSize: 9, width: 13, height: 13, lineHeight: "12px",
-            textAlign: "center", borderRadius: "50%", border: `1px solid ${C.line}`,
-            color: C.ink3, cursor: "help", flexShrink: 0,
-          }}
-        >
-          i
-        </span>
-      </label>
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+        <label htmlFor={id} style={{ ...T.kucuk, color: C.ink, fontWeight: 500 }}>{tanim.ad}</label>
+        <Ipucu>{tanim.ipucu}</Ipucu>
+      </div>
+      <div style={{ position: "relative" }}>
         <input
-          id={id} type="number" value={deger}
+          id={id} type="number" value={deger} className="girdi"
           min={s.min} max={s.max} step={tanim.adim}
           onChange={(e) => {
             const v = Number(e.target.value);
             if (Number.isFinite(v)) onChange(Math.max(s.min, Math.min(s.max, v)));
           }}
-          style={{
-            width: "100%", fontFamily: MONO, fontSize: 13, padding: "6px 8px",
-            border: `1px solid ${C.line}`, borderRadius: RADIUS.sm, background: C.paper, color: C.ink,
-          }}
+          style={{ paddingRight: 48 }}
         />
-        <span style={{ fontFamily: MONO, fontSize: 11, color: C.ink3, whiteSpace: "nowrap" }}>
+        <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.ink3, pointerEvents: "none" }}>
           {tanim.birim}
         </span>
       </div>
@@ -82,7 +70,7 @@ export default function Hedefler({
   const varsayilanMi = ALANLAR.every((a) => hedef[a.k] === VARSAYILAN_HEDEF[a.k]);
 
   return (
-    <Kart style={{ padding: S.lg }}>
+    <Kart style={{ padding: `${S.lg + 2}px ${S.lg + 4}px` }}>
       <SohbetOnizleme
         tps={tps} ttftMs={ttftMs} sigar={sigar}
         modelAd={modelAd} donanimAd={donanimAd}
@@ -90,19 +78,21 @@ export default function Hedefler({
       />
 
       {/* ---- gelişmiş: hedefler ---- */}
-      <div style={{ marginTop: S.md }}>
+      <div style={{ marginTop: S.md, borderTop: `1px solid ${C.line2}` }}>
         <button
           onClick={() => setGelismisAcik((v) => !v)}
           aria-expanded={gelismisAcik}
           style={{
-            display: "flex", alignItems: "center", gap: S.sm, width: "100%",
-            background: "transparent", border: "none", padding: `${S.sm}px 0`,
+            display: "flex", alignItems: "center", gap: `${S.xs}px ${S.sm}px`, width: "100%", flexWrap: "wrap",
+            background: "transparent", border: "none", padding: `${S.md}px 0 0`,
             cursor: "pointer", textAlign: "left", color: C.ink2,
           }}
         >
-          <span style={{ fontFamily: MONO, fontSize: 11, color: C.steel }}>{gelismisAcik ? "▾" : "▸"}</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: C.ink3, transform: gelismisAcik ? "rotate(90deg)" : "none", transition: "transform .15s" }}>
+            <path d="M4.5 3 7.5 6 4.5 9" />
+          </svg>
           <span style={{ ...T.kucuk, fontWeight: 600, color: C.ink }}>
-            Performans hedefleri ve kapasite varsayımları
+            Performans hedefleri
           </span>
           <span style={{ ...T.mini, color: C.ink3 }}>
             ≤{hedef.ttftMs} ms · ≥{hedef.tps} tok/s · sohbet ×{hedef.sohbetKat} · ajan ×{hedef.ajanKat}
@@ -111,7 +101,7 @@ export default function Hedefler({
         </button>
 
         {gelismisAcik && (
-          <div style={{ paddingTop: S.sm, borderTop: `1px solid ${C.line2}` }}>
+          <div style={{ paddingTop: S.xs }}>
             <p style={{ ...T.kucuk, color: C.ink2, margin: `${S.md}px 0`, maxWidth: 800 }}>
               Bu dört değer neyin <b>kabul edilebilir</b> sayıldığını belirler. Her donanımın
               <b> Maks. C</b>, <b>sohbet</b> ve <b>ajan</b> kapasitesi bunlardan yeniden hesaplanır;
@@ -129,15 +119,9 @@ export default function Hedefler({
                 anda işlediği istek sayısıdır; çarpanlar bir yuvanın kaç kişiye yettiğini ifade eder.
               </div>
               {!varsayilanMi && (
-                <button
-                  onClick={() => setHedef({ ...VARSAYILAN_HEDEF })}
-                  style={{
-                    fontFamily: SANS, fontSize: 11.5, padding: "5px 10px", borderRadius: RADIUS.sm,
-                    border: `1px solid ${C.line}`, background: C.paper, color: C.ink2, cursor: "pointer",
-                  }}
-                >
+                <Dugme boy="kucuk" onClick={() => setHedef({ ...VARSAYILAN_HEDEF })}>
                   Varsayılana dön
-                </button>
+                </Dugme>
               )}
             </div>
           </div>

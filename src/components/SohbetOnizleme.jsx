@@ -1,5 +1,5 @@
 import React from "react";
-import { C, MONO, SANS, S, T, RADIUS } from "../theme.js";
+import { C, SANS, S, T, RADIUS } from "../theme.js";
 import { sureYazi } from "../engine.js";
 
 /* ------------------------------------------------------------------ */
@@ -139,22 +139,21 @@ export default function SohbetOnizleme({
   const evreRenk = { ink3: C.ink3, warn: C.warn, steel: C.steel, ok: C.ok }[EVRE[evre].renk];
 
   return (
-    <div style={{ border: `1px solid ${C.line}`, borderRadius: RADIUS.md, background: C.paper, overflow: "hidden" }}>
+    <div>
       {/* ---- üst şerit ---- */}
       <div
         style={{
           display: "flex", justifyContent: "space-between", alignItems: "center", gap: S.md,
-          padding: `${S.sm + 2}px ${S.md}px`, background: C.paper2,
-          borderBottom: `1px solid ${C.line2}`, flexWrap: "wrap",
+          marginBottom: S.md, flexWrap: "wrap",
         }}
       >
         <div style={{ minWidth: 0 }}>
-          <div style={{ ...T.etiket, color: C.ink3 }}>İlk sohbetinde ne göreceksin</div>
-          <div style={{ ...T.mini, color: C.ink2, marginTop: 2 }}>
+          <div style={{ ...T.altBaslik, color: C.ink }}>Kullanıcı ne görecek?</div>
+          <div style={{ ...T.mini, color: C.ink3, marginTop: 2 }}>
             {modelAd} · {donanimAd}
             {sigar ? (
-              <> · <b style={{ fontFamily: MONO, color: C.ink }}>{tps.toFixed(1)} tok/s</b>, ilk token{" "}
-                <b style={{ fontFamily: MONO, color: C.ink }}>{sureYazi(ttftMs / 1000)}</b></>
+              <> · <b style={{ ...T.sayi, color: C.ink }}>{tps.toFixed(1)} tok/s</b>, ilk token{" "}
+                <b style={{ ...T.sayi, color: C.ink }}>{sureYazi(ttftMs / 1000)}</b></>
             ) : (
               <> · <span style={{ color: C.bad }}>bu kurulum belleğe sığmıyor</span></>
             )}
@@ -165,7 +164,7 @@ export default function SohbetOnizleme({
           {/* Düşünme seviyesi */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ ...T.mini, color: C.ink3, whiteSpace: "nowrap" }}>Düşünme</span>
-            <div style={{ display: "flex", border: `1px solid ${C.line}`, borderRadius: RADIUS.sm, overflow: "hidden" }}>
+            <div style={{ display: "flex", padding: 3, gap: 2, background: C.wash, border: `1px solid ${C.line}`, borderRadius: RADIUS.md }}>
               {DUSUNME_SEVIYELERI.map((sv) => (
                 <button
                   key={sv.id}
@@ -173,11 +172,12 @@ export default function SohbetOnizleme({
                   aria-pressed={dusunmeSeviye === sv.id}
                   title={sv.not}
                   style={{
-                    fontFamily: SANS, fontSize: 11, padding: "5px 9px", cursor: "pointer", border: "none",
-                    borderLeft: sv.id === "kapali" ? "none" : `1px solid ${C.line}`,
-                    background: dusunmeSeviye === sv.id ? C.steel : C.paper,
-                    color: dusunmeSeviye === sv.id ? C.onAccent : C.ink3,
-                    fontWeight: dusunmeSeviye === sv.id ? 600 : 400,
+                    fontFamily: SANS, fontSize: 12, padding: "4px 10px", cursor: "pointer", border: "none",
+                    borderRadius: RADIUS.sm,
+                    background: dusunmeSeviye === sv.id ? C.paper : "transparent",
+                    color: dusunmeSeviye === sv.id ? C.ink : C.ink3,
+                    boxShadow: dusunmeSeviye === sv.id ? "var(--golge-1)" : "none",
+                    fontWeight: dusunmeSeviye === sv.id ? 600 : 500,
                   }}
                 >
                   {sv.ad}
@@ -199,7 +199,7 @@ export default function SohbetOnizleme({
         <div
           style={{
             display: "flex", alignItems: "center", gap: S.md, padding: `${S.sm}px ${S.md}px`,
-            background: C.steelSoft, borderBottom: `1px solid ${C.line2}`, flexWrap: "wrap",
+            background: C.steelSoft, borderRadius: RADIUS.md, marginBottom: S.sm, flexWrap: "wrap",
           }}
         >
           <span style={{ ...T.sayi, fontSize: 12, color: C.steel, whiteSpace: "nowrap" }}>
@@ -210,6 +210,7 @@ export default function SohbetOnizleme({
       )}
 
       {/* ---- zaman çizelgesi ---- */}
+      <div style={{ border: `1px solid ${C.line}`, borderRadius: RADIUS.lg, overflow: "hidden", background: C.paper2 }}>
       <div style={{ display: "flex", height: 4, background: C.line2 }}>
         <div style={{ width: `${(t0 / t2) * 100}%`, background: C.warn, opacity: gecen >= 0 ? 1 : 0.3 }} title={`Prefill (prompt işleniyor): ${sureYazi(t0 / 1000)}`} />
         {dusunme && <div style={{ width: `${(dusunmeSuresi / t2) * 100}%`, background: C.steel }} title={`Düşünme: ${sureYazi(dusunmeSuresi / 1000)}`} />}
@@ -225,10 +226,10 @@ export default function SohbetOnizleme({
       </div>
 
       {/* ---- sohbet gövdesi ---- */}
-      <div ref={kaydirRef} style={{ padding: S.md, minHeight: 210, maxHeight: 300, overflowY: "auto", background: C.paper }}>
+      <div ref={kaydirRef} style={{ padding: `${S.lg}px ${S.lg}px ${S.md}px`, minHeight: 200, maxHeight: 300, overflowY: "auto", background: C.paper2 }}>
         {/* kullanıcı balonu */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: S.sm }}>
-          <div style={{ background: C.steel, color: C.onAccent, borderRadius: RADIUS.md, padding: "8px 11px", ...T.kucuk, maxWidth: "80%" }}>
+          <div style={{ background: C.steel, color: C.onAccent, borderRadius: "14px 14px 4px 14px", padding: "9px 13px", ...T.kucuk, maxWidth: "80%" }}>
             {SORU}
           </div>
         </div>
@@ -237,11 +238,11 @@ export default function SohbetOnizleme({
         <div style={{ display: "flex", alignItems: "center", gap: S.sm, marginBottom: S.sm, ...T.mini }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: evreRenk, display: "inline-block", flexShrink: 0 }} />
           <span style={{ color: evreRenk, fontWeight: 500 }}>{EVRE[evre].ad}</span>
-          <span style={{ fontFamily: MONO, color: C.ink3 }}>{(gecen / 1000).toFixed(1)} sn</span>
+          <span style={{ ...T.sayi, fontWeight: 500, color: C.ink3 }}>{(gecen / 1000).toFixed(1)} sn</span>
         </div>
 
         {evre === "bos" ? (
-          <div style={{ ...T.kucuk, color: C.ink3, fontStyle: "italic" }}>
+          <div style={{ ...T.kucuk, color: C.ink3 }}>
             {sigar
               ? "“Sohbeti başlat”a bas — bekleme, düşünme ve yazma süreleri seçtiğin model ve donanımın gerçek hesabıyla, gerçek zamanlı olarak canlandırılacak."
               : "Bu kurulum belleğe sığmadığı için canlandırılacak bir hız yok. Kuantizasyonu düşür, bağlamı kısalt ya da cihaz ekle."}
@@ -256,7 +257,7 @@ export default function SohbetOnizleme({
                   borderRadius: RADIUS.sm, padding: `${S.sm}px ${S.md}px`, marginBottom: S.sm,
                 }}
               >
-                <div style={{ ...T.etiket, color: C.steel, marginBottom: S.xs, fontSize: 9.5 }}>
+                <div style={{ ...T.mini, fontWeight: 600, color: C.steel, marginBottom: S.xs }}>
                   düşünce · kullanıcı bunu beklerken cevabı göremez
                 </div>
                 <div style={{ ...T.mini, color: C.ink3, fontStyle: "italic" }}>
@@ -268,7 +269,7 @@ export default function SohbetOnizleme({
 
             {/* yanıt */}
             {gecen >= t1 && (
-              <div style={{ ...T.kucuk, color: C.ink2, whiteSpace: "pre-wrap" }}>
+              <div style={{ ...T.kucuk, color: C.ink, whiteSpace: "pre-wrap", background: C.paper, border: `1px solid ${C.line2}`, borderRadius: "14px 14px 14px 4px", padding: "10px 13px", maxWidth: "92%" }}>
                 {yanitYazilan}
                 {evre === "yanit" && <span style={imlec} />}
               </div>
@@ -287,7 +288,7 @@ export default function SohbetOnizleme({
       <div
         style={{
           display: "flex", gap: S.lg, flexWrap: "wrap", padding: `${S.sm + 2}px ${S.md}px`,
-          borderTop: `1px solid ${C.line2}`, background: C.paper2, ...T.mini,
+          borderTop: `1px solid ${C.line2}`, background: C.paper, ...T.mini,
         }}
       >
         {[
@@ -296,30 +297,31 @@ export default function SohbetOnizleme({
           ["Yanıt yazılıyor", yanitSuresi, C.ok],
         ].map(([ad, ms, renk]) => (
           <span key={ad} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 9, height: 9, background: renk, borderRadius: 2, display: "inline-block" }} />
-            <span style={{ color: C.ink2 }}>{ad}</span>
-            <span style={{ fontFamily: MONO, color: C.ink }}>{sureYazi(ms / 1000)}</span>
+            <span style={{ width: 9, height: 9, background: renk, borderRadius: 3, display: "inline-block" }} />
+            <span style={{ color: C.ink3 }}>{ad}</span>
+            <span style={{ ...T.sayi, color: C.ink }}>{sureYazi(ms / 1000)}</span>
           </span>
         ))}
         <span style={{ marginLeft: "auto", color: C.ink2 }}>
           Cevabın ilk harfi:{" "}
-          <b style={{ fontFamily: MONO, color: dusunme ? C.warn : C.ink }}>{sureYazi(t1 / 1000)}</b>
-          {" · "}Tamamı: <b style={{ fontFamily: MONO, color: C.ink }}>{sureYazi(t2 / 1000)}</b>
+          <b style={{ ...T.sayi, color: dusunme ? C.warn : C.ink }}>{sureYazi(t1 / 1000)}</b>
+          {" · "}Tamamı: <b style={{ ...T.sayi, color: C.ink }}>{sureYazi(t2 / 1000)}</b>
         </span>
+      </div>
       </div>
     </div>
   );
 }
 
 const anaDugme = (aktif) => ({
-  fontFamily: SANS, fontSize: 12, fontWeight: 600, padding: "6px 13px",
-  borderRadius: RADIUS.sm, border: "none", whiteSpace: "nowrap",
+  fontFamily: SANS, fontSize: 12.5, fontWeight: 600, padding: "7px 14px",
+  borderRadius: RADIUS.md, border: "none", whiteSpace: "nowrap",
   background: aktif ? C.steel : C.line,
   color: aktif ? C.onAccent : C.ink3,
   cursor: aktif ? "pointer" : "not-allowed",
 });
 const yanDugme = {
-  fontFamily: SANS, fontSize: 12, padding: "6px 11px", borderRadius: RADIUS.sm,
+  fontFamily: SANS, fontSize: 12.5, fontWeight: 500, padding: "7px 12px", borderRadius: RADIUS.md,
   border: `1px solid ${C.line}`, background: C.paper, color: C.ink2, cursor: "pointer",
 };
 const imlec = {
